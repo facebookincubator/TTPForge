@@ -1,0 +1,75 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+      - id: detect-private-key
+      - id: check-shebang-scripts-are-executable
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.30.0
+    hooks:
+      - id: yamllint
+        entry: yamllint --strict -c .hooks/linters/yamllint.yaml
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0-alpha.6
+    hooks:
+      - id: prettier
+        files: \.(json|md|yaml|yml)$
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: script-must-have-extension
+        name: Ensure shell scripts end with .sh
+        types: [shell]
+      - id: shellcheck
+      - id: shfmt
+      # Configuration in .mdlrc and .hooks/linters/mdstyle.rb
+      - id: markdownlint
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+      - id: codespell
+        entry: codespell -q 3 -f --skip=".git,.github" README.md
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-lint
+      - id: go-imports
+      - id: go-cyclo
+        args: [-over=15]
+      - id: golangci-lint
+      - id: go-critic
+      - id: go-build
+      - id: go-mod-tidy
+
+  - repo: local
+    hooks:
+      - id: go-no-replacement
+        name: Avoid committing a go module replacement
+        entry: .hooks/go-no-replacement.sh
+        language: script
+        files: go.mod
+
+      - id: go-unit-tests
+        name: Go unit tests
+        language: script
+        entry: .hooks/go-unit-tests.sh short
+        files: '\.go$'
+
+      - id: go-vet
+        name: Run go vet
+        language: script
+        entry: .hooks/go-vet.sh
+        files: '\.go$'

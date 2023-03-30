@@ -1,0 +1,34 @@
+---
+name: goreleaser
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  goreleaser:
+    name: Run go releaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up git repository
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3
+
+      - name: Fetch all tags
+        run: git fetch --force --tags
+
+      - name: Set up Go
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4
+        with:
+          go-version: 1.19
+
+      - name: Fix GOPATH
+        run: export PATH=$PATH:$(go env GOPATH)/bin
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b # v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

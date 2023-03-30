@@ -1,0 +1,48 @@
+---
+name: Renovate
+on:
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Dry-Run"
+        default: "false"
+        required: false
+      logLevel:
+        description: "Log-Level"
+        default: "debug"
+        required: false
+  schedule:
+    # Run once per week - at 00:00 on Sunday
+    - cron: "0 0 * * 0"
+  push:
+    branches: ["main"]
+    paths:
+      - .github/renovate-bot.json5
+      - .github/renovate.json5
+      - .github/renovate/**.json5
+
+env:
+  LOG_LEVEL: debug
+  RENOVATE_DRY_RUN: false
+  RENOVATE_CONFIG_FILE: .github/renovate-bot.json5
+
+jobs:
+  renovate:
+    name: Renovate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up git repository
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3.5.0
+        with:
+          token: "${{ secrets.BOT_TOKEN }}"
+
+      - name: Override default config from dispatch variables
+        run: |
+          echo "RENOVATE_DRY_RUN=${{ github.event.inputs.dryRun || env.RENOVATE_DRY_RUN }}" >> "${GITHUB_ENV}"
+          echo "LOG_LEVEL=${{ github.event.inputs.logLevel || env.LOG_LEVEL }}" >> "${GITHUB_ENV}"
+
+      - name: Renovate
+        uses: renovatebot/github-action@95cbcd7e8b9d0d69e15ba26208631839ce7eee48 # v36.0.2
+        with:
+          configurationFile: "${{ env.RENOVATE_CONFIG_FILE }}"
+          token: "${{ secrets.BOT_TOKEN }}"

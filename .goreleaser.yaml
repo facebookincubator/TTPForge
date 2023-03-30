@@ -1,0 +1,8 @@
+---
+builds:
+  - id: "goutils"
+    # This is a library - there are no binaries to build
+    skip: true
+
+    hooks:
+      pre: go mod tidy
