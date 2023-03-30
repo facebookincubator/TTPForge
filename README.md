@@ -1,6 +1,5 @@
 # TTP Forge
 
-[![License](https://img.shields.io/github/license/facebookincubator/TTP-Runner?label=License&style=flat&color=blue&logo=github)](https://github.com/facebookincubator/TTP-Runner/blob/main/LICENSE)
 [![Tests](https://github.com/facebookincubator/TTP-Runner/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTP-Runner/actions/workflows/tests.yaml)
 [![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTP-Runner/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTP-Runner/actions/workflows/semgrep.yaml)
 [![Renovate](https://github.com/facebookincubator/TTP-Runner/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTP-Runner/actions/workflows/renovate.yaml)

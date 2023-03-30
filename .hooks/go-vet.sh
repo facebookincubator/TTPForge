@@ -8,6 +8,7 @@ for dir in */; do
                               && [[ "${dir}" != "cmd/" ]] \
                               && [[ "${dir}" != "config/" ]] \
                               && [[ "${dir}" != "deployments/" ]] \
+                              && [[ "${dir}" != "docs/" ]] \
                               && [[ "${dir}" != "files/" ]] \
                               && [[ "${dir}" != "images/" ]] \
                               && [[ "${dir}" != "logs/" ]] \

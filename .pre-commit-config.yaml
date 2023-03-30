@@ -39,7 +39,9 @@ repos:
     rev: v2.2.4
     hooks:
       - id: codespell
-        entry: codespell -q 3 -f --skip=".git,.github" README.md
+        entry: |
+          codespell -q 3 -f
+          -S ".git,.github,README.md,docs/*,go.sum"
 
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1

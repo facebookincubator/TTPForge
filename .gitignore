@@ -1,2 +1,5 @@
 # Code coverage output file
 coverage-all.out
+
+# Compiled binary
+forge
