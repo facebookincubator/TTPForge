@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strconv"
+
 	"github.com/facebookincubator/TTP-Runner/logging"
 	"go.uber.org/zap"
 
@@ -9,23 +11,22 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config maintains variables used throughout the TTP Runner.
+// Config maintains variables used throughout the TTP Forge.
 type Config struct {
-	// to use viper with a structure we use the `mapstructure` to
-	// indicate that viper should find the key (in this instance Verbose)
-	// using the string "verbose" when looking in the yaml file
-	Verbose bool   `mapstructure:"verbose"`
-	Logfile string `mapstructure:"logfile"`
-	Nocolor bool   `mapstructure:"nocolor"`
-	// omit the `mapstructure` to prevent viper from writing
-	// values to config and make use of the cobra cli itself
-	// see the init() method for the difference in usage
-	cfgFile    string
-	saveConfig string
+	Verbose        bool     `mapstructure:"verbose"`
+	Logfile        string   `mapstructure:"logfile"`
+	NoColor        bool     `mapstructure:"nocolor"`
+	TTPSearchPaths []string `mapstructure:"ttp_search_paths"`
+	StackTrace     bool
+	cfgFile        string
+	saveConfig     string
 }
 
 var (
-	conf = &Config{}
+	// Logger is used to facilitate logging throughout TTP Forge.
+	Logger       *zap.Logger
+	conf         = &Config{}
+	deferredInit []func()
 
 	rootCmd = &cobra.Command{
 		Use:   "ttp-runner",
@@ -39,9 +40,7 @@ Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if conf.saveConfig != "" {
 				viper.SetConfigFile(conf.saveConfig)
-				err := viper.WriteConfig()
-				if err != nil {
-
+				if err := viper.WriteConfig(); err != nil {
 					logging.Logger.Error("failed to write config values", zap.Error(err))
 				}
 			}
@@ -56,6 +55,7 @@ func Execute() {
 }
 
 func init() {
+	Logger = logging.Logger
 	cobra.OnInitialize(initConfig)
 
 	// These flags are set using Cobra only, so we populate the conf.* variables directly
@@ -76,26 +76,29 @@ func init() {
 	cobra.CheckErr(err)
 	err = viper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
 	cobra.CheckErr(err)
+
+	verbose, err := strconv.ParseBool(rootCmd.PersistentFlags().Lookup("verbose").Value.String())
+	cobra.CheckErr(err)
+
+	if verbose {
+		logging.ToggleDebug()
+	}
+
+	for _, funcInit := range deferredInit {
+		funcInit()
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if conf.cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(conf.cfgFile)
-	} else {
-		// Search config in current directory with name ".cobra" (without extension).
-		viper.AddConfigPath(".")
-		// Look for config folder
-		viper.AddConfigPath("./config")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("config")
-	}
-
+	// Use config file from the flag - default is handled there
+	viper.SetConfigFile(conf.cfgFile)
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
 		logging.Logger.Sugar().Infof("Using config file: %s", viper.ConfigFileUsed())
+	} else {
+		cobra.CheckErr(err)
 	}
 
 	if err := viper.Unmarshal(conf, func(config *mapstructure.DecoderConfig) {
@@ -104,7 +107,8 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	if err := logging.InitLog(conf.Nocolor, conf.Logfile, conf.Verbose); err != nil {
+	if err := logging.InitLog(conf.NoColor, conf.Logfile, conf.Verbose, conf.StackTrace); err != nil {
+		Logger = logging.Logger
 		cobra.CheckErr(err)
 	}
 }
