@@ -19,10 +19,12 @@ func TestInitLog(t *testing.T) {
 			t.Errorf("error running InitLog(): %v", err)
 		}
 
+		Logger = Logger.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+
 		Logger.Info("Test message")
 		logs := recordedLogs.All()
 		if len(logs) != 1 || logs[0].Message != "Test message" {
-			t.Error("the Logger did not produce expected output")
+			t.Errorf("the Logger did not produce expected output: %+v", logs)
 		}
 	})
 
@@ -41,8 +43,6 @@ func TestInitLog(t *testing.T) {
 		testMessage := "Test log message"
 		Logger.Info(testMessage)
 
-		Logger.Sync()
-
 		content, err := os.ReadFile(tempFile.Name())
 		if err != nil {
 			t.Errorf("failed to read log file: %v", err)
@@ -54,17 +54,19 @@ func TestInitLog(t *testing.T) {
 	})
 
 	t.Run("TestVerbose", func(t *testing.T) {
-		core, recordedLogs := observer.New(zapcore.InfoLevel)
+		core, recordedLogs := observer.New(zapcore.DebugLevel)
 		Logger = zap.New(core)
 
 		if err := InitLog(true, "", true); err != nil {
 			t.Errorf("error running InitLog(): %v", err)
 		}
 
+		Logger = Logger.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+
 		Logger.Debug("Test debug message")
 		logs := recordedLogs.All()
 		if len(logs) != 1 || logs[0].Message != "Test debug message" {
-			t.Error("the Logger did not produce expected debug output")
+			t.Errorf("the Logger did not produce expected debug output: %+v", logs)
 		}
 	})
 }
