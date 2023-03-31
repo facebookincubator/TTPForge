@@ -1,0 +1,25 @@
+---
+name: Test Inline
+description: |
+  Tests inline bash command
+steps:
+  - name: test_env
+    inline: |
+      echo $HOME | tr -d "'"
+    cleanup:
+      inline: |
+        what is it
+  - name: echo
+    inline: |
+      echo "{"test" : $input }"
+    env:
+      input: steps.test_env.output
+
+  - name: jq
+    inline: |-
+      jq {{json .echo.JSONOutput.output}}
+
+  - name: list
+    file: test.sh
+    args:
+      - steps.jq.output

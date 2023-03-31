@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -23,23 +24,22 @@ var (
 		Short:            "Run the embedded procedure.",
 		TraverseChildren: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			blocks.Logger = Logger
+			logging.Logger = Logger
 		},
 	}
 
 	list bool
 )
 
-// we will make use of the Locations value found in the config
-// to populate our path
 func init() {
 	rootCmd.AddCommand(runProcCmd)
 	runProcCmd.PersistentFlags().BoolVar(&list, "list", false, "list all subcommands recursively")
 }
 
+// addDirCommand adds a command to list the subdirectories and TTP actions of the
+// current directory in the YAML files. If the current directory is the root directory,
+// the TTP actions are added to the parent command using the addCommands function.
 func addDirCommand(path string) *cobra.Command {
-	// If we are not at the YAML root, then add command to list
-	// the subcommands. Otherwise, call addCommand().
 	Logger.Sugar().Debugw("Adding directory subcommand", "dir", path)
 	newCmd := &cobra.Command{
 		Use:              path, // keep it simple, just use the path as the subcommand
@@ -54,12 +54,12 @@ func addDirCommand(path string) *cobra.Command {
 
 					if !d.IsDir() && strings.Contains(p, path) && filepath.Ext(p) == ".yaml" {
 						// Remove prefix.
-						split_paths := strings.SplitN(p, path, 2)
+						splitPaths := strings.SplitN(p, path, 2)
 						// Remove trailing suffix.
-						path_from_base := strings.Split(split_paths[1], ".")[0]
-						command_path := strings.Split(path_from_base, "/")
+						pathFromBase := strings.Split(splitPaths[1], ".")[0]
+						commandPath := strings.Split(pathFromBase, "/")
 
-						Logger.Sugar().Infow("subcommands", "path", strings.Join(command_path, " "))
+						Logger.Sugar().Infow("subcommands", "path", strings.Join(commandPath, " "))
 					}
 					return nil
 
@@ -104,7 +104,7 @@ func addCommands(path string, ttp blocks.TTP) *cobra.Command {
 // Example usage:
 //
 // embeddings, _ := embed.NewFS()
-// CfgYAML(&embeddings)
+// InitYAML(&embeddings)
 //
 // Parameters:
 //

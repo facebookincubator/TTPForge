@@ -4,4 +4,4 @@ inventory:
 logfile: ""
 nocolor: false
 stacktrace: false
-verbose: true
+verbose: false

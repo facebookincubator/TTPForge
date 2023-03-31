@@ -14,6 +14,7 @@ targets and mediums.
 
 - [Getting Started](#getting-started)
 - [Developer Environment Setup](docs/dev.md)
+- [Writing Tests](docs/testing.md)
 
 ---
 
@@ -28,4 +29,10 @@ targets and mediums.
    ARCH="$(uname -a | awk '{ print $NF }')"
    gh release download -p "*${OS}_${ARCH}.tar.gz"
    tar -xvf *tar.gz
+   ```
+
+1. Run the Hello World example:
+
+   ```bash
+   ./forge -c config.yaml run ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml
    ```

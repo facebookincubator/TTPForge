@@ -12,5 +12,5 @@ import (
 var embeddedTTPs embed.FS
 
 func init() {
-	cmd.CfgYAML(&embeddedTTPs)
+	cmd.InitYAML(&embeddedTTPs)
 }

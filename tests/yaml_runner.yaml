@@ -1,0 +1,13 @@
+---
+name: test
+description: test the execution of this
+steps:
+  - name: testing_exec
+    file: ~/security-ttpcode/ttpforge/tests/test.sh
+    args:
+      - blah
+  - name: testing_exec_two
+    file: ~/security-ttpcode/ttpforge/tests/test.sh
+    args:
+      - blah
+      - steps.testing_exec.output

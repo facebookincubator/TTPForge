@@ -1,8 +1,24 @@
 ---
 builds:
-  - id: "goutils"
-    # This is a library - there are no binaries to build
-    skip: true
+  - id: "forge"
+    binary: forge
 
-    hooks:
-      pre: go mod tidy
+    goos:
+      - linux
+      - darwin
+      - windows
+
+    goarch:
+      - amd64
+      - arm
+      - arm64
+
+    # GOARM to build for when GOARCH is arm.
+    goarm:
+      - 6
+      - 7
+
+    # GOAMD64 to build when GOARCH is amd64.
+    goamd64:
+      - v2
+      - v3

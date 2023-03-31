@@ -1,0 +1,11 @@
+---
+name: Hello World
+description: |
+  Print hello world
+steps:
+  - name: hello
+    file: ./ttps/privilege-escalation/credential-theft/hello-world/hello-world.sh
+    cleanup:
+      name: cleanup
+      inline: |
+        echo "cleaned up!"

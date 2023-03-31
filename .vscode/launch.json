@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "go",
+      "request": "launch",
+      "name": "Debug Hello World TTP",
+      "mode": "debug",
+      "program": "${workspaceRoot}",
+      "args": [
+        "-c",
+        "config.yaml",
+        "run",
+        "ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml"
+      ]
+    }
+    // {
+    //   "type": "go",
+    //   "request": "launch",
+    //   "name": "Destroy",
+    //   "mode": "debug",
+    //   "program": "${workspaceRoot}",
+    //   "args": ["destroy", "-n", "apply-test", "-e", "dev"],
+    // }
+  ],
+  "compounds": [
+    {
+      "name": "Debug TTPs with VSCode",
+      "configurations": ["Debug Hello World TTP"],
+      // "configurations": ["Debug Hello World TTP", "Apply", "Destroy"],
+      "stopAll": true
+    }
+  ]
+}
