@@ -2,15 +2,16 @@ package blocks_test
 
 import (
 	"testing"
-	"ttpforge/blocks"
-	"ttpforge/utils"
+
+	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/logging"
 
 	"gopkg.in/yaml.v3"
 )
 
 func init() {
-	blocks.Logger = utils.Logger
-	utils.ToggleDebug()
+	blocks.Logger = logging.Logger
+	logging.ToggleDebug()
 }
 func TestUnmarshalSimpleFile(t *testing.T) {
 
@@ -23,11 +24,9 @@ steps:
     file: test_file
   `
 
-	err := yaml.Unmarshal([]byte(content), &ttps)
-	if err != nil {
+	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
 		t.Errorf("failed to unmarshal file step %v", err)
 	}
 
 	t.Logf("successfully unmarshalled data: %v", ttps)
-
 }

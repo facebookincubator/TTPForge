@@ -2,15 +2,16 @@ package blocks_test
 
 import (
 	"testing"
-	"ttpforge/blocks"
-	"ttpforge/utils"
+
+	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/logging"
 
 	"gopkg.in/yaml.v3"
 )
 
 func init() {
-	blocks.Logger = utils.Logger
-	utils.ToggleDebug()
+	blocks.Logger = logging.Logger
+	logging.ToggleDebug()
 }
 
 func TestUnmarshalSimpleCleanupLarge(t *testing.T) {

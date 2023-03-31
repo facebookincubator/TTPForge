@@ -2,15 +2,16 @@ package blocks_test
 
 import (
 	"testing"
-	"ttpforge/blocks"
-	"ttpforge/utils"
+
+	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/logging"
 
 	"gopkg.in/yaml.v3"
 )
 
 func init() {
-	blocks.Logger = utils.Logger
-	utils.ToggleDebug()
+	blocks.Logger = logging.Logger
+	logging.ToggleDebug()
 }
 
 func TestUnmarshalSimpleBasic(t *testing.T) {
@@ -25,8 +26,7 @@ steps:
       ls
 `
 
-	err := yaml.Unmarshal([]byte(content), &ttps)
-	if err != nil {
+	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
 		t.Errorf("failed to unmarshal basic inline %v", err)
 	}
 
@@ -51,17 +51,15 @@ steps:
 
   `
 
-	err := yaml.Unmarshal([]byte(content), &ttps)
-	if err != nil {
+	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
 		t.Errorf("failed to unmarshal basic inline %v", err)
 	}
 
-	t.Logf("successfully unmarshalled data: %v", ttps)
+	t.Logf("Successfully unmarshalled data: %v", ttps)
 
 }
 
 func TestUnmarshalInvalidBasic(t *testing.T) {
-
 	var ttps blocks.TTP
 
 	content := `
@@ -72,8 +70,7 @@ steps:
     inline: |
       ls
   `
-	err := yaml.Unmarshal([]byte(content), &ttps)
-	if err == nil {
+	if err := yaml.Unmarshal([]byte(content), &ttps); err == nil {
 		t.Error("required parameter missing, passed unmarshal", ttps)
 	}
 
