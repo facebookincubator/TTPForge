@@ -4,7 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 
 	"github.com/spf13/cobra"
@@ -12,7 +13,7 @@ import (
 )
 
 func executeYAML(yamlFile string) error {
-	blocks.Logger = Logger
+	logging.Logger = Logger
 
 	ttp, err := blocks.LoadTTP(yamlFile)
 	if err != nil {
@@ -59,7 +60,6 @@ func executeYAML(yamlFile string) error {
 	return nil
 }
 
-var ttpActions map[string]blocks.TTP
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the forgery using the file specified in args.",

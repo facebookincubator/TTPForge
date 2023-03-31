@@ -1,0 +1,50 @@
+---
+name: Pre-Commit
+on:
+  pull_request:
+  push:
+  # Run once a week (see https://crontab.guru)
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  pre-commit:
+    name: Update pre-commit hooks and run pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up git repository
+        uses: actions/checkout@v3.4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+
+      - name: Install homebrew
+        uses: homebrew/actions/setup-homebrew@master
+
+      - name: Install go module dependencies
+        run: |
+          go install mvdan.cc/sh/v3/cmd/shfmt@latest
+          go install github.com/magefile/mage@latest
+
+      - name: Install brew dependencies
+        run: |
+          brew install pre-commit
+          brew install shellcheck
+
+      - name: Run go mod tidy - necessary to avoid errors with dependabot PRs
+        run: |
+          go mod tidy
+          pushd magefiles; go mod tidy; popd
+
+      - name: Install pre-commit dependencies
+        run: mage installDeps
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files

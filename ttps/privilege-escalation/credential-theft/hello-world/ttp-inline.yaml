@@ -1,0 +1,12 @@
+---
+name: Hello World
+description: |
+  Print hello world
+steps:
+  - name: hello
+    inline: |
+      set -e
+      echo "HELLO WORLD!"
+    cleanup:
+      inline: |
+        echo "cleaned up!"

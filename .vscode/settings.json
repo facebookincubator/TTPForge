@@ -1,0 +1,6 @@
+{
+  "go.toolsEnvVars": {
+    "GO111MODULE": "on",
+    "GOPATH": "~/.gvm/pkgsets/go1.20/global"
+  }
+}
