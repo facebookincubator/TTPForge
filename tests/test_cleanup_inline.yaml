@@ -1,0 +1,12 @@
+name: Test Inline Cleanup
+description: |
+  Tests inline cleanup commands
+steps:
+  - name: first_step
+    inline: echo "first step"
+    cleanup:
+      inline: echo "cleaning up first step"
+  - name: second_step
+    inline: echo "second step"
+    cleanup:
+      inline: echo "cleaning up second step"

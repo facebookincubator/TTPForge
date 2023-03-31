@@ -133,7 +133,7 @@ func (b *BasicStep) Validate() error {
 		b.Executor = "bash"
 	}
 
-	if b.Executor == BINARY {
+	if b.Executor == ExecutorBinary {
 		return nil
 	}
 	_, err = exec.LookPath(b.Executor)

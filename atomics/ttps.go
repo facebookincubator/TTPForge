@@ -67,7 +67,7 @@ func (a *TTP) RunSteps() (string, error) {
 			break
 		}
 		availableSteps[stepCopy.Name] = &stepCopy
-		Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.Name].JsonOutput)
+		Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.Name].JSONOutput)
 		Logger.Sugar().Infof("[+] Finished running step: %s", step.Name)
 		lastCompletedStepIdx = stepIdx
 	}

@@ -316,8 +316,8 @@ func (a *Action) setOutputSuccess(output *bytes.Buffer, exit int) {
 	}
 
 	outStr := strings.TrimSpace(string(output.Bytes()))
-	var outJson map[string]any
-	err := yaml.Unmarshal(output.Bytes(), &outJson)
+	var outJSON map[string]any
+	err := yaml.Unmarshal(output.Bytes(), &outJSON)
 	if err != nil {
 		Logger.Sugar().Debugw("failed to unmarshal output into json structure", "err", err)
 		Logger.Sugar().Infow("treating output as single string", "output", outStr)
@@ -325,8 +325,8 @@ func (a *Action) setOutputSuccess(output *bytes.Buffer, exit int) {
 		return
 	}
 
-	Logger.Sugar().Debugw("json marshalled to JsonOutput", "json", outJson)
-	a.JSONOutput["output"] = outJson
+	Logger.Sugar().Debugw("json marshalled to JSONOutput", "json", outJSON)
+	a.JSONOutput["output"] = outJSON
 
 }
 

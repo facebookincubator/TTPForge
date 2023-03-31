@@ -128,7 +128,7 @@ func (f *FileStep) Execute() (err error) {
 func (f *FileStep) fileExec() error {
 
 	var cmd *exec.Cmd
-	if f.Executor == BINARY {
+	if f.Executor == ExecutorBinary {
 		cmd = exec.Command(f.FilePath, f.FetchArgs(f.Args)...)
 	} else {
 		args := []string{f.FilePath}
@@ -186,24 +186,24 @@ func (f *FileStep) Validate() error {
 		Logger.Sugar().Debugw("file extension inferred", "filepath", f.FilePath, "ext", ext)
 		switch ext {
 		case ".sh":
-			f.Executor = SH
+			f.Executor = ExecutorSh
 		case ".py":
-			f.Executor = PYTHON
+			f.Executor = ExecutorPython
 		case ".rb":
-			f.Executor = RUBY
+			f.Executor = ExecutorRuby
 		case ".pwsh":
-			f.Executor = POWERSHELL
+			f.Executor = ExecutorPowershell
 		case ".ps1":
-			f.Executor = POWERSHELL
+			f.Executor = ExecutorPowershell
 		case ".bat":
-			f.Executor = CMD
+			f.Executor = ExecutorCmd
 		case "":
-			f.Executor = BINARY
+			f.Executor = ExecutorBinary
 		default:
 			if runtime.GOOS == "windows" {
-				f.Executor = CMD
+				f.Executor = ExecutorCmd
 			} else {
-				f.Executor = SH
+				f.Executor = ExecutorSh
 			}
 		}
 		Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
@@ -215,7 +215,7 @@ func (f *FileStep) Validate() error {
 		f.Executor = "bash"
 	}
 
-	if f.Executor == BINARY {
+	if f.Executor == ExecutorBinary {
 		return nil
 	}
 	_, err = exec.LookPath(f.Executor)

@@ -13,23 +13,23 @@ import (
 )
 
 const (
-	PYTHON     = "python3"
-	BASH       = "bash"
-	SH         = "sh"
-	POWERSHELL = "powershell"
-	RUBY       = "ruby"
-	BINARY     = "binary"
-	CMD        = "cmd.exe"
+	ExecutorPython     = "python3"
+	ExecutorBash       = "bash"
+	ExecutorSh         = "sh"
+	ExecutorPowershell = "powershell"
+	ExecutorRuby       = "ruby"
+	ExecutorBinary     = "binary"
+	ExecutorCmd        = "cmd.exe"
 )
 
 type StepType string
 
 const (
-	UNSET     StepType = "UNSET"
-	FILESTEP           = "FILESTEP"
-	BASICSTEP          = "BASICSTEP"
-	SUBTTP             = "SUBTTP"
-	CLEANUP            = "CLEANUP"
+	UNSET     = "UNSET"
+	FILESTEP  = "FILESTEP"
+	BASICSTEP = "BASICSTEP"
+	SUBTTP    = "SUBTTP"
+	CLEANUP   = "CLEANUP"
 )
 
 type Act struct {
@@ -238,22 +238,21 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 	}
 
 	outStr := strings.TrimSpace(string(output.Bytes()))
-	var outJson map[string]any
-	err := yaml.Unmarshal(output.Bytes(), &outJson)
+	var outJSON map[string]any
+	err := yaml.Unmarshal(output.Bytes(), &outJSON)
 	if err != nil {
+		// TODO - error here: failed to unmarshal output into json structure  {"err": "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `HELLO W...` into map[string]interface {}"}
 		Logger.Sugar().Debugw("failed to unmarshal output into json structure", "err", err)
 		Logger.Sugar().Infow("treating output as single string", "output", outStr)
 		a.output["output"] = outStr
 		return
 	}
 
-	Logger.Sugar().Debugw("json marshalled to JsonOutput", "json", outJson)
-	a.output = outJson
-
+	Logger.Sugar().Debugw("json marshalled to JSONOutput", "json", outJSON)
+	a.output = outJSON
 }
 
 func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
-
 	// we don't care if cleanup fails so move on.
 	if node.IsZero() {
 		return nil, nil
