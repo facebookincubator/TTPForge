@@ -14,6 +14,7 @@ targets and mediums.
 
 - [Getting Started](#getting-started)
 - [Developer Environment Setup](docs/dev.md)
+- [Writing Tests](docs/testing.md)
 
 ---
 
