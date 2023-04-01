@@ -247,7 +247,7 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 		return
 	}
 
-	Logger.Sugar().Debugw("json marshalled to JsonOutput", "json", outJson)
+	Logger.Sugar().Debugw("json marshalled to JSONOutput", "json", outJson)
 	a.output = outJson
 
 }
