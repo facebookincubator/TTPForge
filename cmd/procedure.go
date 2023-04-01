@@ -30,16 +30,15 @@ var (
 	list bool
 )
 
-// we will make use of the Locations value found in the config
-// to populate our path
 func init() {
 	rootCmd.AddCommand(runProcCmd)
 	runProcCmd.PersistentFlags().BoolVar(&list, "list", false, "list all subcommands recursively")
 }
 
+// addDirCommand adds a command to list the subdirectories and TTP actions of the
+// current directory in the YAML files. If the current directory is the root directory,
+// the TTP actions are added to the parent command using the addCommands function.
 func addDirCommand(path string) *cobra.Command {
-	// If we are not at the YAML root, then add command to list
-	// the subcommands. Otherwise, call addCommand().
 	Logger.Sugar().Debugw("Adding directory subcommand", "dir", path)
 	newCmd := &cobra.Command{
 		Use:              path, // keep it simple, just use the path as the subcommand
