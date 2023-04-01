@@ -53,12 +53,12 @@ func addDirCommand(path string) *cobra.Command {
 
 					if !d.IsDir() && strings.Contains(p, path) && filepath.Ext(p) == ".yaml" {
 						// Remove prefix.
-						split_paths := strings.SplitN(p, path, 2)
+						splitPaths := strings.SplitN(p, path, 2)
 						// Remove trailing suffix.
-						path_from_base := strings.Split(split_paths[1], ".")[0]
-						command_path := strings.Split(path_from_base, "/")
+						pathFromBase := strings.Split(splitPaths[1], ".")[0]
+						commandPath := strings.Split(pathFromBase, "/")
 
-						Logger.Sugar().Infow("subcommands", "path", strings.Join(command_path, " "))
+						Logger.Sugar().Infow("subcommands", "path", strings.Join(commandPath, " "))
 					}
 					return nil
 
