@@ -27,7 +27,7 @@ type BasicStep struct {
 func NewBasicStep() *BasicStep {
 	return &BasicStep{
 		Act: &Act{
-			Type: BASICSTEP,
+			Type: StepBasic,
 		},
 	}
 }
@@ -58,7 +58,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	// we do it piecemiel to build our struct
-	if tmpl.CleanupStep.IsZero() || b.Type == CLEANUP {
+	if tmpl.CleanupStep.IsZero() || b.Type == StepCleanup {
 		return nil
 	}
 

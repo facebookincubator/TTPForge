@@ -128,7 +128,7 @@ func (s *SubTTPStep) loadSubTTP() error {
 }
 
 func (s *SubTTPStep) GetType() StepType {
-	return SUBTTP
+	return StepSubTTP
 }
 
 func (s *SubTTPStep) ExplainInvalid() error {
@@ -170,7 +170,7 @@ func (s *SubTTPStep) Validate() error {
 
 	// first check if steps contain any sub ttps themselves, if they do, error
 	for _, steps := range s.ttp.Steps {
-		if steps.GetType() == SUBTTP {
+		if steps.GetType() == StepSubTTP {
 			return errors.New("nested ttp step found in nested ttp step, remove to continue execution")
 		}
 	}

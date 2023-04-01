@@ -24,11 +24,11 @@ type FileStep struct {
 	Args        []string   `yaml:"args,omitempty,flow"`
 }
 
-// NewFileStep creates a new FileStep instance.
+// NewFileStep creates a new FileStep instance and returns a pointer to it.
 func NewFileStep() *FileStep {
 	return &FileStep{
 		Act: &Act{
-			Type: FILESTEP,
+			Type: StepFile,
 		},
 	}
 }
@@ -72,7 +72,7 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	// If there is no cleanup step or if this step is the cleanup step, exit.
-	if tmpl.CleanupStep.IsZero() || f.Type == CLEANUP {
+	if tmpl.CleanupStep.IsZero() || f.Type == StepCleanup {
 		return nil
 	}
 
@@ -90,9 +90,9 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-// GetType returns the type of the step.
+// GetType returns the type of the step as StepType.
 func (f *FileStep) GetType() StepType {
-	return FILESTEP
+	return StepFile
 }
 
 // Cleanup is a method to establish a link with the Cleanup interface.
@@ -110,7 +110,7 @@ func (f *FileStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
-// CleanupName returns the name of the cleanup action.
+// CleanupName returns the name of the cleanup action as a string.
 func (f *FileStep) CleanupName() string {
 	return f.Name
 }
@@ -135,7 +135,7 @@ func (f *FileStep) ExplainInvalid() error {
 	return err
 }
 
-// IsNil checks if the FileStep is nil or empty.
+// IsNil checks if the FileStep is nil or empty and returns a boolean value.
 func (f *FileStep) IsNil() bool {
 	switch {
 	case f.Act.IsNil():
@@ -147,7 +147,7 @@ func (f *FileStep) IsNil() bool {
 	}
 }
 
-// Execute runs the FileStep.
+// Execute runs the FileStep and returns an error if any occur.
 func (f *FileStep) Execute() (err error) {
 	Logger.Sugar().Debugw("available data", "outputs", f.output)
 	Logger.Sugar().Info("========= Executing ==========")
@@ -164,7 +164,7 @@ func (f *FileStep) Execute() (err error) {
 	return nil
 }
 
-// fileExec executes the FileStep with the specified executor and arguments.
+// fileExec executes the FileStep with the specified executor and arguments, and returns an error if any occur.
 func (f *FileStep) fileExec() error {
 	var cmd *exec.Cmd
 	if f.Executor == ExecutorBinary {
@@ -259,6 +259,7 @@ func (f *FileStep) Validate() error {
 	return nil
 }
 
+// inferExecutor infers the executor based on the file extension and returns it as a string.
 func inferExecutor(filePath string) string {
 	ext := filepath.Ext(filePath)
 	Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)

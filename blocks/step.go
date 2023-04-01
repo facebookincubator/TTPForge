@@ -26,11 +26,11 @@ const (
 type StepType string
 
 const (
-	UNSET     = "UNSET"
-	FILESTEP  = "FILESTEP"
-	BASICSTEP = "BASICSTEP"
-	SUBTTP    = "SUBTTP"
-	CLEANUP   = "CLEANUP"
+	StepUnset   = "UNSET"
+	StepFile    = "FILESTEP"
+	StepBasic   = "BASICSTEP"
+	StepSubTTP  = "SUBTTP"
+	StepCleanup = "CLEANUP"
 )
 
 type Act struct {
@@ -266,7 +266,7 @@ func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 	berr = node.Decode(&basic)
 	if basic != nil && basic.Name == "" {
 		basic.Name = fmt.Sprintf("cleanup-%s", a.Name)
-		basic.Type = CLEANUP
+		basic.Type = StepCleanup
 	}
 
 	if berr == nil && !basic.IsNil() {
@@ -278,7 +278,7 @@ func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 	ferr = node.Decode(&file)
 	if file != nil && file.Name == "" {
 		file.Name = fmt.Sprintf("cleanup-%s", a.Name)
-		file.Type = CLEANUP
+		file.Type = StepCleanup
 	}
 
 	if ferr == nil && !file.IsNil() {
