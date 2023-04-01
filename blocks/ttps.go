@@ -154,7 +154,6 @@ func (t *TTP) RunSteps() error {
 		Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.StepName()].GetOutput())
 		Logger.Sugar().Infof("[+] Finished running step: %s", step.StepName())
 	}
-
 	// original error from step loop
 	if err != nil {
 		Logger.Sugar().Errorw("error encountered in step loop: %v", err)

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -285,5 +286,7 @@ func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 		return file, nil
 	}
 
-	return nil, fmt.Errorf("invalid parameters for cleanup steps with basic [%w], file [%w]", berr, ferr)
+	err := fmt.Errorf("invalid parameters for cleanup steps with basic [%v], file [%v]", berr, ferr)
+	Logger.Sugar().Errorw(err.Error(), zap.Error(err))
+	return nil, err
 }
