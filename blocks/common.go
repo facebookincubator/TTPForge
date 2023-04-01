@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 var InventoryPath []string
@@ -61,9 +63,11 @@ func CheckExist(path string, workdir string, system fs.StatFS) (foundPath string
 		// only allow in the working dir
 		tmppath, err := FetchAbs(path, workdir)
 		if err != nil {
+			Logger.Sugar().Error("failed to execute FetchAbs() on %s in %s: %v", path, workdir, zap.Error(err))
 			return "", err
 		}
 		if _, err := os.Stat(tmppath); errors.Is(err, fs.ErrNotExist) {
+			Logger.Sugar().Error(zap.Error(err))
 			return "", err
 		}
 		foundPath = path
@@ -73,12 +77,17 @@ func CheckExist(path string, workdir string, system fs.StatFS) (foundPath string
 		// check workdir first, takes precedence
 		tmppath, err := FetchAbs(path, workdir)
 		if err != nil {
+			Logger.Sugar().Error("failed to execute FetchAbs() on %s in %s: %v", path, workdir, zap.Error(err))
 			return "", err
 		}
 		if file, err := os.Stat(tmppath); !errors.Is(err, fs.ErrNotExist) && file.Size() > 0 {
 			Logger.Sugar().Debugw("found", "path", tmppath)
 			return tmppath, nil
+		} else {
+			Logger.Sugar().Error(zap.Error(err))
+			return "", err
 		}
+
 		// then check in the list of paths
 		for _, dir := range InventoryPath {
 			tmppath, err = FetchAbs(path, dir)
@@ -105,7 +114,7 @@ func FetchEnv(environ map[string]string) []string {
 	return envSlice
 }
 
-func JsonString(in any) (string, error) {
+func JSONString(in any) (string, error) {
 	out, err := json.Marshal(in)
 	if err != nil {
 		return "", err

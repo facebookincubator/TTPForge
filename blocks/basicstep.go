@@ -173,7 +173,7 @@ func (b *BasicStep) executeBashStdin(ptx context.Context) (err error) {
 
 	funcMap := template.FuncMap{
 		// The name "title" is what the function will be called in the template text.
-		"json": JsonString,
+		"json": JSONString,
 	}
 
 	tmpl, err := template.New("inline").Funcs(funcMap).Parse(b.Inline)
