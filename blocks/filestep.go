@@ -10,18 +10,21 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
+// FileStep represents a step in a process that consists of a main action,
+// a cleanup action, and additional metadata.
 type FileStep struct {
 	*Act        `yaml:",inline"`
 	FilePath    string     `yaml:"file,omitempty"`
 	Executor    string     `yaml:"executor,omitempty"`
 	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
 	Args        []string   `yaml:"args,omitempty,flow"`
-	altBaseDir  string
 }
 
+// NewFileStep creates a new FileStep instance.
 func NewFileStep() *FileStep {
 	return &FileStep{
 		Act: &Act{
@@ -30,39 +33,55 @@ func NewFileStep() *FileStep {
 	}
 }
 
+// UnmarshalYAML decodes a YAML node into a FileStep instance. It uses the provided
+// struct as a template for the YAML data, and initializes the FileStep instance with the
+// decoded values.
+//
+// Parameters:
+//
+// node: A pointer to a yaml.Node representing the YAML data to decode.
+//
+// Returns:
+//
+// error: An error if there is a problem decoding the YAML data.
 func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 
-	type FileStepTmpl struct {
+	type fileStepTmpl struct {
 		Act         `yaml:",inline"`
 		FilePath    string    `yaml:"file,omitempty"`
 		Executor    string    `yaml:"executor,omitempty"`
 		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
 		Args        []string  `yaml:"args,omitempty,flow"`
-		altBaseDir  string
 	}
 
-	var tmpl FileStepTmpl
+	// Decode the YAML node into the provided template.
+	var tmpl fileStepTmpl
 	if err := node.Decode(&tmpl); err != nil {
 		return err
 	}
 
+	// Initialize the FileStep instance with the decoded values.
 	f.Act = &tmpl.Act
 	f.Args = tmpl.Args
 	f.FilePath = tmpl.FilePath
 	f.Executor = tmpl.Executor
 
+	// Check for invalid steps.
 	if f.IsNil() {
 		return f.ExplainInvalid()
 	}
 
+	// If there is no cleanup step or if this step is the cleanup step, exit.
 	if tmpl.CleanupStep.IsZero() || f.Type == CLEANUP {
 		return nil
 	}
 
+	// Create a CleanupStep instance and add it to the FileStep instance.
 	Logger.Sugar().Debugw("step", "name", tmpl.Name)
 	cleanup, err := f.MakeCleanupStep(&tmpl.CleanupStep)
-	Logger.Sugar().Debugw("step", "err", err)
+	Logger.Sugar().Debugw("step", zap.Error(err))
 	if err != nil {
+		Logger.Sugar().Errorw("error creating cleanup step", zap.Error(err))
 		return err
 	}
 
@@ -71,17 +90,18 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// GetType returns the type of the step.
 func (f *FileStep) GetType() StepType {
 	return FILESTEP
 }
 
-// Method to establish link with Cleanup Interface
-// Assumes that type is the cleanup step
-// invoked by f.CleanupStep.Cleanup
+// Cleanup is a method to establish a link with the Cleanup interface.
+// Assumes that the type is the cleanup step and is invoked by f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup() error {
 	return f.Execute()
 }
 
+// GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
 func (f *FileStep) GetCleanup() []CleanupAct {
 	if f.CleanupStep != nil {
 		f.CleanupStep.SetDir(f.WorkDir)
@@ -89,21 +109,33 @@ func (f *FileStep) GetCleanup() []CleanupAct {
 	}
 	return []CleanupAct{}
 }
+
+// CleanupName returns the name of the cleanup action.
 func (f *FileStep) CleanupName() string {
 	return f.Name
 }
 
+// ExplainInvalid returns an error message explaining why the FileStep is invalid.
+//
+// Returns:
+//
+// error: An error message explaining why the FileStep is invalid.
 func (f *FileStep) ExplainInvalid() error {
 	var err error
 	if f.FilePath == "" {
-		err = fmt.Errorf("(filepath) empty")
+		err = fmt.Errorf("[!] (filepath) empty")
+		Logger.Sugar().Error(zap.Error(err))
 	}
+
 	if f.Name != "" && err != nil {
-		return fmt.Errorf("[!] invalid filestep: [%s] %w", f.Name, err)
+		err = fmt.Errorf("[!] invalid filestep: [%s] %v", f.Name, zap.Error(err))
 	}
+
+	Logger.Sugar().Error(zap.Error(err))
 	return err
 }
 
+// IsNil checks if the FileStep is nil or empty.
 func (f *FileStep) IsNil() bool {
 	switch {
 	case f.Act.IsNil():
@@ -115,18 +147,25 @@ func (f *FileStep) IsNil() bool {
 	}
 }
 
+// Execute runs the FileStep.
 func (f *FileStep) Execute() (err error) {
 	Logger.Sugar().Debugw("available data", "outputs", f.output)
 	Logger.Sugar().Info("========= Executing ==========")
+
 	if f.FilePath != "" {
-		err = f.fileExec()
+		if err := f.fileExec(); err != nil {
+			Logger.Sugar().Error(zap.Error(err))
+			return err
+		}
 	}
+
 	Logger.Sugar().Info("========= Result ==========")
-	return err
+
+	return nil
 }
 
+// fileExec executes the FileStep with the specified executor and arguments.
 func (f *FileStep) fileExec() error {
-
 	var cmd *exec.Cmd
 	if f.Executor == ExecutorBinary {
 		cmd = exec.Command(f.FilePath, f.FetchArgs(f.Args)...)
@@ -144,9 +183,9 @@ func (f *FileStep) fileExec() error {
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
 	err := cmd.Run()
-	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
-		Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
+		Logger.Sugar().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return err
 	}
 	Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
@@ -156,80 +195,93 @@ func (f *FileStep) fileExec() error {
 	return nil
 }
 
+// Validate validates the FileStep. It checks that the
+// Act field is valid, and that either FilePath is set with
+// a valid file path, or InlineLogic is set with valid code.
+//
+// If FilePath is set, it ensures that the file exists and retrieves its absolute path.
+//
+// If Executor is not set, it infers the executor based on the file extension. It then checks that the executor is in the system path,
+// and if CleanupStep is not nil, it validates the cleanup step as well. It logs any errors and returns them.
+//
+// Returns:
+//
+// error: An error if any validation checks fail.
 func (f *FileStep) Validate() error {
-	err := f.Act.Validate()
-	if err != nil {
+	if err := f.Act.Validate(); err != nil {
+		Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
-	// Validate one or the other is set
-	// Check for cases:
-	// 		both set
-	// 		both unset
 	if f.FilePath == "" {
-		return errors.New("inline or filepath must be provided")
+		err := errors.New("a TTP must include inline logic or path to a file with the logic")
+		Logger.Sugar().Error(zap.Error(err))
+		return err
 	}
 
-	// Filepath is set so we must check files existence
+	// If FilePath is set, ensure that the file exists.
 	fullpath, err := CheckExist(f.FilePath, f.WorkDir, nil)
 	if err != nil {
+		Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
+	// Retrieve the absolute path to the file.
 	f.FilePath, err = FetchAbs(fullpath, f.WorkDir)
 	if err != nil {
+		Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
-	// Filepath checks
-	if f.Executor == "" {
-		ext := filepath.Ext(f.FilePath)
-		Logger.Sugar().Debugw("file extension inferred", "filepath", f.FilePath, "ext", ext)
-		switch ext {
-		case ".sh":
-			f.Executor = ExecutorSh
-		case ".py":
-			f.Executor = ExecutorPython
-		case ".rb":
-			f.Executor = ExecutorRuby
-		case ".pwsh":
-			f.Executor = ExecutorPowershell
-		case ".ps1":
-			f.Executor = ExecutorPowershell
-		case ".bat":
-			f.Executor = ExecutorCmd
-		case "":
-			f.Executor = ExecutorBinary
-		default:
-			if runtime.GOOS == "windows" {
-				f.Executor = ExecutorCmd
-			} else {
-				f.Executor = ExecutorSh
-			}
-		}
-		Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
-	}
 
+	// Infer executor if it's not set.
 	if f.Executor == "" {
-		// TODO: add os handling using the runtime (ezpz)
-		Logger.Sugar().Debug("defaulting to bash since executor was not provided")
-		f.Executor = "bash"
+		f.Executor = inferExecutor(f.FilePath)
+		Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
 	}
 
 	if f.Executor == ExecutorBinary {
 		return nil
 	}
-	_, err = exec.LookPath(f.Executor)
-	if err != nil {
+
+	if _, err := exec.LookPath(f.Executor); err != nil {
+		Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	if f.CleanupStep != nil {
-		err := f.CleanupStep.Validate()
-		if err != nil {
+		if err := f.CleanupStep.Validate(); err != nil {
+			Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
 	}
 	Logger.Sugar().Debugw("command found in path", "executor", f.Executor)
 
 	return nil
+}
+
+func inferExecutor(filePath string) string {
+	ext := filepath.Ext(filePath)
+	Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
+	switch ext {
+	case ".sh":
+		return ExecutorSh
+	case ".py":
+		return ExecutorPython
+	case ".rb":
+		return ExecutorRuby
+	case ".pwsh":
+		return ExecutorPowershell
+	case ".ps1":
+		return ExecutorPowershell
+	case ".bat":
+		return ExecutorCmd
+	case "":
+		return ExecutorBinary
+	default:
+		if runtime.GOOS == "windows" {
+			return ExecutorCmd
+		} else {
+			return ExecutorSh
+		}
+	}
 }

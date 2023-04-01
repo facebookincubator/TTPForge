@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -118,8 +119,8 @@ func (t *TTP) RunSteps() error {
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
-		err := stepCopy.Validate()
-		if err != nil {
+		if err := stepCopy.Validate(); err != nil {
+			Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
 		}
 	}
@@ -137,12 +138,12 @@ func (t *TTP) RunSteps() error {
 		Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		err = stepCopy.Execute()
-		if err != nil {
+		if err := stepCopy.Execute(); err != nil {
+			Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			break
 		}
-		availableSteps[stepCopy.StepName()] = stepCopy
 		// Enters in reverse order
+		availableSteps[stepCopy.StepName()] = stepCopy
 
 		Logger.Sugar().Debugw("step data", "data", stepCopy)
 		stepClean := stepCopy.GetCleanup()
@@ -153,8 +154,10 @@ func (t *TTP) RunSteps() error {
 		Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.StepName()].GetOutput())
 		Logger.Sugar().Infof("[+] Finished running step: %s", step.StepName())
 	}
+
 	// original error from step loop
 	if err != nil {
+		Logger.Sugar().Errorw("error encountered in step loop: %v", err)
 		return err
 	}
 
@@ -177,17 +180,20 @@ func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct)
 		Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		err = stepCopy.Cleanup()
-		if err != nil {
+		if err := stepCopy.Cleanup(); err != nil {
+			Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			break
 		}
 		// Enters in reverse order
 		Logger.Sugar().Infof("[+] Finished running cleanup step: %s", step.CleanupName())
 
 	}
-	// original error from step loop
+
+	// original error from cleanup step loop
 	if err != nil {
+		Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
 		return err
 	}
+
 	return nil
 }
