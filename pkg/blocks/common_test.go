@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
 	goutils "github.com/l50/goutils"
 	"github.com/stretchr/testify/assert"
 )

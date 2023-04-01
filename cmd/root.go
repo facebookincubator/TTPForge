@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/facebookincubator/TTP-Runner/logging"
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 
 	"github.com/mitchellh/mapstructure"

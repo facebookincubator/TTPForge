@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/facebookincubator/TTP-Runner/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
