@@ -1,11 +1,12 @@
-name: Sandcastle TLS Cert Theft
+---
+name: Hello World
 description: |
-  Steal sandcastle service identity
+  Print hello world
 steps:
-  - name: steal_cert
+  - name: hello
     inline: |
       set -e
       echo "HELLO WORLD!"
     cleanup:
       inline: |
-        rm sandcastle-cert.pem
+        echo "cleaned up!"
