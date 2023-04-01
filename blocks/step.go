@@ -243,7 +243,7 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 	if err != nil {
 		// TODO - error here: failed to unmarshal output into json structure  {"err": "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `HELLO W...` into map[string]interface {}"}
 		Logger.Sugar().Debugw("failed to unmarshal output into json structure", "err", err)
-		Logger.Sugar().Infow("treating output as single string", "output", outStr)
+		Logger.Sugar().Infow("Command output: ", "output", outStr)
 		a.output["output"] = outStr
 		return
 	}

@@ -284,7 +284,7 @@ func (a *Action) fileExec() error {
 		args := []string{a.FilePath}
 		args = append(args, a.FetchArgs()...)
 
-		Logger.Sugar().Debugw("command line looks like", "exec", a.Executor, "args", args)
+		Logger.Sugar().Debugw("command line execution:", "exec", a.Executor, "args", args)
 		cmd = exec.Command(a.Executor, args...)
 	}
 	cmd.Env = a.fetchEnv()
