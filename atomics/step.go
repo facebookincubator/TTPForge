@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/facebookincubator/TTP-Runner/blocks"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -82,10 +83,6 @@ func (a *Action) fetchEnv() []string {
 }
 
 func (a *Action) validate() error {
-	// Validate one or the other is set
-	// Check for cases:
-	// both set
-	// both unset
 	if a.Inline != "" && a.FilePath != "" {
 		err := errors.New("inline and filepath are mutually exclusive")
 		Logger.Error(err.Error(), zap.Error(err))
@@ -103,69 +100,26 @@ func (a *Action) validate() error {
 		return err
 	}
 
-	// TODO: Update to use common/FindFilePath
-
 	// Filepath is set so we must check files existence
 	if a.FilePath != "" {
-		// Case where we have home expansion
-		// Case where filepath starts with frontslash
-		// Case where no start slash, so we interpret as relative
-		// TODO: break up into windows, linux compiled files to handle path issues
-		if strings.HasPrefix(a.FilePath, "~/") {
-			dirname, _ := os.UserHomeDir()
-			Logger.Sugar().Debugw("homedir", "dir", dirname)
-			a.FilePath = filepath.Join(dirname, a.FilePath[2:])
-
-			if _, err := os.Stat(a.FilePath); os.IsNotExist(err) {
-				Logger.Sugar().Error(zap.Error(err))
-				return err
-			}
-		} else if strings.HasPrefix(a.FilePath, "/") || strings.HasPrefix(a.FilePath, "\\") {
-			if _, err := os.Stat(a.FilePath); os.IsNotExist(err) {
-				Logger.Sugar().Error(zap.Error(err))
-				return err
-			}
-		} else {
-			a.FilePath = filepath.Join(a.altBaseDir, a.FilePath)
-			Logger.Sugar().Debugw("assuming relative path from yaml file", "filepath", a.FilePath)
-
-			if _, err := os.Stat(a.FilePath); os.IsNotExist(err) {
-				Logger.Sugar().Error(zap.Error(err))
-				return err
-			}
+		// Update to use blocks.FindFilePath
+		foundPath, err := blocks.FindFilePath(a.FilePath, a.altBaseDir, nil)
+		if err != nil {
+			Logger.Sugar().Error(zap.Error(err))
+			return err
 		}
-		// Filepath checks
+
+		a.FilePath = foundPath
+		Logger.Sugar().Debugw("Updated file path using FindFilePath", "filepath", a.FilePath)
+
+		// If no executor is provided, infer it from the file extension
 		if a.Executor == "" {
-			ext := filepath.Ext(a.FilePath)
-			Logger.Sugar().Debugw("file extension inferred", "filepath", a.FilePath, "ext", ext)
-			switch ext {
-			case ".sh":
-				a.Executor = ExecutorSh
-			case ".py":
-				a.Executor = ExecutorPython
-			case ".rb":
-				a.Executor = ExecutorRuby
-			case ".pwsh":
-				a.Executor = ExecutorPowershell
-			case ".ps1":
-				a.Executor = ExecutorPowershell
-			case ".bat":
-				a.Executor = ExecutorCmd
-			case "":
-				a.Executor = ExecutorBinary
-			default:
-				if runtime.GOOS == "windows" {
-					a.Executor = ExecutorCmd
-				} else {
-					a.Executor = ExecutorSh
-				}
-			}
+			a.Executor = blocks.InferExecutor(a.FilePath)
 			Logger.Sugar().Infow("Executor set via extension", "exec", a.Executor)
 		}
 	}
 
 	if a.Executor == "" && a.Inline != "" {
-		// TODO: add os handling using the runtime (ezpz)
 		Logger.Sugar().Debug("defaulting to ExecutorBash since executor was not provided")
 		a.Executor = "ExecutorBash"
 	}
@@ -173,6 +127,7 @@ func (a *Action) validate() error {
 	if a.Executor == ExecutorBinary {
 		return nil
 	}
+
 	if _, err := exec.LookPath(a.Executor); err != nil {
 		Logger.Sugar().Error(err)
 		Logger.Sugar().Error(zap.Error(err))

@@ -235,7 +235,7 @@ func (f *FileStep) Validate() error {
 
 	// Infer executor if it's not set.
 	if f.Executor == "" {
-		f.Executor = inferExecutor(f.FilePath)
+		f.Executor = InferExecutor(f.FilePath)
 		Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
 	}
 
@@ -259,8 +259,8 @@ func (f *FileStep) Validate() error {
 	return nil
 }
 
-// inferExecutor infers the executor based on the file extension and returns it as a string.
-func inferExecutor(filePath string) string {
+// InferExecutor infers the executor based on the file extension and returns it as a string.
+func InferExecutor(filePath string) string {
 	ext := filepath.Ext(filePath)
 	Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
 	switch ext {
