@@ -1,4 +1,4 @@
-package blocks
+package blocks_test
 
 import (
 	"io/fs"
@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/facebookincubator/TTP-Runner/blocks"
 	goutils "github.com/l50/goutils"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,19 +47,20 @@ func TestFetchAbs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := FetchAbs(tc.inputPath, tc.inputWorkdir)
+			result, err := blocks.FetchAbs(tc.inputPath, tc.inputWorkdir)
 
 			if tc.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 
-				if tc.inputPath == "~/" {
+				switch {
+				case tc.inputPath == "~/":
 					homeDir, _ := os.UserHomeDir()
 					assert.Equal(t, homeDir, filepath.Clean(result))
-				} else if filepath.IsAbs(tc.inputPath) {
+				case filepath.IsAbs(tc.inputPath):
 					assert.Equal(t, tc.inputPath, result)
-				} else {
+				default:
 					expected, _ := filepath.Abs(filepath.Join(tc.inputWorkdir, tc.inputPath))
 					assert.Equal(t, expected, result)
 				}
@@ -114,7 +116,7 @@ func TestFindFilePath(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := FindFilePath(tc.inputPath, tc.inputWorkdir, tc.fsStat)
+			result, err := blocks.FindFilePath(tc.inputPath, tc.inputWorkdir, tc.fsStat)
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -162,7 +164,7 @@ func TestFetchEnv(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := FetchEnv(tt.environ)
+			result := blocks.FetchEnv(tt.environ)
 			sort.Strings(result)
 			sort.Strings(tt.expected)
 
@@ -206,7 +208,7 @@ func TestJSONString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := JSONString(tt.input)
+			got, err := blocks.JSONString(tt.input)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error running JSONString(): %v, wantErr %v", err, tt.wantErr)
@@ -253,7 +255,7 @@ func TestContains(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Contains(tt.key, tt.search); got != tt.expected {
+			if got := blocks.Contains(tt.key, tt.search); got != tt.expected {
 				t.Errorf("error running Contains(): %v, expected %v", got, tt.expected)
 			}
 		})

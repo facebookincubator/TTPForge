@@ -103,6 +103,8 @@ func (a *Action) validate() error {
 		return err
 	}
 
+	// TODO: Update to use common/FindFilePath
+
 	// Filepath is set so we must check files existence
 	if a.FilePath != "" {
 		// Case where we have home expansion
