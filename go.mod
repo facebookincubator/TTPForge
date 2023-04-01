@@ -3,6 +3,7 @@ module github.com/facebookincubator/TTP-Runner
 go 1.20
 
 require (
+	github.com/go-openapi/errors v0.20.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
