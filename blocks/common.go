@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"go.uber.org/zap"
@@ -28,33 +29,38 @@ var InventoryPath []string
 // fullpath: A string representing the absolute path to the file.
 // error: An error if the path cannot be resolved to an absolute path.
 func FetchAbs(path string, workdir string) (fullpath string, err error) {
-	if strings.HasPrefix(path, "~/") {
-		dirname, err := os.UserHomeDir()
+	if path == "" {
+		err = errors.New("empty path provided")
+		Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
+		return path, err
+	}
+
+	var basePath string
+	switch {
+	case strings.HasPrefix(path, "~/"):
+		basePath, err = os.UserHomeDir()
 		if err != nil {
 			Logger.Sugar().Errorw("failed to get home dir", zap.Error(err))
 			return path, err
 		}
-		Logger.Sugar().Debugw("homedir", "dir", dirname)
-		fullpath, err = filepath.Abs(filepath.Join(dirname, path[2:]))
-		if err != nil {
-			Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
-			return path, err
-		}
-	} else if filepath.IsAbs(path) {
-		fullpath = path
-	} else {
-		fullpath, err = filepath.Abs(filepath.Join(workdir, path))
-		if err != nil {
-			Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
-			return path, err
-		}
+		path = path[2:]
+	case filepath.IsAbs(path):
+		basePath = ""
+	default:
+		basePath = workdir
 	}
 
-	return fullpath, nil
+	fullpath, err = filepath.Abs(filepath.Join(basePath, path))
+	if err != nil {
+		Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
+		return path, err
+	}
 
+	Logger.Sugar().Debugw("Full path: ", "fullpath", fullpath)
+	return fullpath, nil
 }
 
-// CheckExist checks if a file exists given its path, the working directory, and an optional fs.StatFS. It handles cases where the path starts with "../",
+// FindFilePath checks if a file exists given its path, the working directory, and an optional fs.StatFS. It handles cases where the path starts with "../",
 // "~/", or is a relative path. It also checks a list of paths in InventoryPath for the file. It logs any errors and returns them.
 //
 // Parameters:
@@ -67,69 +73,64 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 //
 // foundPath: A string representing the path to the file if it exists.
 // error: An error if the file cannot be found.
-func CheckExist(path string, workdir string, system fs.StatFS) (foundPath string, err error) {
-	// TODO: break up into windows, linux compiled files to handle path issues
+func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath string, err error) {
+	Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
+
+	// Check if file exists using provided fs.StatFS
 	if system != nil {
-		if _, err := system.Stat(path); errors.Is(err, fs.ErrNotExist) {
-			return "", err
-		}
-		foundPath = path
-	} else if filepath.IsAbs(path) {
-		Logger.Sugar().Debugw("absolute path found", "path", path)
-		// don't allow relative paths when searching inventory,
-		// only allow in the working dir
-		if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
-			return "", err
-		}
-		foundPath = path
 
-	} else if strings.HasPrefix(path, "../") || strings.HasPrefix(path, "~/") || strings.HasPrefix(path, "..\\") {
-		Logger.Sugar().Debug("path contains relative ../, using workdir explicitly")
-		// don't allow relative paths when searching inventory,
-		// only allow in the working dir
-		tmppath, err := FetchAbs(path, workdir)
-		if err != nil {
-			Logger.Sugar().Error("failed to execute FetchAbs() on %s in %s: %v", path, workdir, zap.Error(err))
-			return "", err
-		}
-		if _, err := os.Stat(tmppath); errors.Is(err, fs.ErrNotExist) {
-			Logger.Sugar().Error(zap.Error(err))
-			return "", err
-		}
-		foundPath = path
-
-	} else {
-		Logger.Sugar().Debug("path is relative without prefix, searching inventory")
-		// check workdir first, takes precedence
-		tmppath, err := FetchAbs(path, workdir)
-		if err != nil {
-			Logger.Sugar().Error("failed to execute FetchAbs() on %s in %s: %v", path, workdir, zap.Error(err))
-			return "", err
-		}
-		if file, err := os.Stat(tmppath); !errors.Is(err, fs.ErrNotExist) && file.Size() > 0 {
-			Logger.Sugar().Debugw("found", "path", tmppath)
-			return tmppath, nil
-		} else {
-			Logger.Sugar().Error(zap.Error(err))
-			return "", err
+		if _, err := system.Stat(path); !errors.Is(err, fs.ErrNotExist) {
+			Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
+			return path, nil
 		}
 
-		// then check in the list of paths
-		for _, dir := range InventoryPath {
-			tmppath, err = FetchAbs(path, dir)
-			if err != nil {
-				return "", err
-			}
-			Logger.Sugar().Debugw("searching", "path", tmppath)
-			if file, err := os.Stat(tmppath); !errors.Is(err, fs.ErrNotExist) && file.Size() > 0 {
-				Logger.Sugar().Debugw("found", "path", tmppath)
-				return tmppath, nil
-			}
-		}
-		return "", errors.New(fmt.Sprintf("invalid path provided %s", path))
+		Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
+		return "", err
 	}
 
-	return
+	// Handle home directory representation
+	if strings.HasPrefix(path, "~/") || (runtime.GOOS == "windows" && strings.HasPrefix(path, "%USERPROFILE%")) {
+		if runtime.GOOS == "windows" {
+			path = strings.Replace(path, "%USERPROFILE%", "~", 1)
+		}
+	} else {
+		// Convert path to lowercase for case-insensitive file systems
+		if runtime.GOOS == "windows" {
+			path = strings.ToLower(path)
+		}
+	}
+
+	// Resolve the input path to an absolute path
+	absPath, err := FetchAbs(path, workdir)
+	if err != nil {
+		Logger.Sugar().Errorw("failed to fetch absolute path", "path", path, "workdir", workdir, zap.Error(err))
+		return "", err
+	}
+
+	// Check if the absolute path exists
+	if _, err := os.Stat(absPath); !errors.Is(err, fs.ErrNotExist) {
+		Logger.Sugar().Debugw("File found in absolute path", "absPath", absPath)
+		return absPath, nil
+	}
+
+	// If the path is not found, search for the file in the InventoryPath list
+	for _, dir := range InventoryPath {
+		inventoryPath, err := FetchAbs(path, dir)
+		if err != nil {
+			Logger.Sugar().Errorw("failed to fetch absolute path in inventory", "path", path, "dir", dir, zap.Error(err))
+			return "", err
+		}
+
+		if _, err := os.Stat(inventoryPath); !errors.Is(err, fs.ErrNotExist) {
+			Logger.Sugar().Debugw("File found in inventory path", "inventoryPath", inventoryPath)
+			return inventoryPath, nil
+		}
+	}
+
+	// If the file is not found in any of the locations, return an error
+	err = fmt.Errorf("invalid path provided %s", path)
+	Logger.Sugar().Errorw("File not found in any location", "path", path, zap.Error(err))
+	return "", err
 }
 
 // FetchEnv converts an environment variable map into a slice of strings that can be used as an argument when running a command.
@@ -164,6 +165,7 @@ func FetchEnv(environ map[string]string) []string {
 func JSONString(in any) (string, error) {
 	out, err := json.Marshal(in)
 	if err != nil {
+		Logger.Sugar().Errorw(err.Error(), zap.Error(err))
 		return "", err
 	}
 

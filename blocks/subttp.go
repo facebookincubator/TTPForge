@@ -48,7 +48,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 
 func (s *SubTTPStep) UnmarshalSubTTP() error {
 	Logger.Sugar().Debugw("parameters used to grab file", "filename", s.TtpFile, "workdir", s.WorkDir)
-	fullpath, err := CheckExist(s.TtpFile, s.WorkDir, s.FileSystem)
+	fullpath, err := FindFilePath(s.TtpFile, s.WorkDir, s.FileSystem)
 	if err != nil {
 		return err
 	}

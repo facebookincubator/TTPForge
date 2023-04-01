@@ -220,7 +220,7 @@ func (f *FileStep) Validate() error {
 	}
 
 	// If FilePath is set, ensure that the file exists.
-	fullpath, err := CheckExist(f.FilePath, f.WorkDir, nil)
+	fullpath, err := FindFilePath(f.FilePath, f.WorkDir, nil)
 	if err != nil {
 		Logger.Sugar().Error(zap.Error(err))
 		return err
