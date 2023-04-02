@@ -44,8 +44,13 @@ steps:
 	}
 	defer os.Remove(tmpFile2.Name())
 
-	os.WriteFile(tmpFile1.Name(), []byte(validTTPData), 0644)
-	os.WriteFile(tmpFile2.Name(), []byte(invalidTTPData), 0644)
+	if err := os.WriteFile(tmpFile1.Name(), []byte(validTTPData), 0644); err != nil {
+		t.Fatalf("failed to write to %s: %v", tmpFile1.Name(), err)
+	}
+
+	if err := os.WriteFile(tmpFile2.Name(), []byte(invalidTTPData), 0644); err != nil {
+		t.Fatalf("failed to write to %s: %v", tmpFile2.Name(), err)
+	}
 
 	testCases := []struct {
 		name     string
@@ -57,8 +62,7 @@ steps:
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := blocks.LoadTTP(tc.filename)
-			if (err != nil) != tc.wantErr {
+			if _, err := blocks.LoadTTP(tc.filename); (err != nil) != tc.wantErr {
 				t.Errorf("error running LoadTTP() = %v, wantErr %v", err, tc.wantErr)
 			}
 		})

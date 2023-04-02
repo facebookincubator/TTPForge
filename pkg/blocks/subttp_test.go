@@ -92,7 +92,9 @@ steps:
 	}
 	defer os.Remove(tmpSubTTPFile.Name())
 
-	os.WriteFile(tmpSubTTPFile.Name(), []byte(subTTPData), 0644)
+	if err := os.WriteFile(tmpSubTTPFile.Name(), []byte(subTTPData), 0644); err != nil {
+		t.Fatalf("failed to write to %s: %v", tmpSubTTPFile.Name(), err)
+	}
 
 	t.Run("Test SubTTPStep unmarshalling and validation", func(t *testing.T) {
 		yamlContent := fmt.Sprintf(`
@@ -110,10 +112,7 @@ steps:
 			t.Fatalf("error unmarshalling yaml: %v", err)
 		}
 
-		subTTPStep, ok := parsedTTP.Steps[0].(blocks.Step)
-		if !ok {
-			t.Fatal("error asserting step as SubTTPStep")
-		}
+		subTTPStep := parsedTTP.Steps[0]
 
 		err = subTTPStep.Validate()
 		if err != nil {
@@ -132,18 +131,13 @@ steps:
 `
 
 		var parsedTTP blocks.TTP
-		err := yaml.Unmarshal([]byte(yamlContent), &parsedTTP)
-		if err != nil {
+		if err := yaml.Unmarshal([]byte(yamlContent), &parsedTTP); err != nil {
 			t.Fatalf("error unmarshalling yaml: %v", err)
 		}
 
-		subTTPStep, ok := parsedTTP.Steps[0].(blocks.Step)
-		if !ok {
-			t.Fatal("error asserting step as SubTTPStep")
-		}
+		subTTPStep := parsedTTP.Steps[0]
 
-		err = subTTPStep.Validate()
-		if err == nil {
+		if err := subTTPStep.Validate(); err == nil {
 			t.Error("expected validation to fail due to invalid TTP file path")
 		}
 	})
