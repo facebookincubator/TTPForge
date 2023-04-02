@@ -128,7 +128,7 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 	}
 
 	// If the file is not found in any of the locations, return an error
-	err = fmt.Errorf("invalid path provided %s", path)
+	err = fmt.Errorf("invalid path %s provided", path)
 	Logger.Sugar().Errorw("file not found in any location", "path", path, zap.Error(err))
 	return "", err
 }

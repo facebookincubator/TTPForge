@@ -33,6 +33,10 @@ const (
 	StepCleanup = "CLEANUP"
 )
 
+// Act represents a single action within a TTP (Tactics, Techniques, and Procedures) step. It contains information
+// about the condition that must be met for the action to execute, the environment variables that should be set,
+// the name of the action, the working directory, the step type, and the success status of the action.
+// It also includes a map of step references and a map of output values.
 type Act struct {
 	Condition   string            `yaml:"if,omitempty"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
@@ -154,6 +158,17 @@ func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
 	a.Environment = stepEnv
 }
 
+// SearchOutput searches for the output value of a step by parsing the provided argument. The argument should be in the
+// format "steps.step_name.output". It returns the value as a string, converting the value to a string representation if
+// necessary. If the argument is not in the correct format, or the step is not found, the original argument is returned.
+//
+// Parameters:
+//
+// arg: A string representing the argument in the format "steps.step_name.output".
+//
+// Returns:
+//
+// string: The output value of the step as a string, or the original argument if the step is not found or the argument is in an incorrect format.
 func (a *Act) SearchOutput(arg string) string {
 	Logger.Sugar().Debugw("fetch arg", "arg", arg)
 	val, err := a.search(arg)
