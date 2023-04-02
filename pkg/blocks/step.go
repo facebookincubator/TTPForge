@@ -238,7 +238,7 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 		a.success = false
 	}
 
-	outStr := strings.TrimSpace(string(output.Bytes()))
+	outStr := strings.TrimSpace(output.String())
 	var outJSON map[string]any
 	err := yaml.Unmarshal(output.Bytes(), &outJSON)
 	if err != nil {

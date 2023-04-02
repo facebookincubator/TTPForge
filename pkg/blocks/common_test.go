@@ -138,12 +138,13 @@ func TestFindFilePath(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				if filepath.IsAbs(tc.inputPath) {
+				switch {
+				case filepath.IsAbs(tc.inputPath):
 					assert.Equal(t, tc.inputPath, result)
-				} else if strings.HasPrefix(tc.inputPath, "~") {
+				case strings.HasPrefix(tc.inputPath, "~"):
 					expandedPath := strings.Replace(tc.inputPath, "~", os.Getenv("HOME"), 1)
 					assert.Equal(t, expandedPath, result)
-				} else {
+				default:
 					expected, _ := filepath.Abs(filepath.Join(tc.inputWorkdir, tc.inputPath))
 					assert.Equal(t, expected, result)
 				}

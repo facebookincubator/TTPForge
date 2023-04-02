@@ -164,7 +164,10 @@ func (t *TTP) RunSteps() error {
 
 	if len(cleanup) > 0 {
 		Logger.Sugar().Info("[*] Beginning Cleanup")
-		t.Cleanup(availableSteps, cleanup)
+		if err := t.Cleanup(availableSteps, cleanup); err != nil {
+			Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
+			return err
+		}
 		Logger.Sugar().Info("[*] Finished Cleanup")
 	} else {
 		Logger.Sugar().Info("[*] No Cleanup Steps Found")
