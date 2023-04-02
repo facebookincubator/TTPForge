@@ -13,6 +13,7 @@ import (
 func init() {
 	logging.ToggleDebug()
 }
+
 func TestUnmarshalSimpleFile(t *testing.T) {
 
 	var ttps blocks.TTP

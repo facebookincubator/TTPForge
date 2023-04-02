@@ -101,21 +101,28 @@ func (t *TTP) fetchEnv() {
 	}
 }
 
+// RunSteps executes all of the steps in the given TTP.
+//
+// Parameters:
+//
+// t: The TTP to execute the steps for.
+//
+// Returns:
+//
+// error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps() error {
-
 	if t.WorkDir == "" {
 		path, err := os.Getwd()
 		if err != nil {
 			return err
 		}
-
 		t.WorkDir = path
-
 	}
 
 	logging.Logger.Sugar().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
+		fmt.Println(step)
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
@@ -176,6 +183,15 @@ func (t *TTP) RunSteps() error {
 	return nil
 }
 
+// Cleanup executes all of the cleanup steps in the given TTP.
+//
+// Parameters:
+//
+// t: The TTP to execute the cleanup steps for.
+//
+// Returns:
+//
+// error: An error if any of the cleanup steps fail to execute.
 func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct) (err error) {
 	for _, step := range cleanupSteps {
 		stepCopy := step
