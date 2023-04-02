@@ -9,7 +9,7 @@
       "program": "${workspaceRoot}",
       "args": [
         "-c",
-        ".config.yaml",
+        "config.yaml",
         "run",
         "ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml"
       ]

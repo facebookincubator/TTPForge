@@ -60,7 +60,7 @@ func init() {
 
 	// These flags are set using Cobra only, so we populate the conf.* variables directly
 	// reference the unset values in the struct Config above.
-	rootCmd.PersistentFlags().StringVarP(&conf.cfgFile, "config", "c", ".config.yaml", "Config file (default is .config.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&conf.cfgFile, "config", "c", "config.yaml", "Config file (default is config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&conf.saveConfig, "save-config", "", "Writes values used in execution to the specified location")
 	rootCmd.PersistentFlags().BoolVar(&conf.StackTrace, "stacktrace", false, "Show stacktrace when logging error")
 	rootCmd.PersistentFlags().StringArrayVar(&conf.InventoryPath, "inventory", []string{"."}, "list of paths to search for ttps")

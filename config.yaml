@@ -1,0 +1,6 @@
+inventory:
+  - ~/pt/tools/TTP-Runner/ttps
+logfile: ""
+nocolor: false
+stacktrace: false
+verbose: false
