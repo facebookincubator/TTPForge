@@ -115,7 +115,6 @@ func (t *TTP) RunSteps() error {
 	Logger.Sugar().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
-
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)

@@ -48,6 +48,12 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 		basePath = ""
 	default:
 		basePath = workdir
+
+		// Remove the common prefix between path and workdir, if any
+		relPath, err := filepath.Rel(workdir, path)
+		if err == nil {
+			path = relPath
+		}
 	}
 
 	fullpath, err = filepath.Abs(filepath.Join(basePath, path))
@@ -88,13 +94,13 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 		return "", err
 	}
 
-	// Handle home directory representation
+	// Handle home directory representation in Windows.
 	if strings.HasPrefix(path, "~/") || (runtime.GOOS == "windows" && strings.HasPrefix(path, "%USERPROFILE%")) {
 		if runtime.GOOS == "windows" {
 			path = strings.Replace(path, "%USERPROFILE%", "~", 1)
 		}
 	} else {
-		// Convert path to lowercase for case-insensitive file systems
+		// Convert path to lowercase for Windows, which employs case-insensitive file systems.
 		if runtime.GOOS == "windows" {
 			path = strings.ToLower(path)
 		}

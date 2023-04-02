@@ -44,6 +44,18 @@ func TestFetchAbs(t *testing.T) {
 			inputWorkdir: "",
 			expectError:  true,
 		},
+		{
+			name:         "Path with dot prefix",
+			inputPath:    "./test_directory",
+			inputWorkdir: "/tmp",
+			expectError:  false,
+		},
+		{
+			name:         "Common prefix path",
+			inputPath:    "./ttps/privilege-escalation/credential-theft/hello-world/hello-world.sh",
+			inputWorkdir: "/Users/test/TTP-Runner/ttps/privilege-escalation/credential-theft/hello-world",
+			expectError:  false,
+		},
 	}
 
 	for _, tc := range testCases {
