@@ -58,7 +58,7 @@ func NewAct() *Act {
 	}
 }
 
-// Anything that needs a cleanup step must implement this method
+// CleanupAct is required for anything that requires a cleanup step.
 type CleanupAct interface {
 	Cleanup() error
 	CleanupName() string
