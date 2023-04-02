@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -77,11 +78,11 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	// Create a CleanupStep instance and add it to the FileStep instance.
-	Logger.Sugar().Debugw("step", "name", tmpl.Name)
+	logging.Logger.Sugar().Debugw("step", "name", tmpl.Name)
 	cleanup, err := f.MakeCleanupStep(&tmpl.CleanupStep)
-	Logger.Sugar().Debugw("step", zap.Error(err))
+	logging.Logger.Sugar().Debugw("step", zap.Error(err))
 	if err != nil {
-		Logger.Sugar().Errorw("error creating cleanup step", zap.Error(err))
+		logging.Logger.Sugar().Errorw("error creating cleanup step", zap.Error(err))
 		return err
 	}
 
@@ -123,15 +124,14 @@ func (f *FileStep) CleanupName() string {
 func (f *FileStep) ExplainInvalid() error {
 	var err error
 	if f.FilePath == "" {
-		err = fmt.Errorf("[!] (filepath) empty")
-		Logger.Sugar().Error(zap.Error(err))
+		err = errors.New("empty FilePath provided")
 	}
 
 	if f.Name != "" && err != nil {
-		err = fmt.Errorf("[!] invalid filestep: [%s] %v", f.Name, zap.Error(err))
+		err = fmt.Errorf("[!] invalid FileStep: [%s] %v", f.Name, zap.Error(err))
 	}
 
-	Logger.Sugar().Error(zap.Error(err))
+	logging.Logger.Sugar().Error(zap.Error(err))
 	return err
 }
 
@@ -149,17 +149,17 @@ func (f *FileStep) IsNil() bool {
 
 // Execute runs the FileStep and returns an error if any occur.
 func (f *FileStep) Execute() (err error) {
-	Logger.Sugar().Debugw("available data", "outputs", f.output)
-	Logger.Sugar().Info("========= Executing ==========")
+	logging.Logger.Sugar().Debugw("available data", "outputs", f.output)
+	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if f.FilePath != "" {
 		if err := f.fileExec(); err != nil {
-			Logger.Sugar().Error(zap.Error(err))
+			logging.Logger.Sugar().Error(zap.Error(err))
 			return err
 		}
 	}
 
-	Logger.Sugar().Info("========= Result ==========")
+	logging.Logger.Sugar().Info("========= Result ==========")
 
 	return nil
 }
@@ -173,7 +173,7 @@ func (f *FileStep) fileExec() error {
 		args := []string{f.FilePath}
 		args = append(args, f.FetchArgs(f.Args)...)
 
-		Logger.Sugar().Debugw("command line execution:", "exec", f.Executor, "args", args)
+		logging.Logger.Sugar().Debugw("command line execution:", "exec", f.Executor, "args", args)
 		cmd = exec.Command(f.Executor, args...)
 	}
 	cmd.Env = FetchEnv(f.Environment)
@@ -185,10 +185,10 @@ func (f *FileStep) fileExec() error {
 	err := cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
-		Logger.Sugar().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
+		logging.Logger.Sugar().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return err
 	}
-	Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
+	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
 	f.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
 
@@ -209,34 +209,34 @@ func (f *FileStep) fileExec() error {
 // error: An error if any validation checks fail.
 func (f *FileStep) Validate() error {
 	if err := f.Act.Validate(); err != nil {
-		Logger.Sugar().Error(zap.Error(err))
+		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	if f.FilePath == "" {
 		err := errors.New("a TTP must include inline logic or path to a file with the logic")
-		Logger.Sugar().Error(zap.Error(err))
+		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	// If FilePath is set, ensure that the file exists.
 	fullpath, err := FindFilePath(f.FilePath, f.WorkDir, nil)
 	if err != nil {
-		Logger.Sugar().Error(zap.Error(err))
+		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	// Retrieve the absolute path to the file.
 	f.FilePath, err = FetchAbs(fullpath, f.WorkDir)
 	if err != nil {
-		Logger.Sugar().Error(zap.Error(err))
+		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	// Infer executor if it's not set.
 	if f.Executor == "" {
 		f.Executor = InferExecutor(f.FilePath)
-		Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
+		logging.Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
 	}
 
 	if f.Executor == ExecutorBinary {
@@ -244,17 +244,17 @@ func (f *FileStep) Validate() error {
 	}
 
 	if _, err := exec.LookPath(f.Executor); err != nil {
-		Logger.Sugar().Error(zap.Error(err))
+		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	if f.CleanupStep != nil {
 		if err := f.CleanupStep.Validate(); err != nil {
-			Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
+			logging.Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
 	}
-	Logger.Sugar().Debugw("command found in path", "executor", f.Executor)
+	logging.Logger.Sugar().Debugw("command found in path", "executor", f.Executor)
 
 	return nil
 }
@@ -262,7 +262,7 @@ func (f *FileStep) Validate() error {
 // InferExecutor infers the executor based on the file extension and returns it as a string.
 func InferExecutor(filePath string) string {
 	ext := filepath.Ext(filePath)
-	Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
+	logging.Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
 	switch ext {
 	case ".sh":
 		return ExecutorSh

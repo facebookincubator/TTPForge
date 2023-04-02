@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 
 	"github.com/spf13/cobra"
@@ -12,7 +13,7 @@ import (
 )
 
 func executeYAML(yamlFile string) error {
-	blocks.Logger = Logger
+	logging.Logger = Logger
 
 	ttp, err := blocks.LoadTTP(yamlFile)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -48,7 +49,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 
 		berr = stepnode.Decode(&basic)
 		if berr == nil && !basic.IsNil() {
-			Logger.Sugar().Debugw("basic", "b", basic)
+			logging.Logger.Sugar().Debugw("basic", "b", basic)
 			t.Steps = append(t.Steps, basic)
 			continue
 		}
@@ -56,7 +57,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		ferr = stepnode.Decode(&file)
 
 		if ferr == nil && !file.IsNil() {
-			Logger.Sugar().Debugw("file", "f", file)
+			logging.Logger.Sugar().Debugw("file", "f", file)
 			t.Steps = append(t.Steps, file)
 			continue
 		}
@@ -64,7 +65,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		serr = stepnode.Decode(&subttp)
 
 		if serr == nil && !subttp.IsNil() {
-			Logger.Sugar().Debugw("subttp", "s", subttp)
+			logging.Logger.Sugar().Debugw("subttp", "s", subttp)
 			t.Steps = append(t.Steps, subttp)
 			continue
 		}
@@ -92,7 +93,7 @@ func (t *TTP) fetchEnv() {
 	if t.Environment == nil {
 		t.Environment = make(map[string]string)
 	}
-	Logger.Sugar().Debugw("environment for ttps", "env", t.Environment)
+	logging.Logger.Sugar().Debugw("environment for ttps", "env", t.Environment)
 
 	for _, e := range os.Environ() {
 		pair := strings.SplitN(e, "=", 2)
@@ -112,64 +113,64 @@ func (t *TTP) RunSteps() error {
 
 	}
 
-	Logger.Sugar().Info("[*] Validating Steps")
+	logging.Logger.Sugar().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
 		if err := stepCopy.Validate(); err != nil {
-			Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
+			logging.Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
 		}
 	}
 
 	t.fetchEnv()
-	Logger.Sugar().Info("[+] Finished validating steps")
+	logging.Logger.Sugar().Info("[+] Finished validating steps")
 
-	Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
+	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
 	availableSteps := make(map[string]Step)
 	var cleanup []CleanupAct
 	var err error
 
 	for _, step := range t.Steps {
 		stepCopy := step
-		Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
+		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
 		if err := stepCopy.Execute(); err != nil {
-			Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
+			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			break
 		}
 		// Enters in reverse order
 		availableSteps[stepCopy.StepName()] = stepCopy
 
-		Logger.Sugar().Debugw("step data", "data", stepCopy)
+		logging.Logger.Sugar().Debugw("step data", "data", stepCopy)
 		stepClean := stepCopy.GetCleanup()
 		if len(stepClean) > 0 {
-			Logger.Sugar().Debugw("adding cleanup step", "cleanup", stepClean)
+			logging.Logger.Sugar().Debugw("adding cleanup step", "cleanup", stepClean)
 			cleanup = append(stepClean, cleanup...)
 		}
-		Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.StepName()].GetOutput())
-		Logger.Sugar().Infof("[+] Finished running step: %s", step.StepName())
+		logging.Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.StepName()].GetOutput())
+		logging.Logger.Sugar().Infof("[+] Finished running step: %s", step.StepName())
 	}
 	// original error from step loop
 	if err != nil {
-		Logger.Sugar().Errorw("error encountered in step loop: %v", err)
+		logging.Logger.Sugar().Errorw("error encountered in step loop: %v", err)
 		return err
 	}
 
-	Logger.Sugar().Info("[*] Completed TTP")
+	logging.Logger.Sugar().Info("[*] Completed TTP")
 
 	if len(cleanup) > 0 {
-		Logger.Sugar().Info("[*] Beginning Cleanup")
+		logging.Logger.Sugar().Info("[*] Beginning Cleanup")
 		if err := t.Cleanup(availableSteps, cleanup); err != nil {
-			Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
+			logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
 			return err
 		}
-		Logger.Sugar().Info("[*] Finished Cleanup")
+		logging.Logger.Sugar().Info("[*] Finished Cleanup")
 	} else {
-		Logger.Sugar().Info("[*] No Cleanup Steps Found")
+		logging.Logger.Sugar().Info("[*] No Cleanup Steps Found")
 	}
 
 	return nil
@@ -178,21 +179,21 @@ func (t *TTP) RunSteps() error {
 func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct) (err error) {
 	for _, step := range cleanupSteps {
 		stepCopy := step
-		Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
+		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
 		if err := stepCopy.Cleanup(); err != nil {
-			Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
+			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			break
 		}
 		// Enters in reverse order
-		Logger.Sugar().Infof("[+] Finished running cleanup step: %s", step.CleanupName())
+		logging.Logger.Sugar().Infof("[+] Finished running cleanup step: %s", step.CleanupName())
 
 	}
 
 	// original error from cleanup step loop
 	if err != nil {
-		Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
+		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
 		return err
 	}
 

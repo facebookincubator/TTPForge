@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +32,7 @@ var InventoryPath []string
 func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	if path == "" {
 		err = errors.New("empty path provided")
-		Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
+		logging.Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
 		return path, err
 	}
 
@@ -40,7 +41,7 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	case strings.HasPrefix(path, "~/"):
 		basePath, err = os.UserHomeDir()
 		if err != nil {
-			Logger.Sugar().Errorw("failed to get home dir", zap.Error(err))
+			logging.Logger.Sugar().Errorw("failed to get home dir", zap.Error(err))
 			return path, err
 		}
 		path = path[2:]
@@ -58,11 +59,11 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 
 	fullpath, err = filepath.Abs(filepath.Join(basePath, path))
 	if err != nil {
-		Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
+		logging.Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
 		return path, err
 	}
 
-	Logger.Sugar().Debugw("Full path: ", "fullpath", fullpath)
+	logging.Logger.Sugar().Debugw("Full path: ", "fullpath", fullpath)
 	return fullpath, nil
 }
 
@@ -80,17 +81,17 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 // foundPath: A string representing the path to the file if it exists.
 // error: An error if the file cannot be found.
 func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath string, err error) {
-	Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
+	logging.Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
 
 	// Check if file exists using provided fs.StatFS
 	if system != nil {
 
 		if _, err := system.Stat(path); !errors.Is(err, fs.ErrNotExist) {
-			Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
+			logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
 			return path, nil
 		}
 
-		Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
+		logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
 		return "", err
 	}
 
@@ -109,13 +110,13 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 	// Resolve the input path to an absolute path
 	absPath, err := FetchAbs(path, workdir)
 	if err != nil {
-		Logger.Sugar().Errorw("failed to fetch absolute path", "path", path, "workdir", workdir, zap.Error(err))
+		logging.Logger.Sugar().Errorw("failed to fetch absolute path", "path", path, "workdir", workdir, zap.Error(err))
 		return "", err
 	}
 
 	// Check if the absolute path exists
 	if _, err := os.Stat(absPath); !errors.Is(err, fs.ErrNotExist) {
-		Logger.Sugar().Debugw("File found in absolute path", "absPath", absPath)
+		logging.Logger.Sugar().Debugw("File found in absolute path", "absPath", absPath)
 		return absPath, nil
 	}
 
@@ -123,19 +124,19 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 	for _, dir := range InventoryPath {
 		inventoryPath, err := FetchAbs(path, dir)
 		if err != nil {
-			Logger.Sugar().Errorw("failed to fetch absolute path in inventory", "path", path, "dir", dir, zap.Error(err))
+			logging.Logger.Sugar().Errorw("failed to fetch absolute path in inventory", "path", path, "dir", dir, zap.Error(err))
 			return "", err
 		}
 
 		if _, err := os.Stat(inventoryPath); !errors.Is(err, fs.ErrNotExist) {
-			Logger.Sugar().Debugw("File found in inventory path", "inventoryPath", inventoryPath)
+			logging.Logger.Sugar().Debugw("File found in inventory path", "inventoryPath", inventoryPath)
 			return inventoryPath, nil
 		}
 	}
 
 	// If the file is not found in any of the locations, return an error
 	err = fmt.Errorf("invalid path %s provided", path)
-	Logger.Sugar().Errorw("file not found in any location", "path", path, zap.Error(err))
+	logging.Logger.Sugar().Errorw("file not found in any location", "path", path, zap.Error(err))
 	return "", err
 }
 
@@ -171,7 +172,7 @@ func FetchEnv(environ map[string]string) []string {
 func JSONString(in any) (string, error) {
 	out, err := json.Marshal(in)
 	if err != nil {
-		Logger.Sugar().Errorw(err.Error(), zap.Error(err))
+		logging.Logger.Sugar().Errorw(err.Error(), zap.Error(err))
 		return "", err
 	}
 

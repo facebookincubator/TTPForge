@@ -11,7 +11,6 @@ import (
 )
 
 func init() {
-	blocks.Logger = logging.Logger
 	logging.ToggleDebug()
 }
 func TestUnmarshalSimpleFile(t *testing.T) {

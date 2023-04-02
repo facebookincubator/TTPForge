@@ -23,7 +23,7 @@ var (
 		Short:            "Run the embedded procedure.",
 		TraverseChildren: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			blocks.Logger = Logger
+			logging.Logger = Logger
 		},
 	}
 

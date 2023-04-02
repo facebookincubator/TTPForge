@@ -12,6 +12,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
 
@@ -63,9 +64,9 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 		return nil
 	}
 
-	Logger.Sugar().Debugw("step", "name", tmpl.Name)
+	logging.Logger.Sugar().Debugw("step", "name", tmpl.Name)
 	cleanup, err := b.MakeCleanupStep(&tmpl.CleanupStep)
-	Logger.Sugar().Debugw("step", "err", err)
+	logging.Logger.Sugar().Debugw("step", "err", err)
 	if err != nil {
 		return err
 	}
@@ -136,7 +137,7 @@ func (b *BasicStep) Validate() error {
 
 	if b.Executor == "" && b.Inline != "" {
 		// TODO: add os handling using the runtime (ezpz)
-		Logger.Sugar().Debug("defaulting to bash since executor was not provided")
+		logging.Logger.Sugar().Debug("defaulting to bash since executor was not provided")
 		b.Executor = "bash"
 	}
 
@@ -153,7 +154,7 @@ func (b *BasicStep) Validate() error {
 			return err
 		}
 	}
-	Logger.Sugar().Debugw("command found in path", "executor", b.Executor)
+	logging.Logger.Sugar().Debugw("command found in path", "executor", b.Executor)
 
 	return nil
 }
@@ -161,12 +162,12 @@ func (b *BasicStep) Validate() error {
 func (b *BasicStep) Execute() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
-	Logger.Sugar().Debugw("available data", "outputs", b.output)
-	Logger.Sugar().Info("========= Executing ==========")
+	logging.Logger.Sugar().Debugw("available data", "outputs", b.output)
+	logging.Logger.Sugar().Info("========= Executing ==========")
 	if b.Inline != "" {
 		err = b.executeBashStdin(ctx)
 	}
-	Logger.Sugar().Info("========= Result ==========")
+	logging.Logger.Sugar().Info("========= Result ==========")
 	return err
 }
 
@@ -185,23 +186,23 @@ func (b *BasicStep) executeBashStdin(ptx context.Context) (err error) {
 
 	tmpl, err := template.New("inline").Funcs(funcMap).Parse(b.Inline)
 	if err != nil {
-		Logger.Sugar().Warnw("failed to parse template", "err", err)
+		logging.Logger.Sugar().Warnw("failed to parse template", "err", err)
 		return err
 	}
 
 	err = tmpl.Execute(&inline, b.output)
 	if err != nil {
-		Logger.Sugar().Warnw("failed to execute template", "err", err)
+		logging.Logger.Sugar().Warnw("failed to execute template", "err", err)
 		return err
 	}
 
-	Logger.Sugar().Debugw("value of inline parsed", "inline", inline.String())
+	logging.Logger.Sugar().Debugw("value of inline parsed", "inline", inline.String())
 	// if b.FetchArgs() != nil {
 	// 	inline = fmt.Sprintf("%s %s", b.Inline, strings.Join(b.FetchArgs(), " "))
 	// }
 	input := strings.NewReader(inline.String())
 
-	Logger.Sugar().Debugw("check input", "input", inline)
+	logging.Logger.Sugar().Debugw("check input", "input", inline)
 	cmd.Stdin = input
 
 	var stdoutBuf, stderrBuf bytes.Buffer
@@ -211,10 +212,10 @@ func (b *BasicStep) executeBashStdin(ptx context.Context) (err error) {
 	err = cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
-		Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
+		logging.Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return err
 	}
-	Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
+	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
 	b.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
 

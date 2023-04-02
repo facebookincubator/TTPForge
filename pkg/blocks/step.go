@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -192,13 +193,13 @@ func (a *Act) Validate() error {
 //
 // []string: A slice of strings containing the processed output values of referenced steps.
 func (a *Act) FetchArgs(args []string) []string {
-	Logger.Sugar().Debug("Fetching args data")
-	Logger.Sugar().Debug(a.output)
+	logging.Logger.Sugar().Debug("Fetching args data")
+	logging.Logger.Sugar().Debug(a.output)
 	var inputs []string
 	for _, arg := range args {
 		inputs = append(inputs, a.SearchOutput(arg))
 	}
-	Logger.Sugar().Debugw("full list of inputs", "inputs", inputs)
+	logging.Logger.Sugar().Debugw("full list of inputs", "inputs", inputs)
 
 	return inputs
 }
@@ -218,8 +219,8 @@ func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
 	a.output = make(map[string]any)
 
 	stepEnv := env
-	Logger.Sugar().Debugw("supplied environment", "env", a.Environment)
-	// Logger.Sugar().Debugw("supplied environment", "env", env)
+	logging.Logger.Sugar().Debugw("supplied environment", "env", a.Environment)
+	// logging.Logger.Sugar().Debugw("supplied environment", "env", env)
 	for k, v := range a.Environment {
 		valLookup := a.SearchOutput(v)
 		stepEnv[k] = valLookup
@@ -239,10 +240,10 @@ func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
 //
 // string: The output value of the step as a string, or the original argument if the step is not found or the argument is in an incorrect format.
 func (a *Act) SearchOutput(arg string) string {
-	Logger.Sugar().Debugw("fetch arg", "arg", arg)
+	logging.Logger.Sugar().Debugw("fetch arg", "arg", arg)
 	val, err := a.search(arg)
 	if err != nil {
-		Logger.Sugar().Debugw("bad arg name", "arg", arg, "err", err)
+		logging.Logger.Sugar().Debugw("bad arg name", "arg", arg, "err", err)
 		return arg
 	}
 	switch v := val.(type) {
@@ -255,7 +256,7 @@ func (a *Act) SearchOutput(arg string) string {
 	default:
 		b, err := json.Marshal(val)
 		if err != nil {
-			Logger.Sugar().Warnw("value improperly parsed, defaulting to arg as string", "val", val, "err", err)
+			logging.Logger.Sugar().Warnw("value improperly parsed, defaulting to arg as string", "val", val, "err", err)
 			return arg
 		}
 		return string(b)
@@ -361,13 +362,13 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 	outStr := strings.TrimSpace(output.String())
 	var jsonOutput map[string]any
 	if err := json.Unmarshal(output.Bytes(), &jsonOutput); err != nil {
-		Logger.Sugar().Debugw("failed to marshal output into JSON structure", zap.Error(err))
-		Logger.Sugar().Infow("treating output as single string", "output", outStr)
+		logging.Logger.Sugar().Debugw("failed to marshal output into JSON structure", zap.Error(err))
+		logging.Logger.Sugar().Infow("treating output as single string", "output", outStr)
 		a.output["output"] = outStr
 		return
 	}
 
-	Logger.Sugar().Debugw("unmarshalled output to JSON", "json", jsonOutput)
+	logging.Logger.Sugar().Debugw("unmarshalled output to JSON", "json", jsonOutput)
 	a.output = jsonOutput
 }
 
@@ -400,18 +401,18 @@ func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 
 	basic, berr := a.tryDecodeBasicStep(node)
 	if berr == nil && !basic.IsNil() {
-		Logger.Sugar().Debugw("cleanup step found", "basicstep", basic)
+		logging.Logger.Sugar().Debugw("cleanup step found", "basicstep", basic)
 		return basic, nil
 	}
 
 	file, ferr := a.tryDecodeFileStep(node)
 	if ferr == nil && !file.IsNil() {
-		Logger.Sugar().Debugw("cleanup step found", "filestep", file)
+		logging.Logger.Sugar().Debugw("cleanup step found", "filestep", file)
 		return file, nil
 	}
 
 	err := fmt.Errorf("invalid parameters for cleanup steps with basic [%v], file [%v]", berr, ferr)
-	Logger.Sugar().Errorw(err.Error(), zap.Error(err))
+	logging.Logger.Sugar().Errorw(err.Error(), zap.Error(err))
 	return nil, err
 }
 
