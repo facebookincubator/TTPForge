@@ -51,6 +51,13 @@ type Act struct {
 	output      map[string]any
 }
 
+// NewAct is a constructor for the Act struct.
+func NewAct() *Act {
+	return &Act{
+		output: make(map[string]interface{}),
+	}
+}
+
 // Anything that needs a cleanup step must implement this method
 type CleanupAct interface {
 	Cleanup() error
@@ -256,33 +263,51 @@ func (a *Act) SearchOutput(arg string) string {
 }
 
 func (a *Act) search(arg string) (any, error) {
-	steps := strings.SplitN(arg, "steps.", 2)
-	Logger.Sugar().Debugw("remove steps", "args", steps)
-	if len(steps) != 2 {
+	if !strings.HasPrefix(arg, "steps.") {
 		return nil, errors.New("name is not of format steps.step_name.output")
 	}
-	splitNames := strings.Split(steps[1], ".")
-	Logger.Sugar().Debugw("split up args", "args", splitNames)
-	if len(splitNames) > 2 {
-		stepName := splitNames[0]
-		Logger.Sugar().Debugw("name of step to fetch", "stepname", stepName)
-		outputs := splitNames[2:]
-		if val, ok := a.stepRef[stepName]; ok {
-			return searchMap("output", val.GetOutput(), outputs)
-		}
-		return nil, errors.New("failed to locate step in args")
-	} else if len(splitNames) == 2 {
-		stepName := splitNames[0]
-		Logger.Sugar().Debugw("split name of step to fetch", "stepname", stepName)
-		Logger.Sugar().Debugw("output", "out", a.stepRef[stepName])
-		if val, ok := a.stepRef[stepName]; ok {
-			return val.GetOutput(), nil
-		}
-		return nil, errors.New("failed to locate step in args")
 
+	steps := strings.SplitN(arg, "steps.", 2)
+	splitNames := strings.Split(steps[1], ".")
+
+	if len(splitNames) < 2 {
+		return nil, errors.New("invalid argument supplied")
 	}
 
-	return nil, errors.New("invalid argument supplied")
+	stepName := splitNames[0]
+	outputKeys := splitNames[1:]
+
+	step, ok := a.stepRef[stepName]
+	if !ok {
+		return nil, errors.New("failed to locate step in args")
+	}
+
+	return getOutputValue(step.GetOutput(), outputKeys)
+}
+
+func getOutputValue(output map[string]interface{}, keys []string) (any, error) {
+	if len(keys) == 0 {
+		return nil, errors.New("no output keys provided")
+	}
+
+	value := output
+	for i, key := range keys {
+		v, ok := value[key]
+		if !ok {
+			return nil, fmt.Errorf("failed to locate output key: %s", strings.Join(keys[:i+1], "."))
+		}
+
+		if i == len(keys)-1 {
+			return v, nil
+		}
+
+		value, ok = v.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("output key %s is not a nested structure", strings.Join(keys[:i+1], "."))
+		}
+	}
+
+	return nil, errors.New("unexpected error while retrieving output value")
 }
 
 // CheckCondition checks the condition specified for an Act and returns true if it matches the current OS, false otherwise.
