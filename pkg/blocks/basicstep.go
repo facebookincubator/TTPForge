@@ -15,6 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
 	*Act        `yaml:",inline"`
 	Executor    string     `yaml:"executor,omitempty"`
@@ -23,6 +24,7 @@ type BasicStep struct {
 	CleanupStep CleanupAct `yaml:"cleanup,omitempty"`
 }
 
+// NewBasicStep creates a new BasicStep instance with an initialized Act struct.
 func NewBasicStep() *BasicStep {
 	return &BasicStep{
 		Act: &Act{
@@ -31,8 +33,8 @@ func NewBasicStep() *BasicStep {
 	}
 }
 
+// UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
 func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
-
 	type BasicStepTmpl struct {
 		Act         `yaml:",inline"`
 		Executor    string    `yaml:"executor,omitempty"`
@@ -73,11 +75,12 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-// Method to establish link with Cleanup Interface
+// Cleanup is an implementation of the CleanupAct interface's Cleanup method.
 func (b *BasicStep) Cleanup() error {
 	return b.Execute()
 }
 
+// GetCleanup returns the cleanup steps for a BasicStep.
 func (b *BasicStep) GetCleanup() []CleanupAct {
 	if b.CleanupStep != nil {
 		b.CleanupStep.SetDir(b.WorkDir)
@@ -86,14 +89,17 @@ func (b *BasicStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
+// CleanupName returns the name of the cleanup step.
 func (b *BasicStep) CleanupName() string {
 	return b.Name
 }
 
+// GetType returns the step type for a BasicStep.
 func (b *BasicStep) GetType() StepType {
 	return b.Type
 }
 
+// ExplainInvalid returns an error with an explanation of why a BasicStep is invalid.
 func (b *BasicStep) ExplainInvalid() error {
 	var err error
 	if b.Inline == "" {
@@ -105,6 +111,7 @@ func (b *BasicStep) ExplainInvalid() error {
 	return err
 }
 
+// IsNil checks if a BasicStep is considered empty or uninitialized.
 func (b *BasicStep) IsNil() bool {
 	switch {
 	case b.Act.IsNil():
@@ -116,6 +123,7 @@ func (b *BasicStep) IsNil() bool {
 	}
 }
 
+// Validate validates the BasicStep, checking for the necessary attributes and dependencies.
 func (b *BasicStep) Validate() error {
 	err := b.Act.Validate()
 	if err != nil {
