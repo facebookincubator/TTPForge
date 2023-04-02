@@ -41,7 +41,6 @@ steps:
       name: test_cleanup
       inline: |
         ls -la
-
   `
 
 	err := yaml.Unmarshal([]byte(content), &ttps)

@@ -10,18 +10,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Top level struct
+// TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.
 type TTP struct {
 	Name        string            `yaml:"name,omitempty"`
 	Description string            `yaml:"description"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
-	WorkDir     string            `yaml:"-"` // omit but expose for testing and other shenanigans
+	// Omit WorkDir, but expose for testing.
+	WorkDir string `yaml:"-"`
 }
 
+// UnmarshalYAML custom unmarshalling implementation for the TTP structure.
 func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
-
-	// Top level struct
+	// TTPTmpl is a temporary structure to assist in unmarshalling a TTP object.
 	type TTPTmpl struct {
 		Name        string            `yaml:"name,omitempty"`
 		Description string            `yaml:"description"`
@@ -38,14 +39,12 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
 
+	// Decode and validate each step in the TTP
 	for _, stepnode := range tmpl.Steps {
-		// we do it piecemiel to build our struct
 		basic := NewBasicStep()
 		file := NewFileStep()
 		subttp := NewSubTTPStep()
 		var err, berr, ferr, serr error
-
-		// decoding does not provide method for strict unwrapping so we have to check for validity
 
 		berr = stepnode.Decode(&basic)
 		if berr == nil && !basic.IsNil() {
@@ -55,7 +54,6 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		}
 
 		ferr = stepnode.Decode(&file)
-
 		if ferr == nil && !file.IsNil() {
 			logging.Logger.Sugar().Debugw("file", "f", file)
 			t.Steps = append(t.Steps, file)
@@ -63,7 +61,6 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		}
 
 		serr = stepnode.Decode(&subttp)
-
 		if serr == nil && !subttp.IsNil() {
 			logging.Logger.Sugar().Debugw("subttp", "s", subttp)
 			t.Steps = append(t.Steps, subttp)
@@ -77,9 +74,11 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		}
 		return fmt.Errorf("invalid step found with no name, missing parameters for following types: %w, %w, %w", berr, ferr, serr)
 	}
+
 	return nil
 }
 
+// Failed returns a slice of strings containing the names of failed steps in the TTP.
 func (t *TTP) Failed() (failed []string) {
 	for _, s := range t.Steps {
 		if !s.Success() {
@@ -89,6 +88,7 @@ func (t *TTP) Failed() (failed []string) {
 	return failed
 }
 
+// fetchEnv retrieves the environment variables and populates the TTP's Environment map.
 func (t *TTP) fetchEnv() {
 	if t.Environment == nil {
 		t.Environment = make(map[string]string)
