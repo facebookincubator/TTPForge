@@ -6,6 +6,7 @@ import (
 
 	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ type Config struct {
 	Logfile       string   `mapstructure:"logfile"`
 	NoColor       bool     `mapstructure:"nocolor"`
 	InventoryPath []string `mapstructure:"inventory"`
-	StackTrace    bool
+	StackTrace    bool     `mapstructure:"stacktrace"`
 	cfgFile       string
 	saveConfig    string
 }
@@ -39,14 +40,36 @@ Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
 		TraverseChildren: true,
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if conf.saveConfig != "" {
-				viper.SetConfigFile(conf.saveConfig)
-			}
-			if err := viper.WriteConfig(); err != nil {
-				logging.Logger.Error("failed to write config values", zap.Error(err))
+				// https://github.com/facebookincubator/TTP-Runner/issues/4
+				if err := WriteConfigToFile(conf.saveConfig); err != nil {
+					logging.Logger.Error("failed to write config values", zap.Error(err))
+				}
 			}
 		},
 	}
 )
+
+// WriteConfigToFile writes the configuration data to a YAML file at the specified
+// filepath. It uses the yaml.Marshal function to convert the configuration struct
+// into YAML format, and then writes the resulting bytes to the file.
+//
+// This function is a custom alternative to Viper's built-in WriteConfig method
+// to provide better control over the formatting of the output YAML file.
+//
+// Params:
+//   - filepath: The path of the file where the configuration data will be saved.
+//
+// Returns:
+//   - error: An error object if any issues occur during the marshaling or file
+//     writing process, otherwise nil.
+func WriteConfigToFile(filepath string) error {
+	yamlBytes, err := yaml.Marshal(conf)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath, yamlBytes, 0644)
+}
 
 // Execute adds child commands to the root
 // command and sets flags appropriately.
