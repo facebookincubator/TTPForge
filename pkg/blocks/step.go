@@ -161,13 +161,13 @@ func (a *Act) SearchOutput(arg string) string {
 		Logger.Sugar().Debugw("bad arg name", "arg", arg, "err", err)
 		return arg
 	}
-	switch val.(type) {
+	switch v := val.(type) {
 	case string:
-		return string(val.(string))
+		return v
 	case int:
-		return fmt.Sprint(val.(int))
+		return fmt.Sprint(v)
 	case bool:
-		return string(strconv.FormatBool(val.(bool)))
+		return strconv.FormatBool(v)
 	default:
 		b, err := json.Marshal(val)
 		if err != nil {

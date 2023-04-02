@@ -281,8 +281,7 @@ func InferExecutor(filePath string) string {
 	default:
 		if runtime.GOOS == "windows" {
 			return ExecutorCmd
-		} else {
-			return ExecutorSh
 		}
+		return ExecutorSh
 	}
 }

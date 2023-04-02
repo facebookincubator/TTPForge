@@ -25,9 +25,8 @@ type Config struct {
 
 var (
 	// Logger is used to facilitate logging throughout TTP Forge.
-	Logger       *zap.Logger
-	conf         = &Config{}
-	deferredInit []func()
+	Logger *zap.Logger
+	conf   = &Config{}
 
 	rootCmd = &cobra.Command{
 		Use:   "forge",
@@ -84,7 +83,8 @@ func init() {
 	err = viper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
 	cobra.CheckErr(err)
 
-	rootCmd.PersistentFlags().Parse(os.Args)
+	err = rootCmd.PersistentFlags().Parse(os.Args)
+	cobra.CheckErr(err)
 
 	verbose, err := strconv.ParseBool(rootCmd.PersistentFlags().Lookup("verbose").Value.String())
 	cobra.CheckErr(err)

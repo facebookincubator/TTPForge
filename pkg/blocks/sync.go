@@ -9,12 +9,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func init() {
-	actionOutputs = make(map[string]string)
-}
-
-var actionOutputs map[string]string
-
 var Logger *zap.Logger
 
 var FileSystem fs.FS

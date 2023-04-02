@@ -21,7 +21,6 @@ type BasicStep struct {
 	Inline      string     `yaml:"inline,flow"`
 	Args        []string   `yaml:"args,omitempty,flow"`
 	CleanupStep CleanupAct `yaml:"cleanup,omitempty"`
-	altBaseDir  string
 }
 
 func NewBasicStep() *BasicStep {
