@@ -59,7 +59,6 @@ func executeYAML(yamlFile string) error {
 	return nil
 }
 
-var ttpActions map[string]blocks.TTP
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the forgery using the file specified in args.",
