@@ -34,8 +34,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	}
 	var substep Subtmpl
 
-	err := node.Decode(&substep)
-	if err != nil {
+	if err := node.Decode(&substep); err != nil {
 		return err
 	}
 	Logger.Sugar().Debugw("step found", "substep", substep)

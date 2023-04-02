@@ -58,6 +58,10 @@ func init() {
 	Logger = logging.Logger
 	cobra.OnInitialize(initConfig)
 
+	// Create separate Viper instance to handle command-line flags
+	// without affecting the config file
+	var flagsViper = viper.New()
+
 	// These flags are set using Cobra only, so we populate the conf.* variables directly
 	// reference the unset values in the struct Config above.
 	rootCmd.PersistentFlags().StringVarP(&conf.cfgFile, "config", "c", "config.yaml", "Config file (default is config.yaml)")
@@ -72,15 +76,15 @@ func init() {
 	_ = rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose logging")
 	_ = rootCmd.PersistentFlags().StringP("logfile", "l", "", "Enable logging to file.")
 
-	err := viper.BindPFlag("nocolor", rootCmd.PersistentFlags().Lookup("nocolor"))
+	err := flagsViper.BindPFlag("nocolor", rootCmd.PersistentFlags().Lookup("nocolor"))
 	cobra.CheckErr(err)
-	err = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	err = flagsViper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	cobra.CheckErr(err)
-	err = viper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
+	err = flagsViper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
 	cobra.CheckErr(err)
-	err = viper.BindPFlag("inventory", rootCmd.PersistentFlags().Lookup("inventory"))
+	err = flagsViper.BindPFlag("inventory", rootCmd.PersistentFlags().Lookup("inventory"))
 	cobra.CheckErr(err)
-	err = viper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
+	err = flagsViper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
 	cobra.CheckErr(err)
 
 	err = rootCmd.PersistentFlags().Parse(os.Args)
