@@ -317,7 +317,7 @@ func (a *Act) CheckCondition() (bool, error) {
 }
 
 // SetOutputSuccess sets the output of an Act to a given buffer and sets the success flag to true or false depending on the exit code.
-// If the output can be unmarshalled into a JSON structure, it is stored in the Act's output map. Otherwise, it is stored as a string.
+// If the output can be unmarshalled into a JSON structure, it is stored as a string in the Act's output map.
 //
 // Parameters:
 //
@@ -334,17 +334,16 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 	}
 
 	outStr := strings.TrimSpace(output.String())
-	var outJSON map[string]any
-	if err := yaml.Unmarshal(output.Bytes(), &outJSON); err != nil {
-		// TODO - error here: failed to unmarshal output into json structure  {"err": "yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `HELLO W...` into map[string]interface {}"}
-		Logger.Sugar().Debugw("failed to unmarshal output into json structure", "err", err)
-		Logger.Sugar().Infow("Command output: ", "output", outStr)
+	var jsonOutput map[string]any
+	if err := json.Unmarshal(output.Bytes(), &jsonOutput); err != nil {
+		Logger.Sugar().Debugw("failed to marshal output into JSON structure", zap.Error(err))
+		Logger.Sugar().Infow("treating output as single string", "output", outStr)
 		a.output["output"] = outStr
 		return
 	}
 
-	Logger.Sugar().Debugw("json marshalled to JSONOutput", "json", outJSON)
-	a.output = outJSON
+	Logger.Sugar().Debugw("unmarshalled output to JSON", "json", jsonOutput)
+	a.output = jsonOutput
 }
 
 // MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
