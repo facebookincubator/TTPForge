@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
@@ -84,6 +85,13 @@ func TestFindFilePath(t *testing.T) {
 	f.Close()
 	defer os.Remove(tempFile)
 
+	// Create a tilde file for testing
+	tildeFile := filepath.Join(os.Getenv("HOME"), "tilde_test_file.txt")
+	f, err = os.Create(tildeFile)
+	assert.NoError(t, err)
+	f.Close()
+	defer os.Remove(tildeFile)
+
 	testCases := []struct {
 		name         string
 		inputPath    string
@@ -112,6 +120,13 @@ func TestFindFilePath(t *testing.T) {
 			fsStat:       nil,
 			expectError:  true,
 		},
+		{
+			name:         "Tilde path",
+			inputPath:    "~/tilde_test_file.txt",
+			inputWorkdir: "",
+			fsStat:       nil,
+			expectError:  false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -125,6 +140,9 @@ func TestFindFilePath(t *testing.T) {
 
 				if filepath.IsAbs(tc.inputPath) {
 					assert.Equal(t, tc.inputPath, result)
+				} else if strings.HasPrefix(tc.inputPath, "~") {
+					expandedPath := strings.Replace(tc.inputPath, "~", os.Getenv("HOME"), 1)
+					assert.Equal(t, expandedPath, result)
 				} else {
 					expected, _ := filepath.Abs(filepath.Join(tc.inputWorkdir, tc.inputPath))
 					assert.Equal(t, expected, result)
