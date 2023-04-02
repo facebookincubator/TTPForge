@@ -129,7 +129,6 @@ steps:
   - name: test_sub_ttp_invalid
     ttp: non_existent_file.ttp
 `
-
 		var parsedTTP blocks.TTP
 		if err := yaml.Unmarshal([]byte(yamlContent), &parsedTTP); err != nil {
 			t.Fatalf("error unmarshalling yaml: %v", err)

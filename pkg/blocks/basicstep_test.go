@@ -6,6 +6,7 @@ import (
 	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
 	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -13,31 +14,26 @@ func init() {
 	logging.ToggleDebug()
 }
 
-func TestUnmarshalSimpleBasic(t *testing.T) {
-
-	var ttps blocks.TTP
-
-	content := `name: test
+func TestUnmarshalBasic(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Simple basic",
+			content: `name: test
 description: this is a test
 steps:
   - name: testinline
     inline: |
       ls
-`
-
-	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
-		t.Errorf("failed to unmarshal basic inline %v", err)
-	}
-
-	t.Log("successfully unmarshalled data")
-
-}
-
-func TestUnmarshalSimpleCleanupBasic(t *testing.T) {
-
-	var ttps blocks.TTP
-
-	content := `name: test
+`,
+			wantError: false,
+		},
+		{
+			name: "Simple cleanup basic",
+			content: `name: test
 description: this is a test
 steps:
   - name: testinline
@@ -47,32 +43,32 @@ steps:
       name: test_cleanup
       inline: |
         ls -la
-
-  `
-
-	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
-		t.Errorf("failed to unmarshal basic inline %v", err)
-	}
-
-	t.Logf("Successfully unmarshalled data: %v", ttps)
-
-}
-
-func TestUnmarshalInvalidBasic(t *testing.T) {
-	var ttps blocks.TTP
-
-	content := `
+  `,
+			wantError: false,
+		},
+		{
+			name: "Invalid basic",
+			content: `
 name: test
 description: this is a test
 steps:
   - noname: testinline
     inline: |
       ls
-  `
-	if err := yaml.Unmarshal([]byte(content), &ttps); err == nil {
-		t.Error("required parameter missing, passed unmarshal", ttps)
+  `,
+			wantError: true,
+		},
 	}
 
-	t.Log("successfully detected invalid format")
-
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttps blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }

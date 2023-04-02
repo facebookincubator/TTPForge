@@ -15,10 +15,14 @@ func init() {
 }
 
 func TestUnmarshalSimpleCleanupLarge(t *testing.T) {
-
-	var ttps blocks.TTP
-
-	content := `name: test
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Simple cleanup large",
+			content: `name: test
 description: this is a test
 steps:
   - name: testinline
@@ -42,22 +46,33 @@ steps:
       name: test_cleanup
       inline: |
         ls -la
-  `
-
-	err := yaml.Unmarshal([]byte(content), &ttps)
-	if err != nil {
-		t.Errorf("failed to unmarshal basic inline %v", err)
+  `,
+			wantError: false,
+		},
 	}
 
-	t.Logf("successfully unmarshalled data: %v", ttps)
-
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttps blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestUnmarshalScenario(t *testing.T) {
-
-	var ttps blocks.TTP
-
-	content := `
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Hello World scenario",
+			content: `
 ---
 name: Hello World
 description: |
@@ -69,17 +84,29 @@ steps:
       name: cleanup
       inline: |
         echo "cleaned up!"
-`
-
-	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
-		t.Errorf("failed to unmarshal basic inline %v", err)
+        - name: hello_inline
+        inline: |
+          ./ttps/privilege-escalation/credential-theft/hello-world/hello-world.sh
+`,
+			wantError: false,
+		},
 	}
 
-	t.Logf("Successfully unmarshalled data: %v", ttps)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttps blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestTTP_RunSteps(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name      string
 		content   string
 		wantError bool
@@ -118,14 +145,14 @@ steps:
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			var ttp blocks.TTP
-			err := yaml.Unmarshal([]byte(tt.content), &ttp)
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			assert.NoError(t, err)
 
 			err = ttp.RunSteps()
-			if tt.wantError {
+			if tc.wantError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)

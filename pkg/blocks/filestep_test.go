@@ -6,6 +6,7 @@ import (
 
 	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
 	"github.com/facebookincubator/TTP-Runner/pkg/logging"
+	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/yaml.v3"
 )
@@ -14,22 +15,35 @@ func init() {
 	logging.ToggleDebug()
 }
 
-func TestUnmarshalSimpleFile(t *testing.T) {
-
-	var ttps blocks.TTP
-
-	content := `name: test
+func TestUnmarshalFile(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Simple file",
+			content: `name: test
 description: this is a test
 steps:
   - name: test_file
     file: test_file
-  `
-
-	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
-		t.Errorf("failed to unmarshal file step %v", err)
+  `,
+			wantError: false,
+		},
 	}
 
-	t.Logf("successfully unmarshalled data: %v", ttps)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttps blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestInferExecutor(t *testing.T) {
@@ -51,9 +65,7 @@ func TestInferExecutor(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.filePath, func(t *testing.T) {
 			executor := blocks.InferExecutor(testCase.filePath)
-			if executor != testCase.expectedExec {
-				t.Errorf("Expected executor %q for file path %q, but got %q", testCase.expectedExec, testCase.filePath, executor)
-			}
+			assert.Equal(t, testCase.expectedExec, executor, "Expected executor %q for file path %q, but got %q", testCase.expectedExec, testCase.filePath, executor)
 		})
 	}
 }
