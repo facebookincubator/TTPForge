@@ -103,7 +103,7 @@ func addCommands(path string, ttp blocks.TTP) *cobra.Command {
 // Example usage:
 //
 // embeddings, _ := embed.NewFS()
-// CfgYAML(&embeddings)
+// InitYAML(&embeddings)
 //
 // Parameters:
 //
