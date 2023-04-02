@@ -382,35 +382,29 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 //
 // CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
 // error: An error if the node contains invalid parameters.
+// MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
+// If the node contains a BasicStep or FileStep, the corresponding CleanupAct is created and returned.
+//
+// Parameters:
+//
+// node: A pointer to a yaml.Node containing the parameters to create the CleanupAct.
+//
+// Returns:
+//
+// CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
+// error: An error if the node contains invalid parameters.
 func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
-	// TODO: REFACTOR FOR CLARITY
-	// we don't care if cleanup fails so move on.
 	if node.IsZero() {
 		return nil, nil
 	}
-	var berr, ferr error
 
-	// we do it piecemiel to build our struct
-	basic := NewBasicStep()
-
-	berr = node.Decode(&basic)
-	if basic != nil && basic.Name == "" {
-		basic.Name = fmt.Sprintf("cleanup-%s", a.Name)
-		basic.Type = StepCleanup
-	}
-
+	basic, berr := a.tryDecodeBasicStep(node)
 	if berr == nil && !basic.IsNil() {
 		Logger.Sugar().Debugw("cleanup step found", "basicstep", basic)
 		return basic, nil
 	}
 
-	file := NewFileStep()
-	ferr = node.Decode(&file)
-	if file != nil && file.Name == "" {
-		file.Name = fmt.Sprintf("cleanup-%s", a.Name)
-		file.Type = StepCleanup
-	}
-
+	file, ferr := a.tryDecodeFileStep(node)
 	if ferr == nil && !file.IsNil() {
 		Logger.Sugar().Debugw("cleanup step found", "filestep", file)
 		return file, nil
@@ -419,4 +413,24 @@ func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 	err := fmt.Errorf("invalid parameters for cleanup steps with basic [%v], file [%v]", berr, ferr)
 	Logger.Sugar().Errorw(err.Error(), zap.Error(err))
 	return nil, err
+}
+
+func (a *Act) tryDecodeBasicStep(node *yaml.Node) (*BasicStep, error) {
+	basic := NewBasicStep()
+	err := node.Decode(&basic)
+	if err == nil && basic.Name == "" {
+		basic.Name = fmt.Sprintf("cleanup-%s", a.Name)
+		basic.Type = StepCleanup
+	}
+	return basic, err
+}
+
+func (a *Act) tryDecodeFileStep(node *yaml.Node) (*FileStep, error) {
+	file := NewFileStep()
+	err := node.Decode(&file)
+	if err == nil && file.Name == "" {
+		file.Name = fmt.Sprintf("cleanup-%s", a.Name)
+		file.Type = StepCleanup
+	}
+	return file, err
 }
