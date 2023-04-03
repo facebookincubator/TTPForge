@@ -160,3 +160,46 @@ steps:
 		})
 	}
 }
+
+func TestTTP_ValidateSteps(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Valid steps",
+			content: `
+name: test
+description: this is a test
+steps:
+  - name: step1
+    inline: |
+      echo "step1"
+  - name: step2
+    inline: |
+      echo "step2"
+`,
+			wantError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			err = ttp.ValidateSteps()
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

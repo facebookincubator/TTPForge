@@ -120,11 +120,17 @@ func (t *TTP) setWorkingDirectory() error {
 	return nil
 }
 
-func (t *TTP) validateSteps() error {
+// ValidateSteps iterates through each step in the TTP and validates it. It sets the working directory
+// for each step before calling its Validate method. If any step fails validation, the method returns
+// an error. If all steps are successfully validated, the method returns nil.
+//
+// Returns:
+//
+// error: An error if any step validation fails, otherwise nil.
+func (t *TTP) ValidateSteps() error {
 	logging.Logger.Sugar().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
-		fmt.Println(step)
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
@@ -173,7 +179,7 @@ func (t *TTP) RunSteps() error {
 		return err
 	}
 
-	if err := t.validateSteps(); err != nil {
+	if err := t.ValidateSteps(); err != nil {
 		return err
 	}
 

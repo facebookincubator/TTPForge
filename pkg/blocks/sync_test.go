@@ -15,11 +15,11 @@ name: test_load_yaml
 description: "Test loading and execution of YAML-based TTPs."
 steps:
   - name: testing_exec
-    file: ~/fb/opensource/TTP-Runner/tests/test.sh
+    file: ./tests/test.sh
     args:
       - blah
   - name: testing_exec_two
-    file: ~/fb/opensource/TTP-Runner/tests/test.sh
+    file: ./tests/test.sh
     args:
       - blah
       - steps.testing_exec.output
