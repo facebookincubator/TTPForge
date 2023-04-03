@@ -3,7 +3,6 @@ name: Pre-Commit
 on:
   pull_request:
   push:
-    branches: [main]
   # Run once a week (see https://crontab.guru)
   schedule:
     - cron: "0 0 * * 0"
