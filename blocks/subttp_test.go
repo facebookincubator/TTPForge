@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/blocks"
 	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 
 	"gopkg.in/yaml.v3"

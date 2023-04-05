@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/blocks"
 	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"go.uber.org/zap"
 

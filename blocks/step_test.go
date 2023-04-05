@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/blocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
