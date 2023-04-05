@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/TTP-Runner/blocks"
 	"github.com/facebookincubator/TTP-Runner/pkg/logging"
 	"github.com/stretchr/testify/assert"
 
