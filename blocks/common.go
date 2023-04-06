@@ -178,21 +178,3 @@ func JSONString(in any) (string, error) {
 
 	return fmt.Sprintf("'%s'", string(out)), nil
 }
-
-// Contains checks if a key exists in a map.
-//
-// Parameters:
-//
-// key: A string representing the key to search for.
-// search: A map of keys and values.
-//
-// Returns:
-//
-// bool: A boolean value indicating if the key was found in the map.
-func Contains(key string, search map[string]any) bool {
-	if _, ok := search[key]; ok {
-		return true
-	}
-
-	return false
-}
