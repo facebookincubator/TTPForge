@@ -22,7 +22,6 @@ func init() {
 	cfg.DisableStacktrace = true
 	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	cfg.Level = AtomLevel
-	cfg = zap.NewDevelopmentConfig()
 	// use sugared logger
 	var err error
 	Logger, err = cfg.Build()

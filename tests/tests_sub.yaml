@@ -1,0 +1,14 @@
+---
+name: subtest
+description: test sub execution yaml
+steps:
+  - name: testing_exec
+    file: test.sh
+    args:
+      - blah
+    cleanup:
+      name: echo
+      inline: |
+        echo hi
+  - name: testing_exec_two
+    ttp: test_inline.yaml
