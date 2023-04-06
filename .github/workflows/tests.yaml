@@ -50,5 +50,5 @@ jobs:
       #     labels: kind/bug
       #     body: |
       #       Coverage report failed for ${{ github.sha }}.
-
+      
       #       https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
