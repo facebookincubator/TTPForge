@@ -1,4 +1,4 @@
-module github.com/facebookincubator/TTP-Runner
+module github.com/facebookincubator/ttpforge
 
 go 1.20
 

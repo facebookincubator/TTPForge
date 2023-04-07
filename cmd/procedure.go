@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
-	"github.com/facebookincubator/TTP-Runner/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"

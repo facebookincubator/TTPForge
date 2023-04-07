@@ -1,6 +1,6 @@
 ---
 inventory:
-  - ~/pt/tools/TTP-Runner/ttps
+  - ~/pt/tools/TTPForge/ttps
 logfile: ""
 nocolor: false
 stacktrace: false

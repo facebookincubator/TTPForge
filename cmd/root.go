@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
@@ -40,7 +40,7 @@ Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
 		TraverseChildren: true,
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if conf.saveConfig != "" {
-				// https://github.com/facebookincubator/TTP-Runner/issues/4
+				// https://github.com/facebookincubator/ttpforge/issues/4
 				if err := WriteConfigToFile(conf.saveConfig); err != nil {
 					logging.Logger.Error("failed to write config values", zap.Error(err))
 				}

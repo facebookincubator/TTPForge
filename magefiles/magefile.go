@@ -94,14 +94,14 @@ func UpdateMirror(tag string) error {
 	fmt.Println(color.YellowString("Updating pkg.go.dev with the new tag %s.", tag))
 
 	err = sh.RunV("curl", "--silent", fmt.Sprintf(
-		"https://sum.golang.org/lookup/github.com/facebookincubator/TTP-Runner@%s",
+		"https://sum.golang.org/lookup/github.com/facebookincubator/ttpforge@%s",
 		tag))
 	if err != nil {
 		return fmt.Errorf(color.RedString("failed to update proxy.golang.org: %w", err))
 	}
 
 	err = sh.RunV("curl", "--silent", fmt.Sprintf(
-		"https://proxy.golang.org/github.com/facebookincubator/TTP-Runner/@v/%s.info",
+		"https://proxy.golang.org/github.com/facebookincubator/ttpforge/@v/%s.info",
 		tag))
 	if err != nil {
 		return fmt.Errorf(color.RedString("failed to update pkg.go.dev: %w", err))

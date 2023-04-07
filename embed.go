@@ -5,7 +5,7 @@ package main
 import (
 	"embed"
 
-	"github.com/facebookincubator/TTP-Runner/cmd"
+	"github.com/facebookincubator/ttpforge/cmd"
 )
 
 //go:embed all:.generated_ttps/**/*
