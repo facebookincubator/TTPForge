@@ -1,6 +1,5 @@
 {
   "name": "TTPForge",
-  "dockerFile": "../Dockerfile",
-  "context": "..",
+  "image": "ghcr.io/facebookincubator/ttpforge:latest",
   "remoteUser": "ttpforge"
 }

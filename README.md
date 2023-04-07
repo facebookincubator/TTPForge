@@ -13,6 +13,7 @@ targets and mediums.
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Using the TTPForge Dev Container](docs/container.md)
 - [Developer Environment Setup](docs/dev.md)
 - [Writing Tests](docs/testing.md)
 
