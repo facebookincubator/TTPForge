@@ -1,0 +1,6 @@
+{
+  "name": "TTPForge",
+  "dockerFile": "../Dockerfile",
+  "context": "..",
+  "remoteUser": "ttpforge"
+}
