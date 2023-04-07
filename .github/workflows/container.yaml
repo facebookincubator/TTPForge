@@ -1,10 +1,9 @@
 ---
-name: Build and Publish Docker Image
+name: Build and Publish Container Image
 on:
-  pull_request:
   push:
     branches:
-      - container
+      - main
 
 jobs:
   build_and_push:
