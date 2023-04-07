@@ -3,8 +3,8 @@ package blocks_test
 import (
 	"testing"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
-	"github.com/facebookincubator/TTP-Runner/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/yaml.v3"

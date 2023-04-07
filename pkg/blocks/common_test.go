@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	goutils "github.com/l50/goutils"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,7 +53,7 @@ func TestFetchAbs(t *testing.T) {
 		{
 			name:         "Common prefix path",
 			inputPath:    "./ttps/privilege-escalation/credential-theft/hello-world/hello-world.sh",
-			inputWorkdir: "/Users/test/TTP-Runner/ttps/privilege-escalation/credential-theft/hello-world",
+			inputWorkdir: "/Users/test/ttpforge/ttps/privilege-escalation/credential-theft/hello-world",
 			expectError:  false,
 		},
 	}

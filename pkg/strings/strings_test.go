@@ -3,7 +3,7 @@ package strings_test
 import (
 	"testing"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/strings"
+	"github.com/facebookincubator/ttpforge/pkg/strings"
 )
 
 func TestStringSlicesEqual(t *testing.T) {

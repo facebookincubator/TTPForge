@@ -1,4 +1,4 @@
-# Contributing to TTP-Runner
+# Contributing to TTPForge
 
 We want to make contributing to this project as easy and transparent as
 possible.
@@ -32,5 +32,5 @@ outlined on that page and do not file a public issue.
 
 ## License
 
-By contributing to TTP-Runner, you agree that your contributions will be licensed
+By contributing to TTPForge, you agree that your contributions will be licensed
 under the LICENSE file in the root directory of this source tree.

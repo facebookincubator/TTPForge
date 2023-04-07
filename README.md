@@ -1,8 +1,8 @@
 # TTP Forge
 
-[![Tests](https://github.com/facebookincubator/TTP-Runner/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTP-Runner/actions/workflows/tests.yaml)
-[![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTP-Runner/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTP-Runner/actions/workflows/semgrep.yaml)
-[![Renovate](https://github.com/facebookincubator/TTP-Runner/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTP-Runner/actions/workflows/renovate.yaml)
+[![Tests](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml)
+[![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml)
+[![Renovate](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml)
 
 This repo hosts the TTP Forge tool created by Meta's Purple Team.
 It is intended to provide an interface to execute TTPs across various

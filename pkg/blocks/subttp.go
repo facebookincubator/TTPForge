@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
 

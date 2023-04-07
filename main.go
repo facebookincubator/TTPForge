@@ -20,7 +20,7 @@ THE SOFTWARE.
 package main
 
 import (
-	"github.com/facebookincubator/TTP-Runner/cmd"
+	"github.com/facebookincubator/ttpforge/cmd"
 )
 
 func main() {

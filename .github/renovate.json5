@@ -9,7 +9,7 @@
     ":enablePreCommit",
     ":automergeDigest",
     ":automergeBranch",
-    "github>facebookincubator/TTP-Runner//.github/renovate/autoMerge.json5",
+    "github>facebookincubator/TTPForge//.github/renovate/autoMerge.json5",
     "helpers:pinGitHubActionDigests"
   ],
   "platform": "github",

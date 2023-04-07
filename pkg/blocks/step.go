@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/facebookincubator/TTP-Runner/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
