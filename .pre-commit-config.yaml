@@ -75,3 +75,9 @@ repos:
         language: script
         entry: .hooks/go-vet.sh
         files: '\.go$'
+
+      - id: go-copyright
+        name: Ensure all go files have the copyright header
+        language: script
+        entry: .hooks/go-copyright.sh
+        files: '\.go$'
