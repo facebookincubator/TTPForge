@@ -32,7 +32,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config maintains variables used throughout the TTP Forge.
+// Config maintains variables used throughout the TTPForge.
 type Config struct {
 	Verbose       bool     `mapstructure:"verbose"`
 	Logfile       string   `mapstructure:"logfile"`
@@ -44,17 +44,15 @@ type Config struct {
 }
 
 var (
-	// Logger is used to facilitate logging throughout TTP Forge.
+	// Logger is used to facilitate logging throughout TTPForge.
 	Logger *zap.Logger
 	conf   = &Config{}
 
 	rootCmd = &cobra.Command{
-		Use:   "forge",
+		Use:   "ttpforge",
 		Short: "Execute TTPs.",
 		Long: `
-TTP-Forge
-
-Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
+TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
     `,
 		TraverseChildren: true,
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {

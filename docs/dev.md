@@ -81,5 +81,5 @@ and follow along.
 1. Compile warpgate:
 
    ```bash
-   go build -o forge
+   go build -o ttpforge
    ```

@@ -36,7 +36,7 @@ import (
 
 var (
 	generatedDir = ".generated_ttps"
-	// EmbeddedTTPs embeds generated TTPs into a compiled TTP Forge.
+	// EmbeddedTTPs embeds generated TTPs into a compiled TTPForge.
 	EmbeddedTTPs *embed.FS
 	runProcCmd   = &cobra.Command{
 		Use:              "proc",

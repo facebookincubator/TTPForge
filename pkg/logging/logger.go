@@ -26,7 +26,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Logger provides logging throughout the TTP Forge.
+// Logger provides logging throughout the TTPForge.
 var Logger *zap.Logger
 
 // AtomLevel provides an atomically changeable, dynamic logging level.
@@ -49,7 +49,7 @@ func init() {
 	}
 }
 
-// InitLog initializes the TTP Forge's log file.
+// InitLog initializes the TTPForge's log file.
 func InitLog(nocolor bool, logfile string, verbose bool, stacktrace bool) (err error) {
 	if !nocolor {
 		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
