@@ -15,7 +15,7 @@ jobs:
       - name: Set up git repository
         uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3
 
-      - uses: returntocorp/semgrep-action@2e352e1a85f5c8722b894e67bed8b2f8874ad628 # v1
+      - uses: returntocorp/semgrep-action@83c59fc1597e67c49532e720fb2c64fd801d293f # v1
         with:
           config: >- # more at semgrep.dev/explore
             p/security-audit
