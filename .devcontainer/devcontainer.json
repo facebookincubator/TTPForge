@@ -1,0 +1,5 @@
+{
+  "name": "TTPForge",
+  "image": "ghcr.io/facebookincubator/ttpforge:latest",
+  "remoteUser": "ttpforge"
+}
