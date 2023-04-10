@@ -1,10 +1,10 @@
-# TTP Forge
+# TTPForge
 
 [![Tests](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml)
 [![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml)
 [![Renovate](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml)
 
-This repo hosts the TTP Forge tool created by Meta's Purple Team.
+This repo hosts the TTPForge tool created by Meta's Purple Team.
 It is intended to provide an interface to execute TTPs across various
 targets and mediums.
 
@@ -23,7 +23,7 @@ targets and mediums.
 
 1. Download and install the [gh cli tool](https://cli.github.com/).
 
-1. Get latest TTP Forge release:
+1. Get latest TTPForge release:
 
    ```bash
    OS="$(uname | python3 -c 'print(open(0).read().lower().strip())')"
@@ -35,5 +35,5 @@ targets and mediums.
 1. Run the Hello World example:
 
    ```bash
-   ./forge -c config.yaml run ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml
+   ./ttpforge -c config.yaml run ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml
    ```
