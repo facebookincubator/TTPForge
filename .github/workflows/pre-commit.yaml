@@ -13,15 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up git repository
-        uses: actions/checkout@v3.4.0
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435 # v4
         with:
           python-version: "3.10"
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4
         with:
           go-version: "1.20"
 
