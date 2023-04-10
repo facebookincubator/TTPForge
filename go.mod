@@ -3,7 +3,7 @@ module github.com/facebookincubator/ttpforge
 go 1.20
 
 require (
-	github.com/l50/goutils v1.2.6-0.20230401052415-5bd8b824f836
+	github.com/l50/goutils v1.2.6-0.20230408161426-9a10a6ce3cbf
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
@@ -47,7 +47,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/shirou/gopsutil/v3 v3.23.2 // indirect
+	github.com/shirou/gopsutil/v3 v3.23.3 // indirect
+	github.com/shoenig/go-m1cpu v0.1.4 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
