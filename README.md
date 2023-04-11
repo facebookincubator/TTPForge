@@ -16,6 +16,7 @@ targets and mediums.
 - [Using the TTPForge Dev Container](docs/container.md)
 - [Developer Environment Setup](docs/dev.md)
 - [Writing Tests](docs/testing.md)
+- [Creating a new release](docs/release.md)
 
 ---
 
