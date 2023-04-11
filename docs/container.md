@@ -34,13 +34,28 @@ and run the `Remote-Containers: Reopen Locally` command.
 1. Login to ghcr:
 
    ```bash
-   docker login ghcr.io -u $GITHUB_USERNAME -p $PERSONAL_ACCESS_TOKEN
+   docker login ghcr.io -u $GITHUB_USERNAME -p $PAT
    ```
 
 1. Pull the latest image from ghcr:
 
    ```bash
-   docker pull ghcr.io/facebookincubator/ttpforge:latest
+   raw_arch=$(uname -m)
+   case $raw_arch in
+      x86_64)
+            ARCH="amd64"
+            ;;
+      aarch64)
+            ARCH="arm64"
+            ;;
+      *)
+            echo "Unsupported architecture: $raw_arch"
+            exit 1
+            ;;
+   esac
+   export ARCH
+
+   docker pull ghcr.io/facebookincubator/ttpforge:$ARCH
    ```
 
 1. Run container and mount local project directory
@@ -48,7 +63,7 @@ and run the `Remote-Containers: Reopen Locally` command.
    ```bash
    docker run -it --rm \
        -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
-       facebookincubator/ttpforge:latest
+       facebookincubator/ttpforge:$ARCH
    ```
 
 ---
@@ -61,7 +76,20 @@ locally, follow the steps below.
 Run the following commands to build the image locally:
 
 ```bash
-export ARCH="$(uname -a | awk '{ print $NF }')"
+raw_arch=$(uname -m)
+case $raw_arch in
+   x86_64)
+         ARCH="amd64"
+         ;;
+   aarch64)
+         ARCH="arm64"
+         ;;
+   *)
+         echo "Unsupported architecture: $raw_arch"
+         exit 1
+         ;;
+esac
+export ARCH
 
 # Change DOCKER_DEFAULT_PLATFORM if we're on an ARM-based system.
 if [[ $ARCH == "arm64" ]]; then

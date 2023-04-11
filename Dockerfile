@@ -3,6 +3,8 @@ FROM golang:1.20.2
 # Set build-time arguments for user and group IDs
 ARG USER_ID=1000
 ARG GROUP_ID=1000
+ARG TARGET_OS=linux
+ARG TARGET_ARCH=amd64
 
 # Install necessary dependencies
 RUN apt-get update && \
@@ -16,6 +18,22 @@ RUN useradd -m -s /bin/bash ttpforge && \
 # Install go dependencies
 RUN go install github.com/magefile/mage@latest && \
 	go install mvdan.cc/sh/v3/cmd/shfmt@latest
+
+# Install tools function
+COPY .devcontainer/install-tool.sh /usr/local/bin/install-tool
+RUN chmod +x /usr/local/bin/install-tool
+
+# Install GitHub CLI
+ENV GITHUB_CLI_VERSION 2.27.0
+RUN install-tool \
+    "GitHub CLI" \
+    "gh" \
+    "https://github.com/cli/cli/releases/download/v${GITHUB_CLI_VERSION}" \
+    "gh_${GITHUB_CLI_VERSION}_${TARGET_OS}_${TARGET_ARCH}.deb" \
+    "gh_${GITHUB_CLI_VERSION}_checksums.txt" \
+    "--ignore-missing" \
+    "512" \
+    "gh --version"
 
 # Copy the Go project files into the container
 COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
