@@ -17,6 +17,30 @@
     {
       "type": "go",
       "request": "launch",
+      "name": "Debug create new bash TTP",
+      "mode": "debug",
+      "program": "${workspaceRoot}",
+      "args": [
+        "-c",
+        "config.yaml",
+        "new",
+        "ttp",
+        "--path",
+        "ttps/lateral-movement/ssh/rogue-ssh-key.yaml",
+        "--template",
+        "bash",
+        "--ttp-type",
+        "file",
+        "--cleanup",
+        "--env",
+        "EXAMPLE_ENV_VAR=example_value",
+        "--args",
+        "arg1,arg2,arg3"
+      ]
+    },
+    {
+      "type": "go",
+      "request": "launch",
       "name": "Debug E2E Tests (test_variable_expansion.yaml)",
       "mode": "debug",
       "program": "${workspaceRoot}",
@@ -26,21 +50,25 @@
         "run",
         "cmd/e2e-tests/test_variable_expansion.yaml"
       ]
+    },
+    {
+      "type": "go",
+      "request": "launch",
+      "name": "Debug Rogue SSH TTP",
+      "mode": "debug",
+      "program": "${workspaceRoot}",
+      "args": [
+        "-c",
+        "config.yaml",
+        "run",
+        "ttps/lateral-movement/ssh/rogue-ssh-key.yaml"
+      ]
     }
-    // {
-    //   "type": "go",
-    //   "request": "launch",
-    //   "name": "Destroy",
-    //   "mode": "debug",
-    //   "program": "${workspaceRoot}",
-    //   "args": ["destroy", "-n", "apply-test", "-e", "dev"],
-    // }
   ],
   "compounds": [
     {
       "name": "Debug TTPs with VSCode",
       "configurations": ["Debug Hello World TTP"],
-      // "configurations": ["Debug Hello World TTP", "Apply", "Destroy"],
       "stopAll": true
     }
   ]

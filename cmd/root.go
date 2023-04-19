@@ -20,6 +20,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -127,9 +128,6 @@ func init() {
 	err = flagsViper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
 	cobra.CheckErr(err)
 
-	err = rootCmd.PersistentFlags().Parse(os.Args)
-	cobra.CheckErr(err)
-
 	verbose, err := strconv.ParseBool(rootCmd.PersistentFlags().Lookup("verbose").Value.String())
 	cobra.CheckErr(err)
 
@@ -172,4 +170,24 @@ func initConfig() {
 		Logger = logging.Logger
 		cobra.CheckErr(err)
 	}
+}
+
+func getStringFlagOrDefault(cmd *cobra.Command, flag string) *string {
+	value, _ := cmd.Flags().GetString(flag)
+	if value == "" {
+		viperValue := viper.GetString(flag)
+		return &viperValue
+	}
+	return &value
+}
+
+func checkRequiredFlags(cmd *cobra.Command, requiredFlags []string) error {
+	for _, flag := range requiredFlags {
+		value := getStringFlagOrDefault(cmd, flag)
+		if *value == "" {
+			return fmt.Errorf("required flag '%s' not set", flag)
+		}
+	}
+
+	return nil
 }
