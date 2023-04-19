@@ -55,7 +55,7 @@ and run the `Remote-Containers: Reopen Locally` command.
    esac
    export ARCH
 
-   docker pull ghcr.io/facebookincubator/ttpforge:$ARCH
+   docker pull ghcr.io/facebookincubator/ttpforge:latest
    ```
 
 1. Run container and mount local project directory
@@ -63,7 +63,7 @@ and run the `Remote-Containers: Reopen Locally` command.
    ```bash
    docker run -it --rm \
        -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
-       facebookincubator/ttpforge:$ARCH
+       ghcr.io/facebookincubator/ttpforge:latest
    ```
 
 ---
