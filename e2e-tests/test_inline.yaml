@@ -8,7 +8,7 @@ steps:
       echo $HOME | tr -d "'"
     cleanup:
       inline: |
-        what is it
+        echo "cleaning up now"
   - name: echo
     inline: |
       echo "{"test" : $input }"
