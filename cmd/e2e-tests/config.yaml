@@ -1,6 +1,4 @@
 ---
-inventory:
-  - e2e-tests
 logfile: ""
 nocolor: false
 stacktrace: false
