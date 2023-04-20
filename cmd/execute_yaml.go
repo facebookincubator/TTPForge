@@ -12,13 +12,14 @@ import (
 
 // ExecuteYAML is the top-level TTP execution function
 // exported so that we can test it
-func ExecuteYAML(yamlFile string) error {
+// the returned TTP is also required to assert against in tests
+func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 	logging.Logger = Logger
 
 	ttp, err := blocks.LoadTTP(yamlFile)
 	if err != nil {
 		Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
-		return err
+		return nil, err
 	}
 
 	inventory := viper.GetStringSlice("inventory")
@@ -27,11 +28,11 @@ func ExecuteYAML(yamlFile string) error {
 	for _, path := range inventory {
 		dir, err := os.Getwd()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		abs, err := blocks.FetchAbs(path, dir)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		blocks.InventoryPath = append(blocks.InventoryPath, abs)
 	}
@@ -46,7 +47,7 @@ func ExecuteYAML(yamlFile string) error {
 	dir := filepath.Dir(yamlFile)
 	dir, err = filepath.Abs(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Set the working directory for the TTP.
@@ -54,8 +55,8 @@ func ExecuteYAML(yamlFile string) error {
 
 	if err := ttp.RunSteps(); err != nil {
 		Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &ttp, nil
 }

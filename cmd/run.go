@@ -30,7 +30,7 @@ var runCmd = &cobra.Command{
 	Short: "Run the forgery using the file specified in args.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := ExecuteYAML(args[0]); err != nil {
+		if _, err := ExecuteYAML(args[0]); err != nil {
 			Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 		}
 	},

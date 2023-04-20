@@ -24,7 +24,7 @@
         "-c",
         "cmd/e2e-tests/config.yaml",
         "run",
-        "cmd/e2e-tests/test_inline.yaml"
+        "cmd/e2e-tests/test_variable_expansion.yaml"
       ]
     }
     // {
