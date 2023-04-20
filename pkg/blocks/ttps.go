@@ -70,11 +70,12 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
-	stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep()}
-
 	for _, stepNode := range steps {
 		decoded := false
-
+		// these candidate steps are pointers, so this line
+		// MUST be inside the outer step loop or horrible things will happen
+		// #justpointerthings
+		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep()}
 		for _, stepType := range stepTypes {
 			err := stepNode.Decode(stepType)
 			if err == nil && !stepType.IsNil() {
