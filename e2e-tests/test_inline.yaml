@@ -14,11 +14,9 @@ steps:
       echo "{"test" : $input }"
     env:
       input: steps.test_env.output
-
   - name: jq
     inline: |-
       jq {{json .echo.JSONOutput.output}}
-
   - name: list
     file: test.sh
     args:
