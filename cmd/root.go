@@ -99,10 +99,6 @@ func init() {
 	Logger = logging.Logger
 	cobra.OnInitialize(initConfig)
 
-	// Create separate Viper instance to handle command-line flags
-	// without affecting the config file
-	var flagsViper = viper.New()
-
 	// These flags are set using Cobra only, so we populate the conf.* variables directly
 	// reference the unset values in the struct Config above.
 	rootCmd.PersistentFlags().StringVarP(&conf.cfgFile, "config", "c", "config.yaml", "Config file (default is config.yaml)")
@@ -117,16 +113,22 @@ func init() {
 	_ = rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose logging")
 	_ = rootCmd.PersistentFlags().StringP("logfile", "l", "", "Enable logging to file.")
 
-	err := flagsViper.BindPFlag("nocolor", rootCmd.PersistentFlags().Lookup("nocolor"))
+	err := viper.BindPFlag("nocolor", rootCmd.PersistentFlags().Lookup("nocolor"))
 	cobra.CheckErr(err)
-	err = flagsViper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	err = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	cobra.CheckErr(err)
-	err = flagsViper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
+	err = viper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
 	cobra.CheckErr(err)
-	err = flagsViper.BindPFlag("inventory", rootCmd.PersistentFlags().Lookup("inventory"))
+	err = viper.BindPFlag("inventory", rootCmd.PersistentFlags().Lookup("inventory"))
 	cobra.CheckErr(err)
-	err = flagsViper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
+	err = viper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
 	cobra.CheckErr(err)
+
+	// Errors caught by this are not actioned upon.
+	// The decision making for that is documented here: https://github.com/facebookincubator/TTPForge/issues/55
+	if err := rootCmd.PersistentFlags().Parse(os.Args); err != nil {
+		logging.Logger.Sugar().Debugw("failed to parse os args", os.Args, err)
+	}
 
 	verbose, err := strconv.ParseBool(rootCmd.PersistentFlags().Lookup("verbose").Value.String())
 	cobra.CheckErr(err)
@@ -166,10 +168,9 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	if err := logging.InitLog(conf.NoColor, conf.Logfile, conf.Verbose, conf.StackTrace); err != nil {
-		Logger = logging.Logger
-		cobra.CheckErr(err)
-	}
+	err := logging.InitLog(conf.NoColor, conf.Logfile, conf.Verbose, conf.StackTrace)
+	cobra.CheckErr(err)
+	Logger = logging.Logger
 }
 
 func getStringFlagOrDefault(cmd *cobra.Command, flag string) *string {
