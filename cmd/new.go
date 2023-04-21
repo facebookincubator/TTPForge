@@ -20,38 +20,30 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
-func init() {
-	// TODO: ensure that a supported template is input
-	ttpCmd.Flags().StringVarP(&ttpInput.Template, "template", "t", "", "Template to use for generating the TTP (e.g., bash, python)")
-	ttpCmd.Flags().StringVarP(&ttpInput.Path, "path", "p", "", "Path for the generated TTP")
-	ttpCmd.Flags().StringVarP(&ttpInput.StepType, "step-type", "s", "", "Step type to create for the generated TTP ('file' or 'inline')")
-	ttpCmd.Flags().StringSliceVarP(&ttpInput.Args, "args", "a", []string{}, "Arguments to include in the generated TTP")
-	ttpCmd.Flags().StringToStringVarP(&ttpInput.Env, "env", "e", nil, "Environment variables to include in the generated TTP "+
-		"in the format KEY=VALUE")
-	ttpCmd.Flags().BoolVar(&ttpInput.Cleanup, "cleanup", true, "Include a cleanup step in the generated TTP")
-
-	rootCmd.AddCommand(newCmd)
-	newCmd.AddCommand(ttpCmd)
-}
-
 var ttpInput TTPInput
+var dirPath string
+
+func init() {
+	rootCmd.AddCommand(newCmd)
+	newCmd.AddCommand(NewTTPBuilderCmd())
+}
 
 // TTPInput contains the inputs required to create a new TTP from a template.
 type TTPInput struct {
 	Template string
 	Path     string
-	StepType string
+	TTPType  string
 	Args     []string
 	Cleanup  bool
 	Env      map[string]string
@@ -63,39 +55,103 @@ var newCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 }
 
-var ttpCmd = &cobra.Command{
-	Use:   "ttp",
-	Short: "Create a new TTP",
-	Long: `Create a new TTP using the specified template and path.
-For example:
+// NewTTPBuilderCmd creates a new TTP from a template using the
+// provided input to customize it.
+func NewTTPBuilderCmd() *cobra.Command {
+	newTTPBuilderCmd := &cobra.Command{
+		Use:   "ttp",
+		Short: "Create a new TTP",
+		Long: `Create a new TTP using the specified template and path.
+    Examples:
 
-  ./ttpforge -c config.yaml ttp --template bash --step-type file --args --cleanup --path ttps/lateral-movement/ssh/rogue-ssh-key`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		requiredFlags := []string{
-			"template",
-			"path",
-			"step-type",
-		}
-		return checkRequiredFlags(cmd, requiredFlags)
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		ttp, err := createTTP()
-		if err != nil {
-			logging.Logger.Sugar().Errorw("failed to create TTP with:", ttpInput, zap.Error(err))
-			cobra.CheckErr(err)
-		}
-		if _, err := yaml.Marshal(ttp); err != nil {
-			logging.Logger.Sugar().Errorw("failed to marshal TTP to YAML", zap.Error(err))
-			cobra.CheckErr(err)
-		}
+	# Create bash TTP that employs logic from a provided bash script file.
+	./ttpforge -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --ttp-type file --args "arg1,arg2,arg3" --cleanup --env "EXAMPLE_ENV_VAR=example_value"
 
-		saveTTPToFile(ttp, ttpInput.Path)
-	},
+	# Create bash TTP that employs inline logic provided in the ttp YAML.
+	./ttpforge -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --ttp-type basic --cleanup
+	`,
+
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateTemplateFlag(cmd); err != nil {
+				return err
+			}
+
+			requiredFlags := []string{
+				"template",
+				"path",
+				"ttp-type",
+			}
+
+			return checkRequiredFlags(cmd, requiredFlags)
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			// Create the filepath for the input TTP if it doesn't already exist.
+			bashTTPFile := ttpInput.Path
+
+			dirPath = filepath.Dir(bashTTPFile)
+			if err := files.CreateDirIfNotExists(dirPath); err != nil {
+				cobra.CheckErr(err)
+			}
+
+			ttp, err := createTTP()
+			if err != nil {
+				logging.Logger.Sugar().Errorw("failed to create TTP with:", ttpInput, zap.Error(err))
+				cobra.CheckErr(err)
+			}
+			// Populate templated TTP file
+			tmpl := template.Must(
+				template.ParseFiles(filepath.Join("templates", "bashTTP.yaml.tmpl")))
+
+			yamlF, err := os.Create(ttpInput.Path)
+			cobra.CheckErr(err)
+			defer yamlF.Close()
+
+			if err := tmpl.Execute(yamlF, ttp); err != nil {
+				cobra.CheckErr(err)
+			}
+
+			// Create README from template
+			readme := filepath.Join(dirPath, "README.md")
+			tmpl = template.Must(
+				template.ParseFiles(filepath.Join("templates", "README.md.tmpl")))
+
+			readmeF, err := os.Create(readme)
+			cobra.CheckErr(err)
+			defer readmeF.Close()
+
+			if err := tmpl.Execute(readmeF, ttp); err != nil {
+				cobra.CheckErr(err)
+			}
+
+			// Create templated bash script (if applicable)
+			if ttpInput.TTPType == "file" {
+				tmpl = template.Must(
+					template.ParseFiles(filepath.Join("templates", "bashTTP.sh.tmpl")))
+
+				bashScriptF, err := os.Create(filepath.Join(dirPath, "bashTTP.sh"))
+				cobra.CheckErr(err)
+				defer bashScriptF.Close()
+
+				if err := tmpl.Execute(bashScriptF, ttp); err != nil {
+					cobra.CheckErr(err)
+				}
+			}
+		},
+	}
+	newTTPBuilderCmd.Flags().StringVarP(&ttpInput.Template, "template", "t", "", "Template to use for generating the TTP (e.g., bash, python)")
+	newTTPBuilderCmd.Flags().StringVarP(&ttpInput.Path, "path", "p", "", "Path for the generated TTP")
+	newTTPBuilderCmd.Flags().StringVarP(&ttpInput.TTPType, "ttp-type", "", "", "Type of TTP to create ('file' or 'inline')")
+	newTTPBuilderCmd.Flags().StringSliceVarP(&ttpInput.Args, "args", "a", []string{}, "Arguments to include in the generated TTP")
+	newTTPBuilderCmd.Flags().StringToStringVarP(&ttpInput.Env, "env", "e", nil, "Environment variables to include in the generated TTP "+
+		"in the format KEY=VALUE")
+	newTTPBuilderCmd.Flags().BoolVar(&ttpInput.Cleanup, "cleanup", false, "Include a cleanup step in the generated TTP")
+
+	return newTTPBuilderCmd
 }
 
 func createTTP() (*blocks.TTP, error) {
 	ttp := &blocks.TTP{
-		Name:        "Example TTP",
+		Name:        filepath.Base(ttpInput.Path),
 		Description: "This is an example TTP created based on user input",
 		Environment: ttpInput.Env,
 	}
@@ -103,28 +159,26 @@ func createTTP() (*blocks.TTP, error) {
 	// Create a new step based on user input
 	var step blocks.Step
 
-	if ttpInput.StepType == "file" {
+	if ttpInput.TTPType == "file" {
 		step = blocks.NewFileStep()
-		step.(*blocks.FileStep).Act.Name = "Example file step"
-		step.(*blocks.FileStep).FilePath = "example_file.sh"
+		step.(*blocks.FileStep).Act.Name = "example_file_step"
+		step.(*blocks.FileStep).FilePath = filepath.Join(dirPath, "bashTTP.sh")
 		step.(*blocks.FileStep).Args = ttpInput.Args
 	} else {
 		step = blocks.NewBasicStep()
-		step.(*blocks.BasicStep).Act.Name = "Example basic step"
-		step.(*blocks.BasicStep).Inline = "echo 'Hello, World!'"
+		step.(*blocks.BasicStep).Act.Name = "example_basic_step"
+		step.(*blocks.BasicStep).Inline = "echo Hello, World"
 		step.(*blocks.BasicStep).Args = ttpInput.Args
 	}
 
 	if ttpInput.Cleanup {
 		cleanupStep := blocks.NewBasicStep()
-		cleanupStep.Act.Name = "Cleanup step"
-		cleanupStep.Executor = "inline"
+		cleanupStep.Act.Name = "cleanup_step"
 		cleanupStep.Inline = "echo 'Cleanup done'"
 
-		if ttpInput.StepType == "file" {
+		if ttpInput.TTPType == "file" {
 			cleanupFileStep := blocks.NewFileStep()
-			cleanupFileStep.Act.Name = "Cleanup step"
-			cleanupFileStep.Executor = "file"
+			cleanupFileStep.Act.Name = "cleanup_step"
 			cleanupFileStep.FilePath = "example_cleanup_file.sh"
 			cleanupFileStep.CleanupStep = cleanupFileStep
 		}
@@ -143,23 +197,14 @@ func createTTP() (*blocks.TTP, error) {
 	return ttp, nil
 }
 
-func saveTTPToFile(ttp *blocks.TTP, path string) error {
-	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+func validateTemplateFlag(cmd *cobra.Command) error {
+	templateName, err := cmd.Flags().GetString("template")
 	if err != nil {
-		return fmt.Errorf("failed to create directories: %v", err)
+		return err
 	}
-
-	file, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("failed to create TTP file: %v", err)
+	if !files.TemplateExists(templateName) {
+		logging.Logger.Sugar().Errorw("unsupported template:", templateName, zap.Error(err))
+		return err
 	}
-	defer file.Close()
-
-	encoder := yaml.NewEncoder(file)
-	err = encoder.Encode(ttp)
-	if err != nil {
-		return fmt.Errorf("failed to encode TTP to YAML: %v", err)
-	}
-
 	return nil
 }

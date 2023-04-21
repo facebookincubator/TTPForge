@@ -1,0 +1,208 @@
+Filestep tests:
+
+Test 1:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type file --args "arg1,arg2,arg3" --cleanup --env "EXAMPLE_ENV_VAR=example_value"
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+env:
+  EXAMPLE_ENV_VAR: example_value
+steps:
+  - name: example_file_step
+    file: example_file.sh
+    args:
+      - arg1
+      - arg2
+      - arg3
+    cleanup:
+      - name: cleanup_step
+        inline: |
+          echo 'Cleanup done'
+```
+
+Test 2:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type file --args "arg1,arg2,arg3" --cleanup
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+steps:
+  - name: example_file_step
+    file: example_file.sh
+    args:
+      - arg1
+      - arg2
+      - arg3
+    cleanup:
+      - name: cleanup_step
+        inline: |
+          echo 'Cleanup done'
+```
+
+Test 3:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type file --cleanup
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+steps:
+  - name: example_file_step
+    file: example_file.sh
+    cleanup:
+      - name: cleanup_step
+        inline: |
+          echo 'Cleanup done'
+```
+
+Test 4:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type file
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+steps:
+  - name: example_file_step
+    file: example_file.sh
+```
+
+---
+
+Basic step tests:
+
+Test 1:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type basic --args "arg1,arg2,arg3" --cleanup --env "EXAMPLE_ENV_VAR=example_value"
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+env:
+  EXAMPLE_ENV_VAR: example_value
+steps:
+  - name: example_basic_step
+    inline: |
+      echo Hello, World
+    args:
+      - arg1
+      - arg2
+      - arg3
+    cleanup:
+      - name: cleanup_step
+        inline: |
+          echo 'Cleanup done'
+```
+
+Test 2:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type basic --args "arg1,arg2,arg3" --cleanup
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+steps:
+  - name: example_basic_step
+    inline: |
+      echo Hello, World
+    args:
+      - arg1
+      - arg2
+      - arg3
+    cleanup:
+      - name: cleanup_step
+        inline: |
+          echo 'Cleanup done'
+```
+
+Test 3:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type basic --cleanup
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+steps:
+  - name: example_basic_step
+    inline: |
+      echo Hello, World
+    cleanup:
+      - name: cleanup_step
+        inline: |
+          echo 'Cleanup done'
+```
+
+Test 4:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --step-type basic
+```
+
+Outcome:
+
+```yaml
+---
+name: example_ttp
+description: This is an example TTP created based on user input
+steps:
+  - name: example_basic_step
+    inline: |
+      echo Hello, World
+```
+
+Test 5:
+
+```bash
+./ttpforge -v -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template asdf --step-type basic
+```
+
+Outcome:
+
+```yaml
+2023-04-21T11:42:29.421-0600    INFO    cmd/root.go:160 Using config file: config.yaml
+2023-04-21T11:42:29.421-0600    ERROR   cmd/new.go:173  unsupported template:   {"asdf": {"Key":"","Type":27,"Integer":0,"String":"","Interface":null}}
+```
+
+We also need to make sure that the yaml generated with each test can be run without errors, i.e.
+
+```bash
+./ttpforge -c config.yaml run ttps/lateral-movement/ssh/rogue-ssh-key.yaml
+```

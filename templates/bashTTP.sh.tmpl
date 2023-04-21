@@ -1,0 +1,8 @@
+#!/bin/bash
+set -ex
+
+{{- range $key, $value := .Environment }}
+export {{ $key }}="{{ $value }}"
+{{- end }}
+
+echo "Now running {{ .Name }}, please wait"

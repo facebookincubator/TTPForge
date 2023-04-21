@@ -1,0 +1,38 @@
+---
+name: {{ .Name }}
+description: {{ .Description }}
+{{- if .Environment }}
+env:
+{{- range $key, $value := .Environment }}
+  {{ $key }}: {{ $value }}
+{{- end }}
+{{- end }}
+steps:
+{{- range $step := .Steps }}
+  - name: {{ $step.Act.Name }}
+  {{- if eq $step.Type "FILESTEP" }}
+    file: {{ $step.FilePath }}
+  {{- else if eq $step.Type "BASICSTEP" }}
+    inline: |
+      {{ $step.Inline }}
+  {{- end }}
+  {{- if $step.Args }}
+    args:
+    {{- range $arg := $step.Args }}
+      - {{ $arg }}
+    {{- end }}
+  {{- end }}
+  {{- $cleanupSteps := $step.GetCleanup }}
+  {{- if $cleanupSteps }}
+    cleanup:
+    {{- range $cleanupStep := $cleanupSteps }}
+      name: {{ $cleanupStep.Act.Name }}
+      {{- if eq $cleanupStep.Type "FILESTEP" }}
+        file: {{ $cleanupStep.FilePath }}
+      {{- else if eq $cleanupStep.Type "BASICSTEP" }}
+      inline: |
+        {{ $cleanupStep.Inline }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}

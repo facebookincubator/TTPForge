@@ -30,8 +30,11 @@ repos:
       - id: script-must-have-extension
         name: Ensure shell scripts end with .sh
         types: [shell]
+        exclude: ^templates/
       - id: shellcheck
+        exclude: ^templates/
       - id: shfmt
+        exclude: ^templates/
       # Configuration in .mdlrc and .hooks/linters/mdstyle.rb
       - id: markdownlint
 
