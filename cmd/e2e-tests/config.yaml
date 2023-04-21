@@ -1,6 +1,4 @@
 ---
-inventory:
-  - ~/pt/tools/TTPForge/ttps
 logfile: ""
 nocolor: false
 stacktrace: false

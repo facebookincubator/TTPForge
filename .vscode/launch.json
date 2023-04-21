@@ -13,6 +13,19 @@
         "run",
         "ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml"
       ]
+    },
+    {
+      "type": "go",
+      "request": "launch",
+      "name": "Debug E2E Tests (test_variable_expansion.yaml)",
+      "mode": "debug",
+      "program": "${workspaceRoot}",
+      "args": [
+        "-c",
+        "cmd/e2e-tests/config.yaml",
+        "run",
+        "cmd/e2e-tests/test_variable_expansion.yaml"
+      ]
     }
     // {
     //   "type": "go",
