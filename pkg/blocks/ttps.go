@@ -22,9 +22,12 @@ package blocks
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	cp "github.com/otiai10/copy"
+
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -127,17 +130,49 @@ func (t *TTP) fetchEnv() {
 	}
 }
 
-func (t *TTP) setWorkingDirectory() error {
-	if t.WorkDir != "" {
-		return nil
-	}
+func (t *TTP) copyTTPToWorkingDirectoryAndChdir(yamlFile string, workDir string) error {
 
-	path, err := os.Getwd()
+	dir := filepath.Dir(yamlFile)
+	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		return err
 	}
-	t.WorkDir = path
-	return nil
+
+	// seriously you need a library for this wtf golang
+	err = cp.Copy(absDir, workDir)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chdir(workDir)
+	return err
+}
+
+// PrepareWorkingDirectoryAndChdir sets up the workdir for TTP
+//
+// you should defer the returned cleanup func AFTER checking for an error
+func (t *TTP) PrepareWorkingDirectoryAndChdir(yamlFile string) (func(), error) {
+
+	// no pattern, that would be an indicator of compromise :P
+	tmpDir, err := os.MkdirTemp("", "")
+	if err != nil {
+		return nil, err
+	}
+	cleanup := func() {
+		os.RemoveAll(tmpDir)
+	}
+
+	// we put these ops in their own function to make
+	// "defer" responsibility easier, not need to write
+	// cleanup() in every error branch
+	err = t.copyTTPToWorkingDirectoryAndChdir(yamlFile, tmpDir)
+	if err != nil {
+		cleanup()
+		return nil, err
+	}
+
+	logging.Logger.Sugar().Infof("Using workdir: %v", tmpDir)
+	return cleanup, nil
 }
 
 // ValidateSteps iterates through each step in the TTP and validates it. It sets the working directory
@@ -195,9 +230,6 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 //
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps() error {
-	if err := t.setWorkingDirectory(); err != nil {
-		return err
-	}
 
 	if err := t.ValidateSteps(); err != nil {
 		return err

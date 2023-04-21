@@ -21,7 +21,6 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -62,15 +61,11 @@ func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 		Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
 
-	// Use the directory of the YAML file as the full path reference.
-	dir := filepath.Dir(yamlFile)
-	dir, err = filepath.Abs(dir)
+	cleanupWorkDir, err := ttp.PrepareWorkingDirectoryAndChdir(yamlFile)
 	if err != nil {
 		return nil, err
 	}
-
-	// Set the working directory for the TTP.
-	ttp.WorkDir = dir
+	defer cleanupWorkDir()
 
 	if err := ttp.RunSteps(); err != nil {
 		Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
