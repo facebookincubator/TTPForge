@@ -1,5 +1,5 @@
 ---
-name: Test Variable Expansion 
+name: Test Variable Expansion
 description: |
   Tests environment + step output variable expansion
 steps:

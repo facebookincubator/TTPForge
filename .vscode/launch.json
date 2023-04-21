@@ -17,7 +17,7 @@
     {
       "type": "go",
       "request": "launch",
-      "name": "Debug E2E Tests (test_inline.yaml)",
+      "name": "Debug E2E Tests (test_variable_expansion.yaml)",
       "mode": "debug",
       "program": "${workspaceRoot}",
       "args": [

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo "you said: $@"
+echo "you said: $1"
