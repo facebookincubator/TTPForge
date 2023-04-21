@@ -22,7 +22,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os/user"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,14 +47,13 @@ func runE2ETest(t *testing.T, testFile string, stepOutputs []string) {
 
 func TestE2E(t *testing.T) {
 
-	userStruct, err := user.Current()
+	dirname, err := os.UserHomeDir()
 	assert.Nil(t, err)
-	u := userStruct.Username
 
 	scenarios := map[string][]string{
 		"test_variable_expansion.yaml": {
-			fmt.Sprintf("{\"output\":\"%v\"}", u),
-			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", u),
+			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
+			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
 			"{\"output\":\"you said: wut\"}",
 		},
 	}

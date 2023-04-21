@@ -5,7 +5,7 @@ description: |
 steps:
   - name: test_env_inline
     inline: |
-      echo $USER
+      echo $HOME
     cleanup:
       inline: |
         echo "cleaning up now"
