@@ -48,14 +48,6 @@ and follow along.
 
 - [Install Docker](https://docs.docker.com/get-docker/)
 
-- [Create a classic GitHub Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token)
-  (fine-grained isn't supported yet) with the following permissions
-  taken from [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry):
-
-  - `read:packages`
-  - `write:packages`
-  - `delete:packages`
-
 ---
 
 ## Configure environment
