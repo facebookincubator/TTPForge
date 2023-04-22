@@ -32,14 +32,14 @@ func runE2ETest(t *testing.T, testFile string, expectedResult ScenarioResult) {
 	ttp, err := ExecuteYAML("e2e-tests/" + testFile)
 	assert.Nil(t, err)
 
-	expectedStepsStdout := expectedResult.StepsStdout
-	assert.Equal(t, len(expectedStepsStdout), len(ttp.Steps), "step outputs should have correct length")
+	expectedStepOutputs := expectedResult.StepOutputs
+	assert.Equal(t, len(expectedStepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
 	for stepIdx, step := range ttp.Steps {
 		output := step.GetOutput()
 		b, err := json.Marshal(output)
 		assert.Nil(t, err)
-		assert.Equal(t, expectedStepsStdout[stepIdx], string(b), "step output is incorrect")
+		assert.Equal(t, expectedStepOutputs[stepIdx], string(b), "step output is incorrect")
 
 	}
 
@@ -47,7 +47,7 @@ func runE2ETest(t *testing.T, testFile string, expectedResult ScenarioResult) {
 }
 
 type ScenarioResult struct {
-	StepsStdout   []string
+	StepOutputs   []string
 	CleanupStdout []string
 }
 
@@ -58,14 +58,14 @@ func TestE2E(t *testing.T) {
 
 	scenarios := map[string]ScenarioResult{
 		"test_variable_expansion.yaml": {
-			StepsStdout: []string{
+			StepOutputs: []string{
 				fmt.Sprintf("{\"output\":\"%v\"}", dirname),
 				fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
 				"{\"output\":\"you said: wut\"}",
 			},
 		},
 		"test_relative_paths/nested.yaml": {
-			StepsStdout: []string{
+			StepOutputs: []string{
 				"{\"output\":\"A\"}",
 				"{\"output\":\"B\"}",
 				"{\"output\":\"D\"}",
