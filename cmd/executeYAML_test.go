@@ -31,48 +31,67 @@ import (
 func runE2ETest(t *testing.T, testFile string, expectedResult ScenarioResult) {
 	ttp, err := ExecuteYAML("e2e-tests/" + testFile)
 	assert.Nil(t, err)
+	assert.NotNil(t, ttp)
 
 	expectedStepOutputs := expectedResult.StepOutputs
 	assert.Equal(t, len(expectedStepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
+	// check step outputs
+	var cleanupOutputs []string
 	for stepIdx, step := range ttp.Steps {
 		output := step.GetOutput()
 		b, err := json.Marshal(output)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedStepOutputs[stepIdx], string(b), "step output is incorrect")
-
+		cleanups := step.GetCleanup()
+		for _, cleanup := range cleanups {
+			cleanupOutput := cleanup.GetOutput()
+			cb, err := json.Marshal(cleanupOutput)
+			assert.Nil(t, err)
+			// put them in reverse order
+			cleanupOutputs = append([]string{string(cb)}, cleanupOutputs...)
+		}
 	}
 
-	assert.NotNil(t, ttp)
+	// check cleanup outputs
+	expectedCleanupOutputs := expectedResult.CleanupOutputs
+	assert.Equal(t, len(expectedCleanupOutputs), len(cleanupOutputs), "Number of cleanup steps does not match expectation")
+	for cleanupIdx, cleanupOutput := range cleanupOutputs {
+		assert.Equal(t, expectedCleanupOutputs[cleanupIdx], cleanupOutput)
+	}
 }
 
 type ScenarioResult struct {
-	StepOutputs   []string
-	CleanupStdout []string
+	StepOutputs    []string
+	CleanupOutputs []string
 }
 
-func TestE2E(t *testing.T) {
-
+func TestVariableExpansion(t *testing.T) {
 	dirname, err := os.UserHomeDir()
 	assert.Nil(t, err)
 
-	scenarios := map[string]ScenarioResult{
-		"test_variable_expansion.yaml": {
-			StepOutputs: []string{
-				fmt.Sprintf("{\"output\":\"%v\"}", dirname),
-				fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
-				"{\"output\":\"you said: wut\"}",
-			},
+	runE2ETest(t, "test_variable_expansion.yaml", ScenarioResult{
+		StepOutputs: []string{
+			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
+			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
+			"{\"output\":\"you said: wut\"}",
 		},
-		"test_relative_paths/nested.yaml": {
-			StepOutputs: []string{
-				"{\"output\":\"A\"}",
-				"{\"output\":\"B\"}",
-				"{\"output\":\"D\"}",
-			},
+		CleanupOutputs: []string{
+			"{\"output\":\"cleaning up now\"}",
 		},
-	}
-	for scenarioFile, expectedResult := range scenarios {
-		runE2ETest(t, scenarioFile, expectedResult)
-	}
+	})
+}
+
+func TestRelativePaths(t *testing.T) {
+	runE2ETest(t, "test_relative_paths/nested.yaml", ScenarioResult{
+		StepOutputs: []string{
+			"{\"output\":\"A\"}",
+			"{\"output\":\"B\"}",
+			"{\"output\":\"D\"}",
+		},
+		CleanupOutputs: []string{
+			"{\"output\":\"E\"}",
+			"{\"output\":\"C\"}",
+		},
+	})
 }
