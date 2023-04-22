@@ -61,11 +61,11 @@ func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 		Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
 
-	cleanupWorkDir, err := ttp.PrepareWorkingDirectoryAndChdir(yamlFile)
+	cleanupWorkDirAndChdir, err := ttp.PrepareWorkingDirectoryAndChdir(yamlFile)
 	if err != nil {
 		return nil, err
 	}
-	defer cleanupWorkDir()
+	defer cleanupWorkDirAndChdir()
 
 	if err := ttp.RunSteps(); err != nil {
 		Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))

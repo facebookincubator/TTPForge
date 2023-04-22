@@ -153,13 +153,28 @@ func (t *TTP) copyTTPToWorkingDirectoryAndChdir(yamlFile string, workDir string)
 // you should defer the returned cleanup func AFTER checking for an error
 func (t *TTP) PrepareWorkingDirectoryAndChdir(yamlFile string) (func(), error) {
 
+	origDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
 	// no pattern, that would be an indicator of compromise :P
 	tmpDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, err
 	}
+
+	// build our cleanup - bring us back to original dir
+	// and delete tmp workdir - while 'ttpforge run' doesn't
+	// really need to chdir back, we need this for E2E
+	// tests in which the whole flow runs multiple times
 	cleanup := func() {
-		os.RemoveAll(tmpDir)
+		if err := os.Chdir(origDir); err != nil {
+			logging.Logger.Sugar().Errorf("Failed to revert to directory: %v", origDir)
+		}
+		if err := os.RemoveAll(tmpDir); err != nil {
+			logging.Logger.Sugar().Errorf("Failed to delete workdir: %v", tmpDir)
+		}
 	}
 
 	// we put these ops in their own function to make

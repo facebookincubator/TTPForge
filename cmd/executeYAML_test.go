@@ -56,6 +56,11 @@ func TestE2E(t *testing.T) {
 			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
 			"{\"output\":\"you said: wut\"}",
 		},
+		"test_relative_paths/nested.yaml": {
+			"{\"output\":\"A\"}",
+			"{\"output\":\"B\"}",
+			"{\"output\":\"D\"}",
+		},
 	}
 	for scenarioFile, stepOutputs := range scenarios {
 		runE2ETest(t, scenarioFile, stepOutputs)
