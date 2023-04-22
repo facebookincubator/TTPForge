@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - container
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -58,11 +59,9 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/ttpforge:${{ steps.extract_arch.outputs.arch }}
+          tags: ghcr.io/${{ github.repository_owner }}/ttpforge:latest
           build-args: |
             USER_ID=$(id -u)
             GROUP_ID=$(id -g)
-            TARGET_OS=linux
-            TARGET_ARCH=${{ steps.extract_arch.outputs.arch }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
