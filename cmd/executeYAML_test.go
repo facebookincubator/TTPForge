@@ -23,15 +23,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func runE2ETest(t *testing.T, testFile string, stepOutputs []string) {
-	ttp, err := ExecuteYAML("e2e-tests/" + testFile)
-	assert.Nil(t, err)
-
+	ttp, err := ExecuteYAML(filepath.Join("cmd", "e2e-tests", testFile))
+	assert.NoError(t, err, "execution of the testFile should not cause an error")
 	assert.Equal(t, len(stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
 	for stepIdx, step := range ttp.Steps {
@@ -39,14 +39,12 @@ func runE2ETest(t *testing.T, testFile string, stepOutputs []string) {
 		b, err := json.Marshal(output)
 		assert.Nil(t, err)
 		assert.Equal(t, stepOutputs[stepIdx], string(b), "step output is incorrect")
-
 	}
 
 	assert.NotNil(t, ttp)
 }
 
 func TestE2E(t *testing.T) {
-
 	dirname, err := os.UserHomeDir()
 	assert.Nil(t, err)
 

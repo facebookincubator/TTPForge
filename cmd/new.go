@@ -31,13 +31,13 @@ import (
 	"go.uber.org/zap"
 )
 
-var ttpInput TTPInput
-var dirPath string
-
 func init() {
 	rootCmd.AddCommand(newCmd)
 	newCmd.AddCommand(NewTTPBuilderCmd())
 }
+
+var ttpInput TTPInput
+var dirPath string
 
 // TTPInput contains the inputs required to create a new TTP from a template.
 type TTPInput struct {
@@ -68,7 +68,7 @@ func NewTTPBuilderCmd() *cobra.Command {
 	./ttpforge -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --ttp-type file --args "arg1,arg2,arg3" --cleanup --env "EXAMPLE_ENV_VAR=example_value"
 
 	# Create bash TTP that employs inline logic provided in the ttp YAML.
-	./ttpforge -c config.yaml new ttp --path ttps/lateral-movement/ssh/rogue-ssh-key.yaml --template bash --ttp-type basic --cleanup
+	./ttpforge -c config.yaml new ttp --path ttps/lateral-movement/ssh/ssh-master-mode.yaml --template bash --ttp-type basic --cleanup
 	`,
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {

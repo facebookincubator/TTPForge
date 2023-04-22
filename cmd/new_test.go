@@ -20,6 +20,8 @@ THE SOFTWARE.
 package cmd_test
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -121,27 +123,29 @@ func TestCreateAndRunTTP(t *testing.T) {
 				assert.NoError(t, err, "the test directory should exist")
 			}
 
-			// if tt.input.TTPType == "file" {
-			// 	// Check if the bash script file was created
-			// 	bashTTPPath := filepath.Join(filepath.Dir(tt.expected), "bashTTP.sh")
-			// 	_, err = os.Stat(bashTTPPath)
-			// 	assert.False(t, os.IsNotExist(err), "bashTTP.sh file not found: %s", bashTTPPath)
-			// }
+			// Check if the bash script file was created (for file TTP type)
+			if tc.input.TTPType == "file" {
+				bashTTPPath := filepath.Join(filepath.Dir(tc.expected), "bashTTP.sh")
+				_, err = os.Stat(bashTTPPath)
+				assert.False(t, os.IsNotExist(err), "bashTTP.sh file not found: %s", bashTTPPath)
+			}
 
 			// Check if the README was created
-			// readmePath := filepath.Join(filepath.Dir(tt.expected), "README.md")
-			// _, err = os.Stat(readmePath)
-			// assert.False(t, os.IsNotExist(err), "README.md file not found: %s", readmePath)
+			readmePath := filepath.Join(filepath.Dir(tc.expected), "README.md")
+			_, err = os.Stat(readmePath)
+			assert.False(t, os.IsNotExist(err), "README.md file not found: %s", readmePath)
 
 			// Run the created TTP
-			// cmd.RunCmd.SetArgs([]string{tt.expected})
-			// runOutput := new(bytes.Buffer)
-			// cmd.RunCmd.SetOut(runOutput)
+			runCmd := cmd.RunTTPCmd()
+			runCmd.SetArgs([]string{tc.expected}) // Change from basicTestPath to tc.expected
+			runOutput := new(bytes.Buffer)
+			runCmd.SetOut(runOutput)
 
-			// err = cmd.RunCmd.Execute()
-			// require.NoError(t, err, fmt.Sprintf("failed to run TTP: %v", err))
-			// // Cleanup
-			// os.RemoveAll(filepath.Dir(tt.expected))
+			err = runCmd.Execute()
+			require.NoError(t, err, fmt.Sprintf("failed to run TTP: %v", err))
+
+			// Cleanup
+			os.RemoveAll(filepath.Dir(tc.expected))
 		})
 	}
 }
