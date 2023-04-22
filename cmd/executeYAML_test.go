@@ -28,21 +28,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runE2ETest(t *testing.T, testFile string, stepOutputs []string) {
+func runE2ETest(t *testing.T, testFile string, expectedResult ScenarioResult) {
 	ttp, err := ExecuteYAML("e2e-tests/" + testFile)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(stepOutputs), len(ttp.Steps), "step outputs should have correct length")
+	expectedStepsStdout := expectedResult.StepsStdout
+	assert.Equal(t, len(expectedStepsStdout), len(ttp.Steps), "step outputs should have correct length")
 
 	for stepIdx, step := range ttp.Steps {
 		output := step.GetOutput()
 		b, err := json.Marshal(output)
 		assert.Nil(t, err)
-		assert.Equal(t, stepOutputs[stepIdx], string(b), "step output is incorrect")
+		assert.Equal(t, expectedStepsStdout[stepIdx], string(b), "step output is incorrect")
 
 	}
 
 	assert.NotNil(t, ttp)
+}
+
+type ScenarioResult struct {
+	StepsStdout   []string
+	CleanupStdout []string
 }
 
 func TestE2E(t *testing.T) {
@@ -50,19 +56,23 @@ func TestE2E(t *testing.T) {
 	dirname, err := os.UserHomeDir()
 	assert.Nil(t, err)
 
-	scenarios := map[string][]string{
+	scenarios := map[string]ScenarioResult{
 		"test_variable_expansion.yaml": {
-			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
-			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
-			"{\"output\":\"you said: wut\"}",
+			StepsStdout: []string{
+				fmt.Sprintf("{\"output\":\"%v\"}", dirname),
+				fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
+				"{\"output\":\"you said: wut\"}",
+			},
 		},
 		"test_relative_paths/nested.yaml": {
-			"{\"output\":\"A\"}",
-			"{\"output\":\"B\"}",
-			"{\"output\":\"D\"}",
+			StepsStdout: []string{
+				"{\"output\":\"A\"}",
+				"{\"output\":\"B\"}",
+				"{\"output\":\"D\"}",
+			},
 		},
 	}
-	for scenarioFile, stepOutputs := range scenarios {
-		runE2ETest(t, scenarioFile, stepOutputs)
+	for scenarioFile, expectedResult := range scenarios {
+		runE2ETest(t, scenarioFile, expectedResult)
 	}
 }
