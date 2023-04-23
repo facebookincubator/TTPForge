@@ -127,8 +127,10 @@ func init() {
 	err = flagsViper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
 	cobra.CheckErr(err)
 
-	err = rootCmd.PersistentFlags().Parse(os.Args)
-	cobra.CheckErr(err)
+	// TODO: check error here eventually - in a sufficiently
+	// subtle way
+	// see issue #55
+	rootCmd.PersistentFlags().Parse(os.Args)
 
 	verbose, err := strconv.ParseBool(rootCmd.PersistentFlags().Lookup("verbose").Value.String())
 	cobra.CheckErr(err)

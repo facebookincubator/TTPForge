@@ -25,12 +25,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var runner yamlRunner
+
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the forgery using the file specified in args.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := ExecuteYAML(args[0]); err != nil {
+		if _, err := runner.ExecuteYAML(args[0]); err != nil {
 			Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 		}
 	},
@@ -38,4 +40,5 @@ var runCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(runCmd)
+	runCmd.PersistentFlags().BoolVar(&runner.NoCleanup, "no-cleanup", false, "disable cleanup steps and preserve working directory")
 }

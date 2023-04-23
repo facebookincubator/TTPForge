@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runE2ETest(t *testing.T, testFile string, expectedResult ScenarioResult) {
-	ttp, err := ExecuteYAML("e2e-tests/" + testFile)
+func runE2ETest(t *testing.T, r yamlRunner, testFile string, expectedResult ScenarioResult) {
+	ttp, err := r.ExecuteYAML("e2e-tests/" + testFile)
 	assert.Nil(t, err)
 	assert.NotNil(t, ttp)
 
@@ -45,7 +45,11 @@ func runE2ETest(t *testing.T, testFile string, expectedResult ScenarioResult) {
 		assert.Equal(t, expectedStepOutputs[stepIdx], string(b), "step output is incorrect")
 		cleanups := step.GetCleanup()
 		for _, cleanup := range cleanups {
+			// cleanups that weren't run (bcs NoCleanup) have nil output
 			cleanupOutput := cleanup.GetOutput()
+			if cleanupOutput == nil {
+				continue
+			}
 			cb, err := json.Marshal(cleanupOutput)
 			assert.Nil(t, err)
 			// put them in reverse order
@@ -70,7 +74,7 @@ func TestVariableExpansion(t *testing.T) {
 	dirname, err := os.UserHomeDir()
 	assert.Nil(t, err)
 
-	runE2ETest(t, "test_variable_expansion.yaml", ScenarioResult{
+	runE2ETest(t, yamlRunner{}, "test_variable_expansion.yaml", ScenarioResult{
 		StepOutputs: []string{
 			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
 			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
@@ -83,7 +87,7 @@ func TestVariableExpansion(t *testing.T) {
 }
 
 func TestRelativePaths(t *testing.T) {
-	runE2ETest(t, "test_relative_paths/nested.yaml", ScenarioResult{
+	runE2ETest(t, yamlRunner{}, "test_relative_paths/nested.yaml", ScenarioResult{
 		StepOutputs: []string{
 			"{\"output\":\"A\"}",
 			"{\"output\":\"B\"}",
@@ -92,6 +96,28 @@ func TestRelativePaths(t *testing.T) {
 		CleanupOutputs: []string{
 			"{\"output\":\"E\"}",
 			"{\"output\":\"C\"}",
+		},
+	})
+}
+
+func TestNoCleanup(t *testing.T) {
+
+	// need an explicit workdir
+	// bcs we will clean it up manually
+	wd := "TestNoCleanup-WorkDir"
+	err := os.Mkdir(wd, 0700)
+	assert.Nil(t, err)
+	defer os.RemoveAll(wd)
+
+	r := yamlRunner{
+		NoCleanup: true,
+		WorkDir:   wd,
+	}
+	runE2ETest(t, r, "test_relative_paths/nested.yaml", ScenarioResult{
+		StepOutputs: []string{
+			"{\"output\":\"A\"}",
+			"{\"output\":\"B\"}",
+			"{\"output\":\"D\"}",
 		},
 	})
 }
