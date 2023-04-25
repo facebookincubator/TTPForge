@@ -1,0 +1,29 @@
+---
+name: Nancy 3p Vulnerability Scan
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  nancy:
+    name: Run nancy to identify 3p go vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up git repository
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+
+      - name: Set up Go
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4
+        with:
+          go-version: "1.20"
+
+      - name: Write go.list
+        run: go list -json -deps ./... > go.list
+
+      - name: Run nancy to check for vulnerabilities
+        uses: sonatype-nexus-community/nancy-github-action@main
