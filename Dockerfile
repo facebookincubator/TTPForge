@@ -6,7 +6,7 @@ ARG GROUP_ID=1000
 
 # Install necessary dependencies
 RUN DEBIAN_FRONTEND="noninteractive" apt-get update \
-    && apt-get install -y curl git python3 python3-pip ruby-full shellcheck tzdata unzip vim
+    && apt-get install -y curl git python3 python3-pip ruby-full shellcheck unzip vim
 
 # Create the ttpforge user and change ownership of the necessary directories
 RUN useradd -m -s /bin/bash ttpforge \
@@ -17,17 +17,8 @@ RUN useradd -m -s /bin/bash ttpforge \
 RUN go install github.com/magefile/mage@latest \
 	&& go install mvdan.cc/sh/v3/cmd/shfmt@latest
 
-# Copy the Go project files into the container
-COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-
-# Set the 'ttpforge' user as the default user
-USER ttpforge
-ENV GOPATH=/home/ttpforge/go
-ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
-WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-
 # Install tools function
-COPY --chown=ttpforge .devcontainer/install-gh-release.sh /usr/local/bin/install-gh-release
+COPY .devcontainer/install-gh-release.sh /usr/local/bin/install-gh-release
 RUN chmod +x /usr/local/bin/install-gh-release
 
 # Install gh cli and terragrunt with their respective releases on GitHub.
@@ -44,6 +35,9 @@ RUN export OS="$(uname | python3 -c 'print(open(0).read().lower().strip())')" \
     "--ignore-missing" \
     "512" \
     "gh --version" \
+    && mkdir -p /home/ttpforge/.local/bin/ \
+    && mv "$(command -v gh)" /home/ttpforge/.local/bin/gh \
+    && chown ttpforge:ttpforge -R /home/ttpforge/.local \
     && TERRAGRUNT_VERSION=0.45.2 \
     && install-gh-release \
     "Terragrunt" \
@@ -55,11 +49,18 @@ RUN export OS="$(uname | python3 -c 'print(open(0).read().lower().strip())')" \
     "256" \
     "terragrunt -v"
 
-# Install pre-commit and update path with user-specific
-# bin directory and run pre-commit install
-RUN pip3 install --user pre-commit && \
-    pre-commit install && \
-    pre-commit
+COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+
+# Set the 'ttpforge' user as the default user
+USER ttpforge
+ENV GOPATH=/home/ttpforge/go
+ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
+WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+
+# Install pre-commit
+RUN python3 -m pip install --upgrade pip \
+    && python3 -m pip install --upgrade pre-commit \
+    && pre-commit install
 
 # Install project dependencies
 RUN mage installDeps \

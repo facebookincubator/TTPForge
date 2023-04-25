@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-set -e
+set -ex
 
 TOOL_NAME="$1"
 TOOL_BINARY="$2"
@@ -20,6 +20,7 @@ curl -OL "${DOWNLOAD_BASE_URL}/${DOWNLOAD_BINARY_FILE}"
 # Verify checksums
 shasum "${SHASUM_IGNORE_MISSING}" -a "${SHASUM_ALGO}" -c checksums.txt
 
+# Install input tool
 if [ "${TOOL_BINARY}" = "terragrunt" ]; then
     chmod +x "${DOWNLOAD_BINARY_FILE}"
     mv "${DOWNLOAD_BINARY_FILE}" /usr/local/bin/"${TOOL_BINARY}"
