@@ -1,7 +1,6 @@
 ---
 name: Nancy 3p Vulnerability Scan
 on:
-  push:
   pull_request:
     branches:
       - main
