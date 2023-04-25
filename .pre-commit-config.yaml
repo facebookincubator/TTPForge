@@ -52,6 +52,7 @@ repos:
       - id: go-cyclo
         args: [-over=15]
       - id: golangci-lint
+        args: [--timeout=5m]
       - id: go-critic
       - id: go-build
       - id: go-mod-tidy
