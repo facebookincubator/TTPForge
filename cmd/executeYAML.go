@@ -87,6 +87,7 @@ func (r *yamlRunner) ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 		}
 		r.WorkDir = tmpDir
 	}
+	Logger.Sugar().Infof("using working directory: %v", r.WorkDir)
 
 	// initialize the working directory for execution
 	err = r.copyTTPtoWorkDir(yamlFile)
