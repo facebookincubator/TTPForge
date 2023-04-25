@@ -7,6 +7,7 @@ if [[ ! -f "${GVM_BIN}" ]]; then
 fi
 
 # Load gvm
+# shellcheck disable=SC1090
 source "${GVM_BIN}"
 
 # Install Go version
