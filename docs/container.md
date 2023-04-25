@@ -67,18 +67,18 @@ and run the `Remote-Containers: Reopen Locally` command.
 
 1. Create a file called `.secrets` with the following:
 
-      ```bash
-      export BOT_TOKEN=YOUR_PAT_GOES_HERE
-      export GITHUB_USERNAME=YOUR_GITHUB_USERNAME_GOES_HERE
-      ```
+   ```bash
+   export BOT_TOKEN=YOUR_PAT_GOES_HERE
+   export GITHUB_USERNAME=YOUR_GITHUB_USERNAME_GOES_HERE
+   ```
 
 1. Install [Act](https://github.com/nektos/act)
 
 1. Run the action:
 
-      ```bash
-      act -j "build_and_push" --secret-file .secrets
-      ```
+   ```bash
+   act -j "build_and_push" --secret-file .secrets
+   ```
 
 ---
 
