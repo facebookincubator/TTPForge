@@ -17,10 +17,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package cmd
+package files
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -33,33 +32,33 @@ import (
 // exported so that we can test it
 // the returned TTP is also required to assert against in tests
 func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
-	logging.Logger = Logger
-
 	ttp, err := blocks.LoadTTP(yamlFile)
 	if err != nil {
-		Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
+		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}
 
 	inventory := viper.GetStringSlice("inventory")
-	Logger.Sugar().Debugw("Inventory path gathered", "paths", inventory)
+	logging.Logger.Sugar().Debugw("Inventory path gathered", "paths", inventory)
 
 	for _, path := range inventory {
-		dir, err := os.Getwd()
+		exists, err := PathExistsInInventory(path)
 		if err != nil {
 			return nil, err
 		}
-		abs, err := blocks.FetchAbs(path, dir)
-		if err != nil {
-			return nil, err
+		if exists {
+			abs, err := filepath.Abs(path)
+			if err != nil {
+				return nil, err
+			}
+			blocks.InventoryPath = append(blocks.InventoryPath, abs)
 		}
-		blocks.InventoryPath = append(blocks.InventoryPath, abs)
 	}
 
 	if len(inventory) > 0 {
 		blocks.InventoryPath = inventory
 	} else {
-		Logger.Sugar().Warn("No inventory path specified, using current directory")
+		logging.Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
 
 	// Use the directory of the YAML file as the full path reference.
@@ -73,7 +72,7 @@ func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 	ttp.WorkDir = dir
 
 	if err := ttp.RunSteps(); err != nil {
-		Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
+		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}
 

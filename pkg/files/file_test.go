@@ -20,11 +20,13 @@ THE SOFTWARE.
 package files_test
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/files"
+	"github.com/spf13/viper"
 )
 
 func TestCreateDirIfNotExists(t *testing.T) {
@@ -76,48 +78,107 @@ func TestCreateDirIfNotExists(t *testing.T) {
 	os.RemoveAll("testDir")
 }
 
-func TestTemplateExists(t *testing.T) {
-	// Navigate to the root of the repository
-	if err := os.Chdir(filepath.Join("..", "..")); err != nil {
-		t.Fatalf("failed to change into the templates directory: %v", err)
+func TestPathExistsInInventory(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "inventory")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(testDir)
+
+	viper.Set("inventory", []string{testDir})
+
+	filePath := filepath.Join(testDir, "test.txt")
+	file, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	// Create test template file
-	testTemplatePath := "testTemplate"
-	f, err := os.Create(filepath.Join("templates", testTemplatePath+"TTP.yaml.tmpl"))
-	if err != nil {
-		t.Fatalf("failed to create test template: %v", err)
+	if _, err := io.WriteString(file, "test content"); err != nil {
+		t.Fatalf("failed to write to test file: %v", err)
 	}
-	f.Close()
+
+	file.Close()
 
 	tests := []struct {
-		name           string
-		templateName   string
-		expectedResult bool
+		name     string
+		relPath  string
+		expected bool
 	}{
 		{
-			name:           "finds an existing template",
-			templateName:   testTemplatePath,
-			expectedResult: true,
+			name:     "file exists in inventory",
+			relPath:  "test.txt",
+			expected: true,
 		},
 		{
-			name:           "does not find a nonexistent template",
-			templateName:   "nonexistentTemplate.yaml.tmpl",
-			expectedResult: false,
+			name:     "file does not exist in inventory",
+			relPath:  "nonexistent.txt",
+			expected: false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := files.TemplateExists(tc.templateName)
-			if result != tc.expectedResult {
-				t.Fatalf("expected %v, got: %v", tc.expectedResult, result)
+			exists, err := files.PathExistsInInventory(tc.relPath)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if exists != tc.expected {
+				t.Fatalf("expected %v, got %v", tc.expected, exists)
 			}
 		})
 	}
+}
 
-	// Clean up test template file
-	if err := os.Remove(filepath.Join("templates", testTemplatePath+"TTP.yaml.tmpl")); err != nil {
-		t.Fatalf("Failed to remove test template: %v", err)
+func TestTemplateExists(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(testDir)
+
+	templateDir := filepath.Join(testDir, "templates")
+	if err := os.MkdirAll(templateDir, 0755); err != nil {
+		t.Fatalf("failed to create templates directory: %v", err)
+	}
+
+	templatePath := filepath.Join(templateDir, "exampleTTP.yaml.tmpl")
+	templateFile, err := os.Create(templatePath)
+	if err != nil {
+		t.Fatalf("failed to create test template: %v", err)
+	}
+	if _, err := io.WriteString(templateFile, "test template content"); err != nil {
+		t.Fatalf("failed to write to test template: %v", err)
+	}
+	templateFile.Close()
+
+	tests := []struct {
+		name        string
+		template    string
+		shouldExist bool
+	}{
+		{
+			name:        "template exists",
+			template:    "exampleTTP",
+			shouldExist: true,
+		},
+		{
+			name:        "template does not exist",
+			template:    "nonexistentTTP",
+			shouldExist: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			exists, err := files.TemplateExists(tc.template)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if exists != tc.shouldExist {
+				t.Fatalf("expected %v, got %v", tc.shouldExist, exists)
+			}
+		})
 	}
 }

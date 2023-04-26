@@ -202,8 +202,13 @@ func validateTemplateFlag(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	if !files.TemplateExists(templateName) {
+	exists, err := files.TemplateExists(templateName)
+	if err != nil {
 		logging.Logger.Sugar().Errorw("unsupported template:", templateName, zap.Error(err))
+		return err
+	}
+	if !exists {
+		logging.Logger.Sugar().Errorw("template not found:", templateName, zap.Error(err))
 		return err
 	}
 	return nil

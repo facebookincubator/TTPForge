@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/spf13/viper"
 )
 
 // CreateDirIfNotExists checks if a directory exists at the given path and creates it if it does not exist.
@@ -58,21 +60,106 @@ func CreateDirIfNotExists(path string) error {
 	return nil
 }
 
-// TemplateExists checks if a template file with the given name exists in the "templates" directory.
-// It returns true if the template file exists, and false otherwise.
+// PathExistsInInventory checks if a relative file path exists in any of the inventory directories specified in the
+// configuration file. If the file is found in any of the inventory directories, it returns true, otherwise, it returns false.
 //
 // Parameters:
 //
-// templateName: A string representing the name of the template file to check for existence.
+// relPath: A string representing the relative path of the file to search for in the inventory directories.
 //
 // Returns:
 //
-// bool: A boolean value indicating whether the template file exists.
-func TemplateExists(templateName string) bool {
-	templatePath := filepath.Join("templates", templateName+"TTP.yaml.tmpl")
-	if _, err := os.Stat(templatePath); err != nil {
-		return false
+// bool: A boolean value indicating whether the file exists in any of the inventory directories (true) or not (false).
+// error: An error if there is an issue checking the file's existence.
+//
+// Example:
+//
+// relFilePath := "templates/exampleTTP.yaml.tmpl"
+// exists, err := PathExistsInInventory(relFilePath)
+//
+//	if err != nil {
+//	  log.Fatalf("failed to check file existence: %v", err)
+//	}
+//
+//	if exists {
+//	  log.Printf("File %s found in the inventory directories\n", relFilePath)
+//	} else {
+//
+//	  log.Printf("File %s not found in the inventory directories\n", relFilePath)
+//	}
+func PathExistsInInventory(relPath string) (bool, error) {
+	inventory := viper.GetStringSlice("inventory")
+
+	for _, invPath := range inventory {
+		absPath := filepath.Join(invPath, relPath)
+		if _, err := os.Stat(absPath); err == nil {
+			return true, nil
+		}
 	}
 
-	return true
+	return false, nil
+}
+
+// TemplateExists checks if a template file exists in any of the inventory directories specified in the configuration
+// file. If the template file is found, it returns true, otherwise, it returns false.
+//
+// Parameters:
+//
+// templateName: A string representing the name of the template file to search for in the inventory directories.
+//
+// Returns:
+//
+// bool: A boolean value indicating whether the template file exists in any of the inventory directories (true) or not (false).
+// error: An error if there is an issue checking the template file's existence.
+//
+// Example:
+//
+// templateName := "exampleTTP"
+// exists, err := TemplateExists(templateName)
+//
+//	if err != nil {
+//	  log.Fatalf("failed to check template existence: %v", err)
+//	}
+//
+//	if exists {
+//	  log.Printf("Template %s found in the inventory directories\n", templateName)
+//	} else {
+//
+//	  log.Printf("Template %s not found in the inventory directories\n", templateName)
+//	}
+func TemplateExists(templateName string) (bool, error) {
+	templatePath := filepath.Join("templates", templateName+"TTP.yaml.tmpl")
+	return PathExistsInInventory(templatePath)
+}
+
+// TTPExists checks if a TTP file exists in any of the inventory directories specified in the configuration file.
+// If the TTP file is found, it returns true, otherwise, it returns false.
+//
+// Parameters:
+//
+// ttpName: A string representing the name of the TTP file to search for in the inventory directories.
+//
+// Returns:
+//
+// bool: A boolean value indicating whether the TTP file exists in any of the inventory directories (true) or not (false).
+// error: An error if there is an issue checking the TTP file's existence.
+//
+// Example:
+//
+// ttpName := "exampleTTP"
+// exists, err := TTPExists(ttpName)
+//
+//	if err != nil {
+//	  log.Fatalf("failed to check TTP existence: %v", err)
+//	}
+//
+//	if exists {
+//	  log.Printf("TTP %s found in the inventory directories\n", ttpName)
+//	} else {
+//
+//	  log.Printf("TTP %s not found in the inventory directories\n", ttpName)
+//	}
+func TTPExists(ttpName string) (bool, error) {
+	ttpPath := filepath.Join("ttps", ttpName+".yaml")
+	return PathExistsInInventory(ttpPath)
 }

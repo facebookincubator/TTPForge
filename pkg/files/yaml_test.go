@@ -17,7 +17,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package cmd
+package files_test
 
 import (
 	"encoding/json"
@@ -26,11 +26,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/stretchr/testify/assert"
 )
 
 func runE2ETest(t *testing.T, testFile string, stepOutputs []string) {
-	ttp, err := ExecuteYAML(filepath.Join("cmd", "e2e-tests", testFile))
+	ttp, err := files.ExecuteYAML(filepath.Join("cmd", "e2e-tests", testFile))
 	assert.NoError(t, err, "execution of the testFile should not cause an error")
 	assert.Equal(t, len(stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 

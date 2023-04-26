@@ -46,9 +46,9 @@
       "program": "${workspaceRoot}",
       "args": [
         "-c",
-        "cmd/e2e-tests/config.yaml",
+        "pkg/files/e2e-tests/config.yaml",
         "run",
-        "cmd/e2e-tests/test_variable_expansion.yaml"
+        "pkg/files/e2e-tests/test_variable_expansion.yaml"
       ]
     },
     {
