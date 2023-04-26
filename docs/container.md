@@ -4,6 +4,16 @@ We provide a development container hosted on
 GitHub Container Registry (ghcr) to serve as a
 complete development environment.
 
+## Prerequisites
+
+- [Create a classic GitHub Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+  (fine-grained isn't supported yet) with the following permissions
+  taken from [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry):
+
+  - `read:packages`
+  - `write:packages`
+  - `delete:packages`
+
 ## Using in VSCode
 
 **Please note: this functionality requires vanilla VSCode!**
@@ -40,21 +50,6 @@ and run the `Remote-Containers: Reopen Locally` command.
 1. Pull the latest image from ghcr:
 
    ```bash
-   raw_arch=$(uname -m)
-   case $raw_arch in
-      x86_64)
-            ARCH="amd64"
-            ;;
-      aarch64)
-            ARCH="arm64"
-            ;;
-      *)
-            echo "Unsupported architecture: $raw_arch"
-            exit 1
-            ;;
-   esac
-   export ARCH
-
    docker pull ghcr.io/facebookincubator/ttpforge:latest
    ```
 
@@ -63,7 +58,26 @@ and run the `Remote-Containers: Reopen Locally` command.
    ```bash
    docker run -it --rm \
        -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
-       ghcr.io/facebookincubator/ttpforge:latest
+       facebookincubator/ttpforge:latest
+   ```
+
+---
+
+## Run container action locally
+
+1. Create a file called `.secrets` with the following:
+
+   ```bash
+   export BOT_TOKEN=YOUR_PAT_GOES_HERE
+   export GITHUB_USERNAME=YOUR_GITHUB_USERNAME_GOES_HERE
+   ```
+
+1. Install [Act](https://github.com/nektos/act)
+
+1. Run the action:
+
+   ```bash
+   act -j "build_and_push" --secret-file .secrets
    ```
 
 ---
@@ -81,7 +95,7 @@ case $raw_arch in
    x86_64)
          ARCH="amd64"
          ;;
-   aarch64)
+   arm64)
          ARCH="arm64"
          ;;
    *)
