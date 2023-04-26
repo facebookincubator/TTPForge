@@ -35,7 +35,8 @@ func TestCreateDirIfNotExists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temporary file: %v", err)
 	}
-	defer os.Remove(tempFile.Name()) // Clean up the temporary file
+	// Clean up the temporary file
+	defer os.Remove(tempFile.Name())
 
 	tests := []struct {
 		name       string

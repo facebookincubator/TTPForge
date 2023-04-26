@@ -57,7 +57,7 @@ func TestCreateAndRunTTP(t *testing.T) {
 	testCases := []struct {
 		name             string
 		setFlags         func()
-		input            cmd.TTPInput
+		input            cmd.NewTTPInput
 		expected         string
 		expectError      bool
 		expectedErrorMsg string

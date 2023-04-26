@@ -36,11 +36,11 @@ func init() {
 	newCmd.AddCommand(NewTTPBuilderCmd())
 }
 
-var ttpInput TTPInput
+var newTTPInput NewTTPInput
 var dirPath string
 
-// TTPInput contains the inputs required to create a new TTP from a template.
-type TTPInput struct {
+// NewTTPInput contains the inputs required to create a new TTP from a template.
+type NewTTPInput struct {
 	Template string
 	Path     string
 	TTPType  string
@@ -86,7 +86,7 @@ func NewTTPBuilderCmd() *cobra.Command {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			// Create the filepath for the input TTP if it doesn't already exist.
-			bashTTPFile := ttpInput.Path
+			bashTTPFile := newTTPInput.Path
 
 			dirPath = filepath.Dir(bashTTPFile)
 			if err := files.CreateDirIfNotExists(dirPath); err != nil {
@@ -95,14 +95,14 @@ func NewTTPBuilderCmd() *cobra.Command {
 
 			ttp, err := createTTP()
 			if err != nil {
-				logging.Logger.Sugar().Errorw("failed to create TTP with:", ttpInput, zap.Error(err))
+				logging.Logger.Sugar().Errorw("failed to create TTP with:", newTTPInput, zap.Error(err))
 				cobra.CheckErr(err)
 			}
 			// Populate templated TTP file
 			tmpl := template.Must(
 				template.ParseFiles(filepath.Join("templates", "bashTTP.yaml.tmpl")))
 
-			yamlF, err := os.Create(ttpInput.Path)
+			yamlF, err := os.Create(newTTPInput.Path)
 			cobra.CheckErr(err)
 			defer yamlF.Close()
 
@@ -124,7 +124,7 @@ func NewTTPBuilderCmd() *cobra.Command {
 			}
 
 			// Create templated bash script (if applicable)
-			if ttpInput.TTPType == "file" {
+			if newTTPInput.TTPType == "file" {
 				tmpl = template.Must(
 					template.ParseFiles(filepath.Join("templates", "bashTTP.sh.tmpl")))
 
@@ -138,45 +138,45 @@ func NewTTPBuilderCmd() *cobra.Command {
 			}
 		},
 	}
-	newTTPBuilderCmd.Flags().StringVarP(&ttpInput.Template, "template", "t", "", "Template to use for generating the TTP (e.g., bash, python)")
-	newTTPBuilderCmd.Flags().StringVarP(&ttpInput.Path, "path", "p", "", "Path for the generated TTP")
-	newTTPBuilderCmd.Flags().StringVarP(&ttpInput.TTPType, "ttp-type", "", "", "Type of TTP to create ('file' or 'inline')")
-	newTTPBuilderCmd.Flags().StringSliceVarP(&ttpInput.Args, "args", "a", []string{}, "Arguments to include in the generated TTP")
-	newTTPBuilderCmd.Flags().StringToStringVarP(&ttpInput.Env, "env", "e", nil, "Environment variables to include in the generated TTP "+
+	newTTPBuilderCmd.Flags().StringVarP(&newTTPInput.Template, "template", "t", "", "Template to use for generating the TTP (e.g., bash, python)")
+	newTTPBuilderCmd.Flags().StringVarP(&newTTPInput.Path, "path", "p", "", "Path for the generated TTP")
+	newTTPBuilderCmd.Flags().StringVarP(&newTTPInput.TTPType, "ttp-type", "", "", "Type of TTP to create ('file' or 'inline')")
+	newTTPBuilderCmd.Flags().StringSliceVarP(&newTTPInput.Args, "args", "a", []string{}, "Arguments to include in the generated TTP")
+	newTTPBuilderCmd.Flags().StringToStringVarP(&newTTPInput.Env, "env", "e", nil, "Environment variables to include in the generated TTP "+
 		"in the format KEY=VALUE")
-	newTTPBuilderCmd.Flags().BoolVar(&ttpInput.Cleanup, "cleanup", false, "Include a cleanup step in the generated TTP")
+	newTTPBuilderCmd.Flags().BoolVar(&newTTPInput.Cleanup, "cleanup", false, "Include a cleanup step in the generated TTP")
 
 	return newTTPBuilderCmd
 }
 
 func createTTP() (*blocks.TTP, error) {
 	ttp := &blocks.TTP{
-		Name:        filepath.Base(ttpInput.Path),
+		Name:        filepath.Base(newTTPInput.Path),
 		Description: "This is an example TTP created based on user input",
-		Environment: ttpInput.Env,
+		Environment: newTTPInput.Env,
 	}
 
 	// Create a new step based on user input
 	var step blocks.Step
 
-	if ttpInput.TTPType == "file" {
+	if newTTPInput.TTPType == "file" {
 		step = blocks.NewFileStep()
 		step.(*blocks.FileStep).Act.Name = "example_file_step"
 		step.(*blocks.FileStep).FilePath = filepath.Join(dirPath, "bashTTP.sh")
-		step.(*blocks.FileStep).Args = ttpInput.Args
+		step.(*blocks.FileStep).Args = newTTPInput.Args
 	} else {
 		step = blocks.NewBasicStep()
 		step.(*blocks.BasicStep).Act.Name = "example_basic_step"
 		step.(*blocks.BasicStep).Inline = "echo Hello, World"
-		step.(*blocks.BasicStep).Args = ttpInput.Args
+		step.(*blocks.BasicStep).Args = newTTPInput.Args
 	}
 
-	if ttpInput.Cleanup {
+	if newTTPInput.Cleanup {
 		cleanupStep := blocks.NewBasicStep()
 		cleanupStep.Act.Name = "cleanup_step"
 		cleanupStep.Inline = "echo 'Cleanup done'"
 
-		if ttpInput.TTPType == "file" {
+		if newTTPInput.TTPType == "file" {
 			cleanupFileStep := blocks.NewFileStep()
 			cleanupFileStep.Act.Name = "cleanup_step"
 			cleanupFileStep.FilePath = "example_cleanup_file.sh"
