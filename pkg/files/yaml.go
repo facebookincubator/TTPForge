@@ -41,6 +41,8 @@ func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 	inventory := viper.GetStringSlice("inventory")
 	logging.Logger.Sugar().Debugw("Inventory path gathered", "paths", inventory)
 
+	blocks.InventoryPath = []string{}
+
 	for _, path := range inventory {
 		exists, err := PathExistsInInventory(path)
 		if err != nil {
@@ -55,9 +57,7 @@ func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
 		}
 	}
 
-	if len(inventory) > 0 {
-		blocks.InventoryPath = inventory
-	} else {
+	if len(blocks.InventoryPath) == 0 {
 		logging.Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
 

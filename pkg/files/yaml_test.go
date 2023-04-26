@@ -30,33 +30,80 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runE2ETest(t *testing.T, testFile string, stepOutputs []string) {
-	ttp, err := files.ExecuteYAML(filepath.Join("cmd", "e2e-tests", testFile))
-	assert.NoError(t, err, "execution of the testFile should not cause an error")
-	assert.Equal(t, len(stepOutputs), len(ttp.Steps), "step outputs should have correct length")
-
-	for stepIdx, step := range ttp.Steps {
-		output := step.GetOutput()
-		b, err := json.Marshal(output)
-		assert.Nil(t, err)
-		assert.Equal(t, stepOutputs[stepIdx], string(b), "step output is incorrect")
-	}
-
-	assert.NotNil(t, ttp)
-}
-
-func TestE2E(t *testing.T) {
-	dirname, err := os.UserHomeDir()
+func TestExecuteYAML(t *testing.T) {
+	home, err := os.UserHomeDir()
 	assert.Nil(t, err)
 
-	scenarios := map[string][]string{
-		"test_variable_expansion.yaml": {
-			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
-			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
-			"{\"output\":\"you said: wut\"}",
+	testVariableExpansionYAML := `---
+name: Test Variable Expansion
+description: |
+  Tests environment + step output variable expansion
+steps:
+  - name: test_env_inline
+    inline: |
+      echo $HOME
+    cleanup:
+      inline: |
+        echo "cleaning up now"
+  - name: test_step_output_as_input_env
+    inline: |
+      echo "{\"test_key\" : \"$input\", \"another_key\":\"wut\"}"
+    env:
+      input: steps.test_env_inline.output
+  - name: test_step_output_in_arg_list
+    file: test-variable-expansion.sh
+    args:
+      - steps.test_step_output_as_input_env.another_key
+`
+
+	testVariableExpansionSH := `#!/bin/bash
+
+echo "you said: $1"
+`
+
+	tests := []struct {
+		name        string
+		testFile    string
+		stepOutputs []string
+	}{
+		{
+			name:     "test_variable_expansion",
+			testFile: "test_variable_expansion.yaml",
+			stepOutputs: []string{
+				fmt.Sprintf("{\"output\":\"%v\"}", home),
+				fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", home),
+				"{\"output\":\"you said: wut\"}",
+			},
 		},
+		// Add more test cases here as needed.
 	}
-	for scenarioFile, stepOutputs := range scenarios {
-		runE2ETest(t, scenarioFile, stepOutputs)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir, err := os.MkdirTemp("", "e2e-tests")
+			assert.NoError(t, err, "failed to create temporary directory")
+			defer os.RemoveAll(tempDir) // Clean up the temporary directory
+
+			testYAMLPath := filepath.Join(tempDir, tc.testFile)
+			err = os.WriteFile(testYAMLPath, []byte(testVariableExpansionYAML), 0644)
+			assert.NoError(t, err, "failed to write the temporary YAML file")
+
+			scriptPath := filepath.Join(tempDir, "test-variable-expansion.sh")
+			err = os.WriteFile(scriptPath, []byte(testVariableExpansionSH), 0755)
+			assert.NoError(t, err, "failed to write the temporary shell script")
+
+			ttp, err := files.ExecuteYAML(testYAMLPath)
+			assert.NoError(t, err, "execution of the testFile should not cause an error")
+			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
+
+			for stepIdx, step := range ttp.Steps {
+				output := step.GetOutput()
+				b, err := json.Marshal(output)
+				assert.Nil(t, err)
+				assert.Equal(t, tc.stepOutputs[stepIdx], string(b), "step output is incorrect")
+			}
+
+			assert.NotNil(t, ttp)
+		})
 	}
 }
