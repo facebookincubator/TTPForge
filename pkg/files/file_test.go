@@ -25,10 +25,16 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/files"
-	file "github.com/facebookincubator/ttpforge/pkg/files"
 )
 
 func TestCreateDirIfNotExists(t *testing.T) {
+	// Create a temporary file
+	tempFile, err := os.CreateTemp("", "tempFile")
+	if err != nil {
+		t.Fatalf("failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tempFile.Name()) // Clean up the temporary file
+
 	tests := []struct {
 		name       string
 		path       string
@@ -47,11 +53,16 @@ func TestCreateDirIfNotExists(t *testing.T) {
 			path:       "/nonexistent/testDir",
 			shouldFail: true,
 		},
+		{
+			name:       "returns error if path is a non-directory file",
+			path:       tempFile.Name(),
+			shouldFail: true,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := file.CreateDirIfNotExists(tc.path)
+			err := files.CreateDirIfNotExists(tc.path)
 			if err != nil && !tc.shouldFail {
 				t.Fatalf("expected no error, got: %v", err)
 			}

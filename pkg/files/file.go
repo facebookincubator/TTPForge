@@ -20,6 +20,7 @@ THE SOFTWARE.
 package files
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -35,12 +36,25 @@ import (
 //
 // error: An error if the directory could not be created.
 func CreateDirIfNotExists(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err = os.MkdirAll(path, 0755)
-		if err != nil {
+	fileInfo, err := os.Stat(path)
+
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Create the directory if it does not exist
+			err = os.MkdirAll(path, 0755)
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
+	} else {
+		// Check if the path is a directory
+		if !fileInfo.IsDir() {
+			return fmt.Errorf("%s is a file, not a directory", path)
+		}
 	}
+
 	return nil
 }
 
