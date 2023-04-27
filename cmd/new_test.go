@@ -22,10 +22,9 @@ package cmd_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
-	"path"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/cmd"
@@ -35,25 +34,127 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var absConfigPath string
+func createTestInventory(t *testing.T, dir string) {
+	t.Helper()
 
-func init() {
-	// Find the absolute path to the config.yaml file
-	_, currentFilePath, _, _ := runtime.Caller(0)
-	absConfigPath = filepath.Join(path.Dir(currentFilePath), "..", "config.yaml")
+	lateralMovementDir := filepath.Join(dir, "lateral-movement", "ssh")
+	if err := os.MkdirAll(lateralMovementDir, 0755); err != nil {
+		t.Fatalf("failed to create lateral movement dir: %v", err)
+	}
 
-	// Change into the same directory as the config (repo root).
-	if err := os.Chdir(filepath.Dir(absConfigPath)); err != nil {
-		panic(err)
+	privEscalationDir := filepath.Join(dir, "privilege-escalation", "credential-theft", "hello-world")
+	if err := os.MkdirAll(privEscalationDir, 0755); err != nil {
+		t.Fatalf("failed to create privilege escalation dir: %v", err)
+	}
+
+	testFiles := []struct {
+		path     string
+		contents string
+	}{
+		{
+			path:     filepath.Join(lateralMovementDir, "rogue-ssh-key.yaml"),
+			contents: fmt.Sprintln("---\nname: test-rogue-ssh-key-contents"),
+		},
+		{
+			path:     filepath.Join(privEscalationDir, "priv-esc.yaml"),
+			contents: fmt.Sprintln("---\nname: test-priv-esc-contents"),
+		},
+	}
+
+	for _, file := range testFiles {
+		f, err := os.Create(file.path)
+		if err != nil {
+			t.Fatalf("failed to create test file: %v", err)
+		}
+		if _, err := io.WriteString(f, file.contents); err != nil {
+			t.Fatalf("failed to write to test file: %v", err)
+		}
+		f.Close()
 	}
 }
 
+func createBashTestTemplates(t *testing.T, dir string) {
+	t.Helper()
+
+	templateDir := filepath.Join(dir, "templates")
+	if err := os.MkdirAll(templateDir, 0755); err != nil {
+		t.Fatalf("failed to create templates directory: %v", err)
+	}
+
+	// Create the "bash" directory inside the "templates" directory
+	bashDir := filepath.Join(templateDir, "bash")
+	if err := os.MkdirAll(bashDir, 0755); err != nil {
+		t.Fatalf("failed to create bash directory: %v", err)
+	}
+
+	// Create basic TTP template
+	basicTemplateFile, err := os.Create(filepath.Join(bashDir, "bashTTP.yaml.tmpl"))
+	if err != nil {
+		t.Fatalf("failed to create test template: %v", err)
+	}
+	if _, err := io.WriteString(basicTemplateFile, "test basic template content"); err != nil {
+		t.Fatalf("failed to write to test template: %v", err)
+	}
+	defer basicTemplateFile.Close()
+
+	// Create README template
+	readmeTmpl := "# This is a test"
+
+	readmeTemplateFile, err := os.Create(filepath.Join(bashDir, "README.md.tmpl"))
+	if err != nil {
+		t.Fatalf("failed to create test template: %v", err)
+	}
+	if _, err := io.WriteString(readmeTemplateFile, readmeTmpl); err != nil {
+		t.Fatalf("failed to write to test template: %v", err)
+	}
+	defer readmeTemplateFile.Close()
+
+	// Create file TTP template
+	bashScriptTemplateFile, err := os.Create(filepath.Join(bashDir, "bashTTP.bash.tmpl"))
+	if err != nil {
+		t.Fatalf("failed to create test template: %v", err)
+	}
+	if _, err := io.WriteString(bashScriptTemplateFile, "test file template content"); err != nil {
+		t.Fatalf("failed to write to test template: %v", err)
+	}
+	defer bashScriptTemplateFile.Close()
+}
+
 func TestCreateAndRunTTP(t *testing.T) {
+	// Create a temporary file
+	testDir, err := os.MkdirTemp("", "cmd-new-test")
+	assert.NoError(t, err, "failed to create temporary directory")
+	// Clean up the temporary directory
+	defer os.RemoveAll(testDir)
+
+	createTestInventory(t, testDir)
+	createBashTestTemplates(t, testDir)
+
+	// Create ttp dir
+	ttpDir := filepath.Join(testDir, "ttps")
+	if err := os.MkdirAll(ttpDir, 0755); err != nil {
+		t.Fatalf("failed to create ttps directory: %v", err)
+	}
+
+	// config for the test
+	testConfigYAML := `---
+inventory:
+  - ` + ttpDir + `
+logfile: ""
+nocolor: false
+stacktrace: false
+verbose: false
+`
+
+	// Write the config to a temporary file
+	testConfigYAMLPath := filepath.Join(testDir, "config.yaml")
+	err = os.WriteFile(testConfigYAMLPath, []byte(testConfigYAML), 0644)
+	assert.NoError(t, err, "failed to write the temporary YAML file")
+
+	basicTestPath := filepath.Join("ttps", "basicTest", "testBasicTTP.yaml")
+	fileTestPath := filepath.Join("ttps", "fileTest", "testFileTTP.yaml")
+
 	newTTPBuilderCmd := cmd.NewTTPBuilderCmd()
-
-	basicTestPath := filepath.Join("ttps", "test", "testBasicTTP.yaml")
-	fileTestPath := filepath.Join("ttps", "test", "testFileTTP.yaml")
-
 	testCases := []struct {
 		name             string
 		setFlags         func()
@@ -63,22 +164,9 @@ func TestCreateAndRunTTP(t *testing.T) {
 		expectedErrorMsg string
 	}{
 		{
-			name: "All required flags set",
-			setFlags: func() {
-				_ = newTTPBuilderCmd.Flags().Set("config", absConfigPath)
-				_ = newTTPBuilderCmd.Flags().Set("path", basicTestPath)
-				_ = newTTPBuilderCmd.Flags().Set("template", "bash")
-				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "file")
-				_ = newTTPBuilderCmd.Flags().Set("args", "arg1,arg2,arg3")
-				_ = newTTPBuilderCmd.Flags().Set("cleanup", "true")
-				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
-			},
-			expectError: false,
-		},
-		{
 			name: "Create basic bash TTP",
 			setFlags: func() {
-				_ = newTTPBuilderCmd.Flags().Set("config", absConfigPath)
+				_ = newTTPBuilderCmd.Flags().Set("config", testConfigYAMLPath)
 				_ = newTTPBuilderCmd.Flags().Set("path", basicTestPath)
 				_ = newTTPBuilderCmd.Flags().Set("template", "bash")
 				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "basic")
@@ -91,11 +179,12 @@ func TestCreateAndRunTTP(t *testing.T) {
 		{
 			name: "Create file-based bash TTP",
 			setFlags: func() {
-				_ = newTTPBuilderCmd.Flags().Set("config", absConfigPath)
-				_ = newTTPBuilderCmd.Flags().Set("path", basicTestPath)
+				_ = newTTPBuilderCmd.Flags().Set("config", testConfigYAMLPath)
+				_ = newTTPBuilderCmd.Flags().Set("path", fileTestPath)
 				_ = newTTPBuilderCmd.Flags().Set("template", "bash")
 				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "file")
 				_ = newTTPBuilderCmd.Flags().Set("cleanup", "true")
+				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
 			},
 			expected: fileTestPath,
 		},
@@ -103,6 +192,42 @@ func TestCreateAndRunTTP(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Set flags for the test case
+			tc.setFlags()
+
+			// Update tc.input.TTPType value
+			ttpTypeFlag, err := newTTPBuilderCmd.Flags().GetString("ttp-type")
+			if err != nil {
+				t.Fatalf("failed to get ttp-type flag: %v", err)
+			}
+			tc.input.TTPType = ttpTypeFlag
+
+			testRoot := filepath.Dir(testConfigYAMLPath)
+
+			if err := os.Chdir(testRoot); err != nil {
+				t.Fatalf("failed to change into test directory: %v", err)
+			}
+			// Set filepath for current test TTP
+			ttpPath := basicTestPath
+			if tc.input.TTPType == "file" {
+				ttpPath = fileTestPath
+			}
+
+			// Create the test TTP directory if it doesn't already exist
+			if err := os.MkdirAll(filepath.Dir(ttpPath), 0755); err != nil {
+				t.Fatalf("failed to create ttps directory: %v", err)
+			}
+
+			// Create the test TTP file
+			ttpFile, err := os.Create(ttpPath)
+			if err != nil {
+				t.Fatalf("failed to create test ttp: %v", err)
+			}
+			if _, err := io.WriteString(ttpFile, fmt.Sprintln("---\nname: test-ttp-contents")); err != nil {
+				t.Fatalf("failed to write to test ttp: %v", err)
+			}
+			defer ttpFile.Close()
+
 			// Reset flags
 			newTTPBuilderCmd.Flags().VisitAll(func(flag *pflag.Flag) {
 				_ = newTTPBuilderCmd.Flags().Set(flag.Name, "")
@@ -111,23 +236,28 @@ func TestCreateAndRunTTP(t *testing.T) {
 			// Set flags for the test case
 			tc.setFlags()
 
-			// Call ExecuteContext with the custom context
-			err := newTTPBuilderCmd.Execute()
+			err = newTTPBuilderCmd.Execute()
 			if tc.expectError {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.expectedErrorMsg)
 			} else {
 				require.NoError(t, err)
-				// Ensure we are able to read ttps from the TTP directory
-				_, err = os.Stat(basicTestPath)
-				assert.NoError(t, err, "the test directory should exist")
+				if tc.input.TTPType == "basic" {
+					_, err = os.Stat(basicTestPath)
+					assert.NoErrorf(t, err, "failed to create path %s: %v", basicTestPath, err)
+				} else if tc.input.TTPType == "file" {
+					_, err = os.Stat(fileTestPath)
+					assert.NoErrorf(t, err, "failed to create path %s: %v", fileTestPath, err)
+				} else {
+					t.Fatal("invalid TTPType provided")
+				}
 			}
 
 			// Check if the bash script file was created (for file TTP type)
 			if tc.input.TTPType == "file" {
-				bashTTPPath := filepath.Join(filepath.Dir(tc.expected), "bashTTP.sh")
+				bashTTPPath := filepath.Join(filepath.Dir(tc.expected), "bashTTP.bash")
 				_, err = os.Stat(bashTTPPath)
-				assert.False(t, os.IsNotExist(err), "bashTTP.sh file not found: %s", bashTTPPath)
+				assert.False(t, os.IsNotExist(err), "bashTTP.bash file not found: %s", bashTTPPath)
 			}
 
 			// Check if the README was created

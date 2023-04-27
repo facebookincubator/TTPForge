@@ -20,6 +20,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -28,6 +29,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +39,7 @@ func init() {
 }
 
 var newTTPInput NewTTPInput
-var dirPath string
+var ttpDir string
 
 // NewTTPInput contains the inputs required to create a new TTP from a template.
 type NewTTPInput struct {
@@ -72,35 +74,54 @@ func NewTTPBuilderCmd() *cobra.Command {
 	`,
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateTemplateFlag(cmd); err != nil {
-				return err
-			}
-
 			requiredFlags := []string{
 				"template",
 				"path",
 				"ttp-type",
 			}
 
-			return checkRequiredFlags(cmd, requiredFlags)
+			for _, flag := range requiredFlags {
+				if err := cmd.MarkFlagRequired(flag); err != nil {
+					return err
+				}
+			}
+
+			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			// Create the filepath for the input TTP if it doesn't already exist.
-			bashTTPFile := newTTPInput.Path
+			inventoryPaths := viper.GetStringSlice("inventory")
 
-			dirPath = filepath.Dir(bashTTPFile)
-			if err := files.CreateDirIfNotExists(dirPath); err != nil {
+			templatePath := filepath.Join("templates", newTTPInput.Template)
+			ttpTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.yaml.tmpl", newTTPInput.Template))
+			readmeTemplatePath := filepath.Join(templatePath, "README.md.tmpl")
+			fileTTPTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.%s.tmpl", newTTPInput.Template, newTTPInput.Template))
+
+			// Iterate through inventory paths and find the first matching template
+			for _, invPath := range inventoryPaths {
+				invPath = files.ExpandHomeDir(invPath)
+				exists, err := files.TemplateExists(ttpTemplatePath, []string{invPath})
+				cobra.CheckErr(err)
+
+				if exists {
+					break
+				}
+			}
+
+			// Create the filepath for the input TTP if it doesn't already exist.
+			ttpDir = filepath.Dir(newTTPInput.Path)
+			if err := files.CreateDirIfNotExists(ttpDir); err != nil {
 				cobra.CheckErr(err)
 			}
 
+			// Create ttp from template
 			ttp, err := createTTP()
 			if err != nil {
 				logging.Logger.Sugar().Errorw("failed to create TTP with:", newTTPInput, zap.Error(err))
 				cobra.CheckErr(err)
 			}
-			// Populate templated TTP file
+
 			tmpl := template.Must(
-				template.ParseFiles(filepath.Join("templates", "bashTTP.yaml.tmpl")))
+				template.ParseFiles(newTTPInput.Path))
 
 			yamlF, err := os.Create(newTTPInput.Path)
 			cobra.CheckErr(err)
@@ -111,29 +132,31 @@ func NewTTPBuilderCmd() *cobra.Command {
 			}
 
 			// Create README from template
-			readme := filepath.Join(dirPath, "README.md")
-			tmpl = template.Must(
-				template.ParseFiles(filepath.Join("templates", "README.md.tmpl")))
-
+			readme := filepath.Join(ttpDir, "README.md")
 			readmeF, err := os.Create(readme)
+			tmpl = template.Must(
+				template.ParseFiles(readmeTemplatePath))
+
 			cobra.CheckErr(err)
 			defer readmeF.Close()
 
-			if err := tmpl.Execute(readmeF, ttp); err != nil {
+			if err := tmpl.Execute(readmeF, readme); err != nil {
 				cobra.CheckErr(err)
 			}
 
-			// Create templated bash script (if applicable)
+			// Create file-based TTP from template (if applicable)
 			if newTTPInput.TTPType == "file" {
-				tmpl = template.Must(
-					template.ParseFiles(filepath.Join("templates", "bashTTP.sh.tmpl")))
+				if newTTPInput.Template == "bash" {
+					tmpl = template.Must(
+						template.ParseFiles(fileTTPTemplatePath))
 
-				bashScriptF, err := os.Create(filepath.Join(dirPath, "bashTTP.sh"))
-				cobra.CheckErr(err)
-				defer bashScriptF.Close()
-
-				if err := tmpl.Execute(bashScriptF, ttp); err != nil {
+					bashScriptF, err := os.Create(filepath.Join(ttpDir, "bashTTP.bash"))
 					cobra.CheckErr(err)
+					defer bashScriptF.Close()
+
+					if err := tmpl.Execute(bashScriptF, ttp); err != nil {
+						cobra.CheckErr(err)
+					}
 				}
 			}
 		},
@@ -162,7 +185,7 @@ func createTTP() (*blocks.TTP, error) {
 	if newTTPInput.TTPType == "file" {
 		step = blocks.NewFileStep()
 		step.(*blocks.FileStep).Act.Name = "example_file_step"
-		step.(*blocks.FileStep).FilePath = filepath.Join(dirPath, "bashTTP.sh")
+		step.(*blocks.FileStep).FilePath = filepath.Join(ttpDir, fmt.Sprintf("%sTTP.sh", newTTPInput.Template))
 		step.(*blocks.FileStep).Args = newTTPInput.Args
 	} else {
 		step = blocks.NewBasicStep()
@@ -195,21 +218,4 @@ func createTTP() (*blocks.TTP, error) {
 	ttp.Steps = append(ttp.Steps, step)
 
 	return ttp, nil
-}
-
-func validateTemplateFlag(cmd *cobra.Command) error {
-	templateName, err := cmd.Flags().GetString("template")
-	if err != nil {
-		return err
-	}
-	exists, err := files.TemplateExists(templateName)
-	if err != nil {
-		logging.Logger.Sugar().Errorw("unsupported template:", templateName, zap.Error(err))
-		return err
-	}
-	if !exists {
-		logging.Logger.Sugar().Errorw("template not found:", templateName, zap.Error(err))
-		return err
-	}
-	return nil
 }

@@ -20,56 +20,52 @@ THE SOFTWARE.
 package files
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 // ExecuteYAML is the top-level TTP execution function
 // exported so that we can test it
 // the returned TTP is also required to assert against in tests
-func ExecuteYAML(yamlFile string) (*blocks.TTP, error) {
+func ExecuteYAML(yamlFile string, inventoryPaths []string) (*blocks.TTP, error) {
 	ttp, err := blocks.LoadTTP(yamlFile)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}
 
-	inventory := viper.GetStringSlice("inventory")
-	logging.Logger.Sugar().Debugw("Inventory path gathered", "paths", inventory)
-
-	blocks.InventoryPath = []string{}
-
-	for _, path := range inventory {
-		exists, err := PathExistsInInventory(path)
-		if err != nil {
-			return nil, err
-		}
-		if exists {
-			abs, err := filepath.Abs(path)
-			if err != nil {
-				return nil, err
-			}
-			blocks.InventoryPath = append(blocks.InventoryPath, abs)
-		}
-	}
-
-	if len(blocks.InventoryPath) == 0 {
+	if len(inventoryPaths) == 0 {
 		logging.Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
 
-	// Use the directory of the YAML file as the full path reference.
-	dir := filepath.Dir(yamlFile)
-	dir, err = filepath.Abs(dir)
-	if err != nil {
-		return nil, err
+	var ttpDir string
+	for _, inventoryPath := range inventoryPaths {
+		// Remove ttp from invPath and remove the specific ttp YAML file from yamlFile.
+		// Then bring them both together to get the directory of the TTP to run.
+		ttpd := filepath.Join(filepath.Dir(inventoryPath), filepath.Dir(yamlFile))
+		exists, err := os.Stat(ttpd)
+		if err != nil {
+			logging.Logger.Sugar().Errorw("failed to locate the path to the TTP", "path", inventoryPath, zap.Error(err))
+			return nil, err
+		}
+
+		if exists != nil {
+			ttpDir = ttpd
+			break
+		}
+	}
+
+	if ttpDir == "" {
+		return nil, fmt.Errorf("failed to find the TTP directory")
 	}
 
 	// Set the working directory for the TTP.
-	ttp.WorkDir = dir
+	ttp.WorkDir = ttpDir
 
 	if err := ttp.RunSteps(); err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))

@@ -75,24 +75,54 @@ echo "you said: $1"
 				"{\"output\":\"you said: wut\"}",
 			},
 		},
-		// Add more test cases here as needed.
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir, err := os.MkdirTemp("", "e2e-tests")
+			testDir, err := os.MkdirTemp("", "e2e-tests")
 			assert.NoError(t, err, "failed to create temporary directory")
-			defer os.RemoveAll(tempDir) // Clean up the temporary directory
+			// Clean up the temporary directory
+			defer os.RemoveAll(testDir)
 
-			testYAMLPath := filepath.Join(tempDir, tc.testFile)
+			// Navigate to test dir
+			if err := os.Chdir(testDir); err != nil {
+				t.Fatalf("failed to change into test directory: %v", err)
+			}
+
+			createTestInventory(t, testDir)
+			inventoryPath := filepath.Join(testDir, "ttps")
+			if err := os.MkdirAll(inventoryPath, 0755); err != nil {
+				t.Fatalf("failed to create inventoryPath (%s): %v", inventoryPath, err)
+			}
+
+			// config for the test
+			testConfigYAML := `---
+inventory:
+  - ` + inventoryPath + `
+logfile: ""
+nocolor: false
+stacktrace: false
+verbose: false
+`
+
+			// Write the config to a temporary file
+			testConfigYAMLPath := filepath.Join(testDir, "config.yaml")
+			err = os.WriteFile(testConfigYAMLPath, []byte(testConfigYAML), 0644)
+			assert.NoError(t, err, "failed to write the temporary YAML file")
+
+			// Add the inventoryPath to the inventoryPaths slice
+			inventoryPaths := []string{inventoryPath}
+
+			testYAMLPath := filepath.Join("ttps", tc.testFile)
 			err = os.WriteFile(testYAMLPath, []byte(testVariableExpansionYAML), 0644)
 			assert.NoError(t, err, "failed to write the temporary YAML file")
 
-			scriptPath := filepath.Join(tempDir, "test-variable-expansion.sh")
+			scriptPath := filepath.Join("ttps", "test-variable-expansion.sh")
 			err = os.WriteFile(scriptPath, []byte(testVariableExpansionSH), 0755)
 			assert.NoError(t, err, "failed to write the temporary shell script")
 
-			ttp, err := files.ExecuteYAML(testYAMLPath)
+			// testYamlPath NEEDS TO BE RELATIVE
+			ttp, err := files.ExecuteYAML(testYAMLPath, inventoryPaths)
 			assert.NoError(t, err, "execution of the testFile should not cause an error")
 			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 

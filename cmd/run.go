@@ -37,7 +37,8 @@ func RunTTPCmd() *cobra.Command {
 		Short: "Run the forgery using the file specified in args.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if _, err := files.ExecuteYAML(args[0]); err != nil {
+			relativeTTPPath := args[0]
+			if _, err := files.ExecuteYAML(relativeTTPPath, Conf.InventoryPath); err != nil {
 				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 			}
 		},
