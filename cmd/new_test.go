@@ -242,13 +242,14 @@ verbose: false
 				assert.Contains(t, err.Error(), tc.expectedErrorMsg)
 			} else {
 				require.NoError(t, err)
-				if tc.input.TTPType == "basic" {
+				switch tc.input.TTPType {
+				case "basic":
 					_, err = os.Stat(basicTestPath)
 					assert.NoErrorf(t, err, "failed to create path %s: %v", basicTestPath, err)
-				} else if tc.input.TTPType == "file" {
+				case "file":
 					_, err = os.Stat(fileTestPath)
 					assert.NoErrorf(t, err, "failed to create path %s: %v", fileTestPath, err)
-				} else {
+				default:
 					t.Fatal("invalid TTPType provided")
 				}
 			}

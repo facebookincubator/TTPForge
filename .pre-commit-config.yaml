@@ -44,7 +44,7 @@ repos:
       - id: codespell
         entry: |
           codespell -q 3 -f
-          -S ".git,.github,README.md,docs/*,go.sum"
+          -S ".git,.github,README.md,docs/*,go.sum,*test.go"
 
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1
