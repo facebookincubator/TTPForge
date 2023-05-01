@@ -25,6 +25,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/spf13/afero"
 )
 
 // CreateDirIfNotExists checks if a directory exists at the given path and creates it if it does not exist.
@@ -32,6 +34,7 @@ import (
 //
 // Parameters:
 //
+// fsys: An afero.Fs object representing the file system to operate on.
 // path: A string representing the path to the directory to check and create if necessary.
 //
 // Returns:
@@ -40,25 +43,31 @@ import (
 //
 // Example:
 //
+// fsys := afero.NewOsFs()
 // dirPath := "path/to/directory"
-// err := CreateDirIfNotExists(dirPath)
+// err := CreateDirIfNotExists(fsys, dirPath)
 //
 //	if err != nil {
 //	    log.Fatalf("failed to create directory: %v", err)
 //	}
-func CreateDirIfNotExists(path string) error {
-	fileInfo, err := os.Stat(path)
+func CreateDirIfNotExists(fsys afero.Fs, path string) error {
+	_, err := fsys.Stat(path)
 
-	if errors.Is(err, fs.ErrNotExist) {
-		// Create the directory if it does not exist
-		if err := os.MkdirAll(path, 0755); err != nil {
+	switch {
+	case os.IsNotExist(err):
+		if err := fsys.MkdirAll(path, 0755); err != nil {
 			return err
 		}
-	} else {
-		// Check if the path is a directory
-		if !fileInfo.IsDir() {
+	case err == nil:
+		isDir, err := afero.IsDir(fsys, path)
+		if err != nil {
+			return err
+		}
+		if !isDir {
 			return fmt.Errorf("%s is a file, not a directory", path)
 		}
+	default:
+		return err
 	}
 
 	return nil
@@ -102,10 +111,11 @@ func ExpandHomeDir(path string) string {
 }
 
 // PathExistsInInventory checks if a relative file path exists in any of the inventory directories specified in the
-// inventoryPaths parameter. If the file is found in any of the inventory directories, it returns true, otherwise, it returns false.
+// inventoryPaths parameter. The function uses afero.Fs to operate on a filesystem.
 //
 // Parameters:
 //
+// fsys: An afero.Fs object representing the filesystem to search.
 // relPath: A string representing the relative path of the file to search for in the inventory directories.
 // inventoryPaths: A []string containing the inventory directory paths to search.
 //
@@ -116,26 +126,30 @@ func ExpandHomeDir(path string) string {
 //
 // Example:
 //
+// fsys := afero.NewOsFs()
 // relFilePath := "templates/exampleTTP.yaml.tmpl"
 // inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
-// exists, err := PathExistsInInventory(relFilePath, inventoryPaths)
+// exists, err := PathExistsInInventory(fsys, relFilePath, inventoryPaths)
 //
-//	if err != nil {
-//	  log.Fatalf("failed to check file existence: %v", err)
-//	}
+// if err != nil {
+// log.Fatalf("failed to check file existence: %v", err)
+// }
 //
-//	if exists {
-//	  log.Printf("File %s found in the inventory directories\n", relFilePath)
-//	} else {
+// if exists {
+// log.Printf("File %s found in the inventory directories\n", relFilePath)
+// } else {
 //
-//	  log.Printf("File %s not found in the inventory directories\n", relFilePath)
-//	}
-func PathExistsInInventory(relPath string, inventoryPaths []string) (bool, error) {
+// log.Printf("File %s not found in the inventory directories\n", relFilePath)
+// }
+func PathExistsInInventory(fsys afero.Fs, relPath string, inventoryPaths []string) (bool, error) {
 	for _, inventoryPath := range inventoryPaths {
-		inventoryPath := ExpandHomeDir(inventoryPath)
+		inventoryPath = ExpandHomeDir(inventoryPath)
 		absPath := filepath.Join(inventoryPath, relPath)
-		if _, err := os.Stat(absPath); err == nil {
+
+		if _, err := fsys.Stat(absPath); err == nil {
 			return true, nil
+		} else if !os.IsNotExist(err) {
+			return false, err
 		}
 	}
 
@@ -147,6 +161,7 @@ func PathExistsInInventory(relPath string, inventoryPaths []string) (bool, error
 //
 // Parameters:
 //
+// fsys: An afero.Fs object representing the file system to operate on.
 // templatePath: A string representing the path of the template file to search for in the inventory directories.
 // inventoryPaths: A []string containing the inventory directory paths to search.
 //
@@ -157,33 +172,33 @@ func PathExistsInInventory(relPath string, inventoryPaths []string) (bool, error
 //
 // Example:
 //
+// fsys := afero.NewOsFs()
 // templatePath := "templates/bash/bashTTP.yaml.tmpl"
 // inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
-// exists, err := TemplateExists(templatePath, inventoryPaths)
+// exists, err := TemplateExists(fsys, templatePath, inventoryPaths)
 //
-//	if err != nil {
-//	  log.Fatalf("failed to check template existence: %v", err)
-//	}
+// if err != nil {
+// log.Fatalf("failed to check template existence: %v", err)
+// }
 //
-//	if exists {
-//	  log.Printf("Template %s found in the inventory directories\n", templatePath)
-//	} else {
+// if exists {
+// log.Printf("Template %s found in the inventory directories\n", templatePath)
+// } else {
 //
-//	  log.Printf("Template %s not found in the inventory directories\n", templatePath)
-//	}
-func TemplateExists(templatePath string, inventoryPaths []string) (bool, error) {
+// log.Printf("Template %s not found in the inventory directories\n", templatePath)
+// }
+func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []string) (bool, error) {
 	for _, inventoryPath := range inventoryPaths {
-		fullPath := filepath.Join(filepath.Dir(inventoryPath), templatePath)
+		parentDir := filepath.Dir(inventoryPath)
+		fullPath := filepath.Join(parentDir, relTemplatePath)
 
-		// Check if the template exists at the fullPath
-		if _, err := os.Stat(fullPath); err == nil {
+		if _, err := fsys.Stat(fullPath); err == nil {
 			return true, nil
-		} else if !os.IsNotExist(err) {
+		} else if !errors.Is(err, fs.ErrNotExist) {
 			return false, err
 		}
 	}
 
-	// If the template is not found in any of the paths, return false
 	return false, nil
 }
 
@@ -192,6 +207,7 @@ func TemplateExists(templatePath string, inventoryPaths []string) (bool, error) 
 //
 // Parameters:
 //
+// fsys: An afero.Fs representing the file system to operate on.
 // ttpName: A string representing the name of the TTP file to search for in the inventory directories.
 // inventoryPaths: A []string containing the inventory directory paths to search.
 //
@@ -204,19 +220,48 @@ func TemplateExists(templatePath string, inventoryPaths []string) (bool, error) 
 //
 // ttpName := "exampleTTP"
 // inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
-// exists, err := TTPExists(ttpName, inventoryPaths)
+// fsys := afero.NewOsFs()
+// exists, err := TTPExists(fsys, ttpName, inventoryPaths)
 //
-//	if err != nil {
-//	  log.Fatalf("failed to check TTP existence: %v", err)
-//	}
+// if err != nil {
+// log.Fatalf("failed to check TTP existence: %v", err)
+// }
 //
-//	if exists {
-//	  log.Printf("TTP %s found in the inventory directories\n", ttpName)
-//	} else {
+// if exists {
+// log.Printf("TTP %s found in the inventory directories\n", ttpName)
+// } else {
 //
-//	  log.Printf("TTP %s not found in the inventory directories\n", ttpName)
-//	}
-func TTPExists(ttpName string, inventoryPaths []string) (bool, error) {
+// log.Printf("TTP %s not found in the inventory directories\n", ttpName)
+// }
+func TTPExists(fsys afero.Fs, ttpName string, inventoryPaths []string) (bool, error) {
 	ttpPath := filepath.Join("ttps", ttpName+".yaml")
-	return PathExistsInInventory(ttpPath, inventoryPaths)
+	return PathExistsInInventory(fsys, ttpPath, inventoryPaths)
+}
+
+// MkdirAllFS is a filesystem-agnostic version of os.MkdirAll. It creates a directory named path,
+// along with any necessary parents, and returns nil, or else returns an error.
+// The permission bits perm are used for all directories that MkdirAll creates.
+// If path is already a directory, MkdirAll does nothing and returns nil.
+//
+// Parameters:
+//
+// fsys: An afero.Fs object representing the file system to operate on.
+// path: A string representing the path to the directory to create, including any necessary parent directories.
+// perm: An os.FileMode representing the permission bits for the created directories.
+//
+// Returns:
+//
+// error: An error if the directory could not be created.
+//
+// Example:
+//
+// fsys := afero.NewOsFs()
+// dirPath := "path/to/directory"
+// err := MkdirAllFS(fsys, dirPath, 0755)
+//
+// if err != nil {
+// log.Fatalf("failed to create directory: %v", err)
+// }
+func MkdirAllFS(fsys afero.Fs, path string, perm os.FileMode) error {
+	return fsys.MkdirAll(path, perm)
 }

@@ -268,7 +268,7 @@ verbose: false
 
 			// Run the created TTP
 			runCmd := cmd.RunTTPCmd()
-			runCmd.SetArgs([]string{tc.expected}) // Change from basicTestPath to tc.expected
+			runCmd.SetArgs([]string{tc.expected})
 			runOutput := new(bytes.Buffer)
 			runCmd.SetOut(runOutput)
 

@@ -28,6 +28,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -101,10 +102,13 @@ func NewTTPBuilderCmd() *cobra.Command {
 			readmeTemplatePath := filepath.Join(templatePath, "README.md.tmpl")
 			fileTTPTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.%s.tmpl", newTTPInput.Template, newTTPInput.Template))
 
+			// Create an afero.Fs instance
+			fsys := afero.NewOsFs()
+
 			// Iterate through inventory paths and find the first matching template
 			for _, invPath := range inventoryPaths {
 				invPath = files.ExpandHomeDir(invPath)
-				exists, err := files.TemplateExists(ttpTemplatePath, []string{invPath})
+				exists, err := files.TemplateExists(fsys, ttpTemplatePath, []string{invPath})
 				cobra.CheckErr(err)
 
 				if exists {
@@ -114,7 +118,7 @@ func NewTTPBuilderCmd() *cobra.Command {
 
 			// Create the filepath for the input TTP if it doesn't already exist.
 			ttpDir = filepath.Dir(newTTPInput.Path)
-			if err := files.CreateDirIfNotExists(ttpDir); err != nil {
+			if err := files.CreateDirIfNotExists(fsys, ttpDir); err != nil {
 				cobra.CheckErr(err)
 			}
 

@@ -27,57 +27,8 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/files"
+	"github.com/spf13/afero"
 )
-
-func TestCreateDirIfNotExists(t *testing.T) {
-	// Create a temporary file
-	tempFile, err := os.CreateTemp("", "tempFile")
-	if err != nil {
-		t.Fatalf("failed to create temporary file: %v", err)
-	}
-	// Clean up the temporary file
-	defer os.Remove(tempFile.Name())
-
-	tests := []struct {
-		name       string
-		path       string
-		shouldFail bool
-	}{
-		{
-			name: "creates a directory",
-			path: "testDir",
-		},
-		{
-			name: "does not create an existing directory",
-			path: "testDir",
-		},
-		{
-			name:       "handles invalid path",
-			path:       "/nonexistent/testDir",
-			shouldFail: true,
-		},
-		{
-			name:       "returns error if path is a non-directory file",
-			path:       tempFile.Name(),
-			shouldFail: true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := files.CreateDirIfNotExists(tc.path)
-			if err != nil && !tc.shouldFail {
-				t.Fatalf("expected no error, got: %v", err)
-			}
-
-			if err == nil && tc.shouldFail {
-				t.Fatal("expected an error, but got none")
-			}
-		})
-	}
-
-	defer os.RemoveAll("testDir")
-}
 
 func createTestInventory(t *testing.T, dir string) {
 	t.Helper()
@@ -118,51 +69,54 @@ func createTestInventory(t *testing.T, dir string) {
 	}
 }
 
-func TestPathExistsInInventory(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "inventory")
+func TestCreateDirIfNotExists(t *testing.T) {
+	tempFile, err := os.CreateTemp("", "tempFile")
 	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+		t.Fatalf("failed to create temporary file: %v", err)
 	}
-	defer os.RemoveAll(testDir)
-
-	createTestInventory(t, testDir)
-	// Specify test inventory path
-	inventoryPaths := []string{filepath.Join(testDir, "ttps")}
+	defer os.Remove(tempFile.Name())
 
 	tests := []struct {
-		name     string
-		relPath  string
-		expected bool
+		name       string
+		path       string
+		shouldFail bool
 	}{
 		{
-			name:     "file exists in inventory",
-			relPath:  "lateral-movement/ssh/rogue-ssh-key.yaml",
-			expected: true,
+			name: "creates a directory",
+			path: "testDir",
 		},
 		{
-			name:     "file exists in inventory",
-			relPath:  "privilege-escalation/credential-theft/hello-world/hello-world.yaml",
-			expected: true,
+			name: "does not create an existing directory",
+			path: "testDir",
 		},
 		{
-			name:     "file does not exist in inventory",
-			relPath:  "non/nonexistent.txt",
-			expected: false,
+			name:       "handles invalid path",
+			path:       "/nonexistent/testDir",
+			shouldFail: true,
+		},
+		{
+			name:       "returns error if path is a non-directory file",
+			path:       tempFile.Name(),
+			shouldFail: true,
 		},
 	}
+
+	fsys := afero.NewOsFs()
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			exists, err := files.PathExistsInInventory(tc.relPath, inventoryPaths)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			err := files.CreateDirIfNotExists(fsys, tc.path)
+			if err != nil && !tc.shouldFail {
+				t.Fatalf("expected no error, got: %v", err)
 			}
 
-			if exists != tc.expected {
-				t.Fatalf("expected %v, got %v", tc.expected, exists)
+			if err == nil && tc.shouldFail {
+				t.Fatal("expected an error, but got none")
 			}
 		})
 	}
+
+	defer os.RemoveAll("testDir")
 }
 
 // Borrowed from: https://github.com/l50/goutils/blob/e91b7c4e18e23c53e35d04fa7961a5a14ca8ef39/fileutils_test.go#L294-L340
@@ -222,55 +176,41 @@ func TestTemplateExists(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	createTestInventory(t, testDir)
-	// Specify test inventory path
-	inventoryPaths := []string{filepath.Join(testDir, "ttps")}
 
-	bashTemplateDir := filepath.Join(testDir, "templates", "bash")
-	if err := os.MkdirAll(bashTemplateDir, 0755); err != nil {
-		t.Fatalf("failed to create templates directory: %v", err)
-	}
-
-	templateFile, err := os.Create(filepath.Join(bashTemplateDir, "bashTTP.yaml.tmpl"))
-	if err != nil {
-		t.Fatalf("failed to create test template: %v", err)
-	}
-
-	if _, err := io.WriteString(templateFile, "test template content"); err != nil {
-		t.Fatalf("failed to write to test template: %v", err)
-	}
-	defer templateFile.Close()
-
-	tests := []struct {
-		name        string
-		template    string
-		shouldExist bool
+	testCases := []struct {
+		name           string
+		relPath        string
+		inventoryPaths []string
+		expected       bool
 	}{
 		{
-			name:        "template exists",
-			template:    "bash",
-			shouldExist: true,
+			name:           "file exists in inventory",
+			expected:       true,
+			inventoryPaths: []string{filepath.Join(testDir, "ttps")},
+			relPath:        "ttps/lateral-movement/ssh/rogue-ssh-key.yaml",
 		},
 		{
-			name:        "template does not exist",
-			template:    "nonexistent",
-			shouldExist: false,
+			name:           "file exists in inventory",
+			expected:       true,
+			inventoryPaths: []string{filepath.Join(testDir, "ttps")},
+			relPath:        "ttps/privilege-escalation/credential-theft/hello-world/hello-world.yaml",
+		},
+		{
+			name:           "file does not exist in inventory",
+			expected:       false,
+			inventoryPaths: []string{filepath.Join(testDir, "ttps")},
+			relPath:        "ttps/non/nonexistent.txt",
 		},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			exists, err := files.TemplateExists(filepath.Join("templates", tc.template), inventoryPaths)
-
-			if exists != tc.shouldExist {
-				t.Fatalf("expected %v, got %v", tc.shouldExist, exists)
-			}
-
+			actual, err := files.TemplateExists(afero.NewOsFs(), tc.relPath, tc.inventoryPaths)
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Errorf("failed to check file existence: %v", err)
 			}
-
-			if exists != tc.shouldExist {
-				t.Fatalf("expected %v, got %v", tc.shouldExist, exists)
+			if actual != tc.expected {
+				t.Errorf("test failed: TemplateExists(%v, %q, %v) = %v; expected %v", afero.NewOsFs(), tc.relPath, tc.inventoryPaths, actual, tc.expected) // Change here
 			}
 		})
 	}
@@ -301,6 +241,10 @@ func TestTTPExists(t *testing.T) {
 	}
 	ttpFile.Close()
 
+	if err := os.Chdir(testDir); err != nil {
+		t.Fatalf("failed to change into test directory: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		ttpName     string
@@ -308,7 +252,12 @@ func TestTTPExists(t *testing.T) {
 	}{
 		{
 			name:        "TTP exists",
-			ttpName:     "exampleTTP",
+			ttpName:     "lateral-movement/ssh/rogue-ssh-key",
+			shouldExist: true,
+		},
+		{
+			name:        "TTP exists",
+			ttpName:     "privilege-escalation/credential-theft/hello-world/hello-world",
 			shouldExist: true,
 		},
 		{
@@ -320,13 +269,66 @@ func TestTTPExists(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			exists, err := files.TTPExists(tc.ttpName, inventoryPaths)
+			exists, err := files.TTPExists(afero.NewOsFs(), tc.ttpName, inventoryPaths)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
 			if exists != tc.shouldExist {
 				t.Fatalf("expected %v, got %v", tc.shouldExist, exists)
+			}
+		})
+	}
+}
+
+func TestMkdirAllFS(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(testDir)
+
+	fsys := afero.NewBasePathFs(afero.NewOsFs(), testDir)
+
+	tests := []struct {
+		name       string
+		path       string
+		shouldFail bool
+	}{
+		{
+			name: "creates directory with parents",
+			path: filepath.Join("nested", "dir"),
+		},
+		{
+			name: "does not create an existing directory",
+			path: ".",
+		},
+		{
+			name:       "handles invalid path",
+			path:       "../nonexistent/dir",
+			shouldFail: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := files.MkdirAllFS(fsys, tc.path, 0755)
+			if err != nil && !tc.shouldFail {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+
+			if err == nil && tc.shouldFail {
+				t.Fatal("expected an error, but got none")
+			}
+
+			if !tc.shouldFail {
+				exists, err := afero.Exists(fsys, tc.path)
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if !exists {
+					t.Fatalf("directory %s should have been created", tc.path)
+				}
 			}
 		})
 	}
