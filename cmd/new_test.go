@@ -170,7 +170,6 @@ verbose: false
 				_ = newTTPBuilderCmd.Flags().Set("path", basicTestPath)
 				_ = newTTPBuilderCmd.Flags().Set("template", "bash")
 				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "basic")
-				_ = newTTPBuilderCmd.Flags().Set("args", "arg1,arg2,arg3")
 				_ = newTTPBuilderCmd.Flags().Set("cleanup", "false")
 				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
 			},
@@ -183,6 +182,7 @@ verbose: false
 				_ = newTTPBuilderCmd.Flags().Set("path", fileTestPath)
 				_ = newTTPBuilderCmd.Flags().Set("template", "bash")
 				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "file")
+				_ = newTTPBuilderCmd.Flags().Set("args", "arg1,arg2,arg3")
 				_ = newTTPBuilderCmd.Flags().Set("cleanup", "true")
 				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
 			},

@@ -86,6 +86,11 @@ func NewTTPBuilderCmd() *cobra.Command {
 				}
 			}
 
+			// Check if --args are provided and --ttp-type is not set to 'file'
+			if len(newTTPInput.Args) > 0 && newTTPInput.TTPType != "file" {
+				return fmt.Errorf("--args can only be provided if --ttp-type is set to 'file'")
+			}
+
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
