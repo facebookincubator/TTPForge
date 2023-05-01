@@ -98,10 +98,6 @@ func ExpandHomeDir(path string) string {
 		return path
 	}
 
-	if len(path) == 1 || path[1] == '/' {
-		return filepath.Join(homeDir, path[1:])
-	}
-
 	return filepath.Join(homeDir, path[1:])
 }
 
