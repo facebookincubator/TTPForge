@@ -140,7 +140,7 @@ func NewTTPBuilderCmd() *cobra.Command {
 			cobra.CheckErr(err)
 			defer readmeF.Close()
 
-			if err := tmpl.Execute(readmeF, readme); err != nil {
+			if err := tmpl.Execute(readmeF, ttp); err != nil {
 				cobra.CheckErr(err)
 			}
 
