@@ -77,6 +77,9 @@ func reduceIndentation(b []byte, n int) []byte {
 	lines := bytes.Split(b, []byte("\n"))
 
 	for i, line := range lines {
+		// Replace tabs with spaces for consistent processing
+		line = bytes.ReplaceAll(line, []byte("\t"), []byte("    "))
+
 		trimmedLine := bytes.TrimLeft(line, " ")
 		indentation := len(line) - len(trimmedLine)
 		if indentation >= n {
