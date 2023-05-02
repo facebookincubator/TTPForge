@@ -73,51 +73,44 @@ func createTestInventory(t *testing.T, dir string) {
 	}
 }
 
-func createBashTestTemplates(t *testing.T, dir string) {
+func createBashTestTemplates(t *testing.T, templatesDir, dir string) {
 	t.Helper()
 
-	templateDir := filepath.Join(dir, "templates")
-	if err := os.MkdirAll(templateDir, 0755); err != nil {
-		t.Fatalf("failed to create templates directory: %v", err)
-	}
+	err := filepath.Walk(templatesDir, func(srcPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
-	// Create the "bash" directory inside the "templates" directory
-	bashDir := filepath.Join(templateDir, "bash")
-	if err := os.MkdirAll(bashDir, 0755); err != nil {
-		t.Fatalf("failed to create bash directory: %v", err)
-	}
+		relPath, err := filepath.Rel(templatesDir, srcPath)
+		if err != nil {
+			return err
+		}
 
-	// Create basic TTP template
-	basicTemplateFile, err := os.Create(filepath.Join(bashDir, "bashTTP.yaml.tmpl"))
+		dstPath := filepath.Join(dir, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, info.Mode())
+		}
+
+		srcFile, err := os.Open(srcPath)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		dstFile, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+		defer dstFile.Close()
+
+		_, err = io.Copy(dstFile, srcFile)
+		return err
+	})
+
 	if err != nil {
-		t.Fatalf("failed to create test template: %v", err)
+		t.Fatalf("failed to copy templates dir: %v", err)
 	}
-	if _, err := io.WriteString(basicTemplateFile, "test basic template content"); err != nil {
-		t.Fatalf("failed to write to test template: %v", err)
-	}
-	defer basicTemplateFile.Close()
-
-	// Create README template
-	readmeTmpl := "# This is a test"
-
-	readmeTemplateFile, err := os.Create(filepath.Join(bashDir, "README.md.tmpl"))
-	if err != nil {
-		t.Fatalf("failed to create test template: %v", err)
-	}
-	if _, err := io.WriteString(readmeTemplateFile, readmeTmpl); err != nil {
-		t.Fatalf("failed to write to test template: %v", err)
-	}
-	defer readmeTemplateFile.Close()
-
-	// Create file TTP template
-	bashScriptTemplateFile, err := os.Create(filepath.Join(bashDir, "bashTTP.bash.tmpl"))
-	if err != nil {
-		t.Fatalf("failed to create test template: %v", err)
-	}
-	if _, err := io.WriteString(bashScriptTemplateFile, "test file template content"); err != nil {
-		t.Fatalf("failed to write to test template: %v", err)
-	}
-	defer bashScriptTemplateFile.Close()
 }
 
 func TestCreateAndRunTTP(t *testing.T) {
@@ -128,7 +121,17 @@ func TestCreateAndRunTTP(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	createTestInventory(t, testDir)
-	createBashTestTemplates(t, testDir)
+
+	// Get the current working directory
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get the current working directory: %v", err)
+	}
+
+	// Construct the templatesDir path
+	templatesDir := filepath.Join(wd, "..", "templates")
+
+	createBashTestTemplates(t, templatesDir, filepath.Join(testDir, "templates"))
 
 	// Create ttp dir
 	ttpDir := filepath.Join(testDir, "ttps")
