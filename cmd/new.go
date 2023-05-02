@@ -130,7 +130,7 @@ func NewTTPBuilderCmd() *cobra.Command {
 			}
 
 			tmpl := template.Must(
-				template.ParseFiles(newTTPInput.Path))
+				template.ParseFiles(ttpTemplatePath))
 
 			yamlF, err := os.Create(newTTPInput.Path)
 			cobra.CheckErr(err)
