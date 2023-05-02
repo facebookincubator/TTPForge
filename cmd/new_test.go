@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/otiai10/copy"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 
@@ -73,46 +74,6 @@ func createTestInventory(t *testing.T, dir string) {
 	}
 }
 
-func createBashTestTemplates(t *testing.T, templatesDir, dir string) {
-	t.Helper()
-
-	err := filepath.Walk(templatesDir, func(srcPath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(templatesDir, srcPath)
-		if err != nil {
-			return err
-		}
-
-		dstPath := filepath.Join(dir, relPath)
-
-		if info.IsDir() {
-			return os.MkdirAll(dstPath, info.Mode())
-		}
-
-		srcFile, err := os.Open(srcPath)
-		if err != nil {
-			return err
-		}
-		defer srcFile.Close()
-
-		dstFile, err := os.Create(dstPath)
-		if err != nil {
-			return err
-		}
-		defer dstFile.Close()
-
-		_, err = io.Copy(dstFile, srcFile)
-		return err
-	})
-
-	if err != nil {
-		t.Fatalf("failed to copy templates dir: %v", err)
-	}
-}
-
 func TestCreateAndRunTTP(t *testing.T) {
 	// Create a temporary file
 	testDir, err := os.MkdirTemp("", "cmd-new-test")
@@ -131,7 +92,9 @@ func TestCreateAndRunTTP(t *testing.T) {
 	// Construct the templatesDir path
 	templatesDir := filepath.Join(wd, "..", "templates")
 
-	createBashTestTemplates(t, templatesDir, filepath.Join(testDir, "templates"))
+	if err := copy.Copy(templatesDir, filepath.Join(testDir, "templates")); err != nil {
+		t.Fatalf("failed to copy templates dir: %v", err)
+	}
 
 	// Create ttp dir
 	ttpDir := filepath.Join(testDir, "ttps")
