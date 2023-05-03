@@ -51,7 +51,7 @@ steps:
     env:
       input: steps.test_env_inline.output
   - name: test_step_output_in_arg_list
-    file: test-variable-expansion.sh
+    file: ttps/test-variable-expansion.sh
     args:
       - steps.test_step_output_as_input_env.another_key
 `
@@ -117,8 +117,8 @@ verbose: false
 			err = os.WriteFile(relTestYAMLPath, []byte(testVariableExpansionYAML), 0644)
 			assert.NoError(t, err, "failed to write the temporary YAML file")
 
-			scriptPath := filepath.Join("ttps", "test-variable-expansion.sh")
-			err = os.WriteFile(scriptPath, []byte(testVariableExpansionSH), 0755)
+			relScriptPath := filepath.Join("ttps", "test-variable-expansion.sh")
+			err = os.WriteFile(relScriptPath, []byte(testVariableExpansionSH), 0755)
 			assert.NoError(t, err, "failed to write the temporary shell script")
 
 			ttp, err := files.ExecuteYAML(relTestYAMLPath, inventoryPaths)
