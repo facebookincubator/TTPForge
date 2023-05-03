@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/spf13/afero"
 )
 
@@ -156,50 +157,63 @@ func PathExistsInInventory(fsys afero.Fs, relPath string, inventoryPaths []strin
 	return false, nil
 }
 
-// TemplateExists checks if a template file exists in any of the inventory directories specified in the inventoryPaths
-// parameter. If the template file is found, it returns true, otherwise, it returns false.
+// TemplateExists checks if a template file exists in a 'templates' folder located in the parent directory of any of the
+// inventory directories specified in the inventoryPaths parameter. If the template file is found, it returns the full path
+// to the template file, otherwise, it returns an empty string.
 //
 // Parameters:
 //
 // fsys: An afero.Fs object representing the file system to operate on.
-// templatePath: A string representing the path of the template file to search for in the inventory directories.
+// templatePath: A string representing the path of the template file to search for in the 'templates' folder of the parent
+//
+//	directory of each inventory directory.
+//
 // inventoryPaths: A []string containing the inventory directory paths to search.
 //
 // Returns:
 //
-// bool: A boolean value indicating whether the template file exists in any of the inventory directories (true) or not (false).
+// fullPath: A string containing the full path to the template file if it exists in the 'templates' folder of the parent
+//
+//	directory of any of the inventory directories, or an empty string if not found.
+//
 // error: An error if there is an issue checking the template file's existence.
 //
 // Example:
 //
 // fsys := afero.NewOsFs()
-// templatePath := "templates/bash/bashTTP.yaml.tmpl"
+// templatePath := "bash"
 // inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
-// exists, err := TemplateExists(fsys, templatePath, inventoryPaths)
+// fullPath, err := TemplateExists(fsys, templatePath, inventoryPaths)
 //
-// if err != nil {
-// log.Fatalf("failed to check template existence: %v", err)
-// }
+//	if err != nil {
+//	    log.Fatalf("failed to check template existence: %v", err)
+//	}
 //
-// if exists {
-// log.Printf("Template %s found in the inventory directories\n", templatePath)
-// } else {
+//	if fullPath != "" {
+//	    log.Printf("Template %s found in the parent directory of the inventory directories\n", templatePath)
+//	} else {
 //
-// log.Printf("Template %s not found in the inventory directories\n", templatePath)
-// }
-func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []string) (bool, error) {
+//	    log.Printf("Template %s not found in the parent directory of the inventory directories\n", templatePath)
+//	}
+func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []string) (string, error) {
 	for _, inventoryPath := range inventoryPaths {
-		parentDir := filepath.Dir(inventoryPath)
-		fullPath := filepath.Join(parentDir, relTemplatePath)
+		fsys := afero.NewOsFs()
+		iofs := afero.NewIOFS(fsys)
+		fullPath, err := blocks.FindFilePath(relTemplatePath, filepath.Dir(inventoryPath), iofs)
+		if err != nil {
+			return "", err
+		}
 
+		// parentDir := filepath.Dir(inventoryPath)
+		// fullPath := filepath.Join(templatesDir, relTemplatePath)
 		if _, err := fsys.Stat(fullPath); err == nil {
-			return true, nil
+			return fullPath, nil
 		} else if !errors.Is(err, fs.ErrNotExist) {
-			return false, err
+			return "", err
 		}
 	}
 
-	return false, nil
+	return "", nil
 }
 
 // TTPExists checks if a TTP file exists in any of the inventory directories specified in the inventoryPaths parameter.

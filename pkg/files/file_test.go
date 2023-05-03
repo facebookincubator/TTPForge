@@ -43,6 +43,11 @@ func createTestInventory(t *testing.T, dir string) {
 		t.Fatalf("failed to create privilege escalation dir: %v", err)
 	}
 
+	bashTmplDir := filepath.Join(dir, "templates", "bash")
+	if err := os.MkdirAll(bashTmplDir, 0755); err != nil {
+		t.Fatalf("failed to create bash template dir: %v", err)
+	}
+
 	testFiles := []struct {
 		path     string
 		contents string
@@ -179,38 +184,40 @@ func TestTemplateExists(t *testing.T) {
 
 	testCases := []struct {
 		name           string
+		expected       string
 		relPath        string
 		inventoryPaths []string
-		expected       bool
+		notEmpty       bool
 	}{
 		{
-			name:           "file exists in inventory",
-			expected:       true,
+			name:           "The bash templates are identified using the inventory",
+			expected:       filepath.Join(testDir, "templates", "bash"),
 			inventoryPaths: []string{filepath.Join(testDir, "ttps")},
-			relPath:        "ttps/lateral-movement/ssh/rogue-ssh-key.yaml",
+			relPath:        "templates/bash",
+			notEmpty:       true,
 		},
 		{
-			name:           "file exists in inventory",
-			expected:       true,
+			name:           "Non-existent templates are handled properly",
+			notEmpty:       false,
 			inventoryPaths: []string{filepath.Join(testDir, "ttps")},
-			relPath:        "ttps/privilege-escalation/credential-theft/hello-world/hello-world.yaml",
-		},
-		{
-			name:           "file does not exist in inventory",
-			expected:       false,
-			inventoryPaths: []string{filepath.Join(testDir, "ttps")},
-			relPath:        "ttps/non/nonexistent.txt",
+			relPath:        "templates/NOTREAL",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := files.TemplateExists(afero.NewOsFs(), tc.relPath, tc.inventoryPaths)
+			fullPath, err := files.TemplateExists(afero.NewOsFs(), tc.relPath, tc.inventoryPaths)
 			if err != nil {
 				t.Errorf("failed to check file existence: %v", err)
 			}
-			if actual != tc.expected {
-				t.Errorf("test failed: TemplateExists(%v, %q, %v) = %v; expected %v", afero.NewOsFs(), tc.relPath, tc.inventoryPaths, actual, tc.expected) // Change here
+
+			switch {
+			case tc.notEmpty && fullPath == "":
+				t.Errorf("test failed: TemplateExists(%v, %q, %v) returned an empty string; expected a non-empty string", afero.NewOsFs(), tc.relPath, tc.inventoryPaths)
+			case !tc.notEmpty && fullPath != "":
+				t.Errorf("test failed: TemplateExists(%v, %q, %v) = %v; expected an empty string", afero.NewOsFs(), tc.relPath, tc.inventoryPaths, fullPath)
+			case tc.notEmpty && fullPath != tc.expected:
+				t.Errorf("test failed: TemplateExists(%v, %q, %v) = %v; expected %v", afero.NewOsFs(), tc.relPath, tc.inventoryPaths, fullPath, tc.expected)
 			}
 		})
 	}
