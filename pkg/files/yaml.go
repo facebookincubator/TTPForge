@@ -29,9 +29,31 @@ import (
 	"go.uber.org/zap"
 )
 
-// ExecuteYAML is the top-level TTP execution function
-// exported so that we can test it
-// the returned TTP is also required to assert against in tests
+// ExecuteYAML is the top-level function for executing a TTP defined in a YAML file. It is exported for testing purposes,
+// and the returned TTP is required for assertion checks in tests.
+//
+// Parameters:
+//
+// yamlFile: A string representing the path to the YAML file containing the TTP definition.
+// inventoryPaths: A slice of strings representing the inventory paths to search for the TTP.
+//
+// Returns:
+//
+// *blocks.TTP: A pointer to a TTP struct containing the executed TTP and its related information.
+// error: An error if the TTP execution fails or if the TTP file cannot be found.
+//
+// Example:
+//
+// yamlFilePath := "/path/to/your/ttp.yaml"
+// inventoryPaths := []string{"/path/to/your/inventory"}
+//
+// ttp, err := ExecuteYAML(yamlFilePath, inventoryPaths)
+//
+// if err != nil {
+// log.Fatalf("failed to execute TTP: %v", err)
+// }
+//
+// log.Printf("TTP %s executed successfully\n", ttp.Name)
 func ExecuteYAML(yamlFile string, inventoryPaths []string) (*blocks.TTP, error) {
 	ttp, err := blocks.LoadTTP(yamlFile)
 	if err != nil {
@@ -45,17 +67,19 @@ func ExecuteYAML(yamlFile string, inventoryPaths []string) (*blocks.TTP, error) 
 
 	var ttpDir string
 	for _, inventoryPath := range inventoryPaths {
-		// Remove ttp from invPath and remove the specific ttp YAML file from yamlFile.
-		// Then bring them both together to get the directory of the TTP to run.
-		ttpd := filepath.Join(filepath.Dir(inventoryPath), filepath.Dir(yamlFile))
-		exists, err := os.Stat(ttpd)
+		absInventoryPath, err := blocks.FindFilePath(inventoryPath, filepath.Dir(inventoryPath), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		exists, err := os.Stat(absInventoryPath)
 		if err != nil {
 			logging.Logger.Sugar().Errorw("failed to locate the path to the TTP", "path", inventoryPath, zap.Error(err))
 			return nil, err
 		}
 
 		if exists != nil {
-			ttpDir = ttpd
+			ttpDir = filepath.Dir(absInventoryPath)
 			break
 		}
 	}

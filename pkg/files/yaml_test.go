@@ -113,16 +113,15 @@ verbose: false
 			// Add the inventoryPath to the inventoryPaths slice
 			inventoryPaths := []string{inventoryPath}
 
-			testYAMLPath := filepath.Join("ttps", tc.testFile)
-			err = os.WriteFile(testYAMLPath, []byte(testVariableExpansionYAML), 0644)
+			relTestYAMLPath := filepath.Join("ttps", tc.testFile)
+			err = os.WriteFile(relTestYAMLPath, []byte(testVariableExpansionYAML), 0644)
 			assert.NoError(t, err, "failed to write the temporary YAML file")
 
 			scriptPath := filepath.Join("ttps", "test-variable-expansion.sh")
 			err = os.WriteFile(scriptPath, []byte(testVariableExpansionSH), 0755)
 			assert.NoError(t, err, "failed to write the temporary shell script")
 
-			// testYamlPath NEEDS TO BE RELATIVE
-			ttp, err := files.ExecuteYAML(testYAMLPath, inventoryPaths)
+			ttp, err := files.ExecuteYAML(relTestYAMLPath, inventoryPaths)
 			assert.NoError(t, err, "execution of the testFile should not cause an error")
 			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
