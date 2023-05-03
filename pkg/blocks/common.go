@@ -102,18 +102,6 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath string, err error) {
 	logging.Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
 
-	// Check if file exists using provided fs.StatFS
-	if system != nil {
-
-		if _, err := system.Stat(path); !errors.Is(err, fs.ErrNotExist) {
-			logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
-			return path, nil
-		}
-
-		logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
-		return "", err
-	}
-
 	// Handle home directory representation in Windows.
 	if strings.HasPrefix(path, "~/") || (runtime.GOOS == "windows" && strings.HasPrefix(path, "%USERPROFILE%")) {
 		if runtime.GOOS == "windows" {
@@ -151,6 +139,18 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 			logging.Logger.Sugar().Debugw("File found in inventory path", "inventoryPath", inventoryPath)
 			return inventoryPath, nil
 		}
+	}
+
+	// Check if file exists using provided fs.StatFS
+	if system != nil {
+
+		if _, err := system.Stat(absPath); !errors.Is(err, fs.ErrNotExist) {
+			logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
+			return path, nil
+		}
+
+		logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
+		return "", err
 	}
 
 	// If the file is not found in any of the locations, return an error

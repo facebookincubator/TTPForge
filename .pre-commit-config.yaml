@@ -30,8 +30,11 @@ repos:
       - id: script-must-have-extension
         name: Ensure shell scripts end with .sh
         types: [shell]
+        exclude: ^templates/
       - id: shellcheck
+        exclude: ^templates/
       - id: shfmt
+        exclude: ^templates/
       # Configuration in .mdlrc and .hooks/linters/mdstyle.rb
       - id: markdownlint
 
@@ -41,7 +44,7 @@ repos:
       - id: codespell
         entry: |
           codespell -q 3 -f
-          -S ".git,.github,README.md,docs/*,go.sum"
+          -S ".git,.github,README.md,docs/*,go.sum,*test.go"
 
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1

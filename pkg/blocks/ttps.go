@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -37,6 +38,58 @@ type TTP struct {
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
+}
+
+// MarshalYAML is a custom marshalling implementation for the TTP structure. It encodes a TTP object into a formatted
+// YAML string, handling the indentation and structure of the output YAML.
+//
+// Returns:
+//
+// interface{}: The formatted YAML string representing the TTP object.
+//
+// error: An error if the encoding process fails.
+func (t *TTP) MarshalYAML() (interface{}, error) {
+	marshaled, err := yaml.Marshal(*t)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal TTP to YAML: %v", err)
+	}
+
+	// This section is necessary to get the proper formatting.
+	// Resource: https://pkg.go.dev/gopkg.in/yaml.v3#section-readme
+	m := make(map[interface{}]interface{})
+
+	err = yaml.Unmarshal(marshaled, &m)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML: %v", err)
+	}
+
+	b, err := yaml.Marshal(m)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal back to YAML: %v", err)
+	}
+
+	formattedYAML := reduceIndentation(b, 2)
+
+	return fmt.Sprintf("---\n%s", string(formattedYAML)), nil
+}
+
+func reduceIndentation(b []byte, n int) []byte {
+	lines := bytes.Split(b, []byte("\n"))
+
+	for i, line := range lines {
+		// Replace tabs with spaces for consistent processing
+		line = bytes.ReplaceAll(line, []byte("\t"), []byte("    "))
+
+		trimmedLine := bytes.TrimLeft(line, " ")
+		indentation := len(line) - len(trimmedLine)
+		if indentation >= n {
+			lines[i] = bytes.TrimPrefix(line, bytes.Repeat([]byte(" "), n))
+		} else {
+			lines[i] = trimmedLine
+		}
+	}
+
+	return bytes.Join(lines, []byte("\n"))
 }
 
 // UnmarshalYAML is a custom unmarshalling implementation for the TTP structure. It decodes a YAML Node into a TTP object,
