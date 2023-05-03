@@ -94,12 +94,10 @@ func createTestInventory(t *testing.T, dir string) {
 	}
 }
 
-func TestCreateAndValidateTTP(t *testing.T) {
+func setupTestEnvironment(t *testing.T) (string, string) {
 	// Create a temporary directory
 	testDir, err := os.MkdirTemp("", "cmd-new-test")
 	assert.NoError(t, err, "failed to create temporary directory")
-	// Clean up the temporary directory
-	defer os.RemoveAll(testDir)
 
 	createTestInventory(t, testDir)
 
@@ -129,6 +127,13 @@ verbose: false
 	testConfigYAMLPath := filepath.Join(testDir, "config.yaml")
 	err = os.WriteFile(testConfigYAMLPath, []byte(testConfigYAML), 0644)
 	assert.NoError(t, err, "failed to write the temporary YAML file")
+
+	return testDir, testConfigYAMLPath
+}
+
+func TestCreateAndValidateTTP(t *testing.T) {
+	testDir, testConfigYAMLPath := setupTestEnvironment(t)
+	defer os.RemoveAll(testDir)
 
 	basicTestPath := filepath.Join("ttps", "basicTest", "testBasicTTP.yaml")
 	fileTestPath := filepath.Join("ttps", "fileTest", "testFileTTP.yaml")

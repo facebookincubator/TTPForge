@@ -54,7 +54,7 @@ type NewTTPInput struct {
 
 var newCmd = &cobra.Command{
 	Use:   "new",
-	Short: "Create a new resource",
+	Short: "Create a new TTP",
 	Args:  cobra.NoArgs,
 }
 
@@ -73,118 +73,9 @@ func NewTTPBuilderCmd() *cobra.Command {
 	# Create bash TTP that employs inline logic provided in the ttp YAML.
 	./ttpforge -c config.yaml new ttp --path ttps/lateral-movement/ssh/ssh-master-mode.yaml --template bash --ttp-type basic --cleanup
 	`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			requiredFlags := []string{
-				"template",
-				"path",
-				"ttp-type",
-			}
-
-			for _, flag := range requiredFlags {
-				if err := cmd.MarkFlagRequired(flag); err != nil {
-					return err
-				}
-			}
-
-			// Check if --args are provided and --ttp-type is not set to 'file'
-			if len(newTTPInput.Args) > 0 && newTTPInput.TTPType != "file" {
-				err := fmt.Errorf("--args can only be provided if --ttp-type is set to 'file'")
-				return err
-			}
-			inventoryPaths := viper.GetStringSlice("inventory")
-
-			templatePath := filepath.Join("templates", newTTPInput.Template)
-			ttpTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.yaml.tmpl", newTTPInput.Template))
-			readmeTemplatePath := filepath.Join(templatePath, "README.md.tmpl")
-			fileTTPTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.%s.tmpl", newTTPInput.Template, newTTPInput.Template))
-
-			// Create an afero.Fs instance
-			fsys := afero.NewOsFs()
-
-			// Iterate through inventory paths and find the first matching template
-			for _, invPath := range inventoryPaths {
-				invPath = files.ExpandHomeDir(invPath)
-				exists, err := files.TemplateExists(fsys, ttpTemplatePath, []string{invPath})
-				if err != nil {
-					return err
-				}
-
-				if exists {
-					break
-				}
-			}
-
-			// Create the filepath for the input TTP if it doesn't already exist.
-			ttpDir = filepath.Dir(newTTPInput.Path)
-			if err := files.CreateDirIfNotExists(fsys, ttpDir); err != nil {
-				return err
-			}
-
-			// Create ttp from template
-			ttp, err := createTTP()
-			if err != nil {
-				logging.Logger.Sugar().Errorw("failed to create TTP with:", newTTPInput, zap.Error(err))
-				return err
-			}
-
-			fs := afero.NewOsFs()
-			templateExists, err := files.TemplateExists(fs, ttpTemplatePath, inventoryPaths)
-			if err != nil {
-				return err
-			}
-
-			if !templateExists {
-				return fmt.Errorf("input template %s does not exist", ttpTemplatePath)
-			}
-
-			tmpl := template.Must(
-				template.ParseFiles(ttpTemplatePath))
-
-			yamlF, err := os.Create(newTTPInput.Path)
-			if err != nil {
-				return err
-			}
-			defer yamlF.Close()
-
-			if err := tmpl.Execute(yamlF, ttp); err != nil {
-				return err
-			}
-
-			// Create README from template
-			readme := filepath.Join(ttpDir, "README.md")
-			readmeF, err := os.Create(readme)
-			if err != nil {
-				return err
-			}
-			defer readmeF.Close()
-
-			tmpl = template.Must(
-				template.ParseFiles(readmeTemplatePath))
-
-			if err := tmpl.Execute(readmeF, ttp); err != nil {
-				return err
-			}
-
-			// Create file-based TTP from template (if applicable)
-			if newTTPInput.TTPType == "file" {
-				if newTTPInput.Template == "bash" {
-					tmpl = template.Must(
-						template.ParseFiles(fileTTPTemplatePath))
-
-					bashScriptF, err := os.Create(filepath.Join(ttpDir, "bashTTP.bash"))
-					if err != nil {
-						return err
-					}
-					defer bashScriptF.Close()
-
-					if err := tmpl.Execute(bashScriptF, ttp); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
-		},
+		RunE: runNewTTPBuilderCmd,
 	}
+
 	newTTPBuilderCmd.Flags().StringVarP(&newTTPInput.Template, "template", "t", "", "Template to use for generating the TTP (e.g., bash, python)")
 	newTTPBuilderCmd.Flags().StringVarP(&newTTPInput.Path, "path", "p", "", "Path for the generated TTP")
 	newTTPBuilderCmd.Flags().StringVarP(&newTTPInput.TTPType, "ttp-type", "", "", "Type of TTP to create ('file' or 'inline')")
@@ -194,6 +85,89 @@ func NewTTPBuilderCmd() *cobra.Command {
 	newTTPBuilderCmd.Flags().BoolVar(&newTTPInput.Cleanup, "cleanup", false, "Include a cleanup step in the generated TTP")
 
 	return newTTPBuilderCmd
+}
+
+func runNewTTPBuilderCmd(cmd *cobra.Command, args []string) error {
+	requiredFlags := []string{
+		"template",
+		"path",
+		"ttp-type",
+	}
+
+	for _, flag := range requiredFlags {
+		if err := cmd.MarkFlagRequired(flag); err != nil {
+			return err
+		}
+	}
+
+	// Check if --args are provided and --ttp-type is not set to 'file'
+	if len(newTTPInput.Args) > 0 && newTTPInput.TTPType != "file" {
+		err := fmt.Errorf("--args can only be provided if --ttp-type is set to 'file'")
+		return err
+	}
+
+	inventoryPaths := viper.GetStringSlice("inventory")
+
+	templatePath := filepath.Join("templates", newTTPInput.Template)
+	ttpTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.yaml.tmpl", newTTPInput.Template))
+	readmeTemplatePath := filepath.Join(templatePath, "README.md.tmpl")
+	fileTTPTemplatePath := filepath.Join(templatePath, fmt.Sprintf("%sTTP.%s.tmpl", newTTPInput.Template, newTTPInput.Template))
+
+	// Create an afero.Fs instance
+	fsys := afero.NewOsFs()
+
+	var absTmplPath string
+
+	// Iterate through inventory paths and find the first matching template
+	for _, invPath := range inventoryPaths {
+		invPath = files.ExpandHomeDir(invPath)
+		tmplPath, err := files.TemplateExists(fsys, ttpTemplatePath, []string{invPath})
+		if err != nil {
+			return err
+		}
+
+		if tmplPath != "" {
+			absTmplPath = tmplPath
+			break
+		}
+	}
+
+	// Create the filepath for the input TTP if it doesn't already exist.
+	ttpDir = filepath.Dir(absTmplPath)
+	if err := files.CreateDirIfNotExists(fsys, ttpDir); err != nil {
+		return err
+	}
+
+	// Create ttp from template
+	ttp, err := createTTP()
+	if err != nil {
+		logging.Logger.Sugar().Errorw("failed to create TTP with:", newTTPInput, zap.Error(err))
+		return err
+	}
+
+	fs := afero.NewOsFs()
+	fullTemplatePath, err := files.TemplateExists(fs, ttpTemplatePath, inventoryPaths)
+	if err != nil {
+		return err
+	}
+
+	if fullTemplatePath == "" {
+		return fmt.Errorf("input template %s does not exist", ttpTemplatePath)
+	}
+
+	if err := createYAMLFile(ttpTemplatePath, ttp); err != nil {
+		return err
+	}
+
+	if err := createReadmeFile(readmeTemplatePath, ttp); err != nil {
+		return err
+	}
+
+	if err := createFileBasedTTP(fileTTPTemplatePath, ttp); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createTTP() (*blocks.TTP, error) {
@@ -242,4 +216,49 @@ func createTTP() (*blocks.TTP, error) {
 	ttp.Steps = append(ttp.Steps, step)
 
 	return ttp, nil
+}
+
+// createYAMLFile creates the YAML file for the TTP.
+func createYAMLFile(ttpTemplatePath string, ttp *blocks.TTP) error {
+	tmpl := template.Must(template.ParseFiles(ttpTemplatePath))
+	yamlF, err := os.Create(newTTPInput.Path)
+	if err != nil {
+		return err
+	}
+	defer yamlF.Close()
+
+	return tmpl.Execute(yamlF, ttp)
+}
+
+// createReadmeFile creates the README file for the TTP.
+func createReadmeFile(readmeTemplatePath string, ttp *blocks.TTP) error {
+	readme := filepath.Join(ttpDir, "README.md")
+	readmeF, err := os.Create(readme)
+	if err != nil {
+		return err
+	}
+	defer readmeF.Close()
+
+	tmpl := template.Must(template.ParseFiles(readmeTemplatePath))
+	return tmpl.Execute(readmeF, ttp)
+}
+
+// createFileBasedTTP creates a file-based TTP if necessary.
+func createFileBasedTTP(fileTTPTemplatePath string, ttp *blocks.TTP) error {
+	if newTTPInput.TTPType != "file" {
+		return nil
+	}
+
+	if newTTPInput.Template == "bash" {
+		tmpl := template.Must(template.ParseFiles(fileTTPTemplatePath))
+		bashScriptF, err := os.Create(filepath.Join(ttpDir, "bashTTP.bash"))
+		if err != nil {
+			return err
+		}
+		defer bashScriptF.Close()
+
+		return tmpl.Execute(bashScriptF, ttp)
+	}
+
+	return nil
 }
