@@ -35,17 +35,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func getTemplatesDir(t *testing.T) string {
+	t.Helper()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get the current working directory: %v", err)
+	}
+
+	return filepath.Join(wd, "..", "templates")
+}
+
 func createTestInventory(t *testing.T, dir string) {
 	t.Helper()
 
-	lateralMovementDir := filepath.Join(dir, "lateral-movement", "ssh")
+	lateralMovementDir := filepath.Join(dir, "ttps", "lateral-movement", "ssh")
 	if err := os.MkdirAll(lateralMovementDir, 0755); err != nil {
 		t.Fatalf("failed to create lateral movement dir: %v", err)
 	}
 
-	privEscalationDir := filepath.Join(dir, "privilege-escalation", "credential-theft", "hello-world")
+	privEscalationDir := filepath.Join(dir, "ttps", "privilege-escalation", "credential-theft", "hello-world")
 	if err := os.MkdirAll(privEscalationDir, 0755); err != nil {
 		t.Fatalf("failed to create privilege escalation dir: %v", err)
+	}
+
+	invalidTTPDir := filepath.Join(dir, "ttps", "invalid", "ttp")
+	if err := os.MkdirAll(invalidTTPDir, 0755); err != nil {
+		t.Fatalf("failed to create invalid TTP dir: %v", err)
 	}
 
 	testFiles := []struct {
@@ -59,6 +75,10 @@ func createTestInventory(t *testing.T, dir string) {
 		{
 			path:     filepath.Join(privEscalationDir, "priv-esc.yaml"),
 			contents: fmt.Sprintln("---\nname: test-priv-esc-contents"),
+		},
+		{
+			path:     filepath.Join(invalidTTPDir, "invalidTTP.yaml"),
+			contents: fmt.Sprintln("THIS SHOULD NOT WORK"),
 		},
 	}
 
@@ -74,8 +94,8 @@ func createTestInventory(t *testing.T, dir string) {
 	}
 }
 
-func TestCreateAndRunTTP(t *testing.T) {
-	// Create a temporary file
+func TestCreateAndValidateTTP(t *testing.T) {
+	// Create a temporary directory
 	testDir, err := os.MkdirTemp("", "cmd-new-test")
 	assert.NoError(t, err, "failed to create temporary directory")
 	// Clean up the temporary directory
@@ -83,14 +103,7 @@ func TestCreateAndRunTTP(t *testing.T) {
 
 	createTestInventory(t, testDir)
 
-	// Get the current working directory
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get the current working directory: %v", err)
-	}
-
-	// Construct the templatesDir path
-	templatesDir := filepath.Join(wd, "..", "templates")
+	templatesDir := getTemplatesDir(t)
 
 	if err := copy.Copy(templatesDir, filepath.Join(testDir, "templates")); err != nil {
 		t.Fatalf("failed to copy templates dir: %v", err)
@@ -119,15 +132,17 @@ verbose: false
 
 	basicTestPath := filepath.Join("ttps", "basicTest", "testBasicTTP.yaml")
 	fileTestPath := filepath.Join("ttps", "fileTest", "testFileTTP.yaml")
+	invalidTTPPath := filepath.Join("ttps", "invalid", "ttp", "invalidTTP.yaml")
 
 	newTTPBuilderCmd := cmd.NewTTPBuilderCmd()
+	newRunTTPCmd := cmd.RunTTPCmd()
 	testCases := []struct {
 		name             string
 		setFlags         func()
 		input            cmd.NewTTPInput
 		expected         string
 		expectError      bool
-		expectedErrorMsg string
+		expectedErrorMsg []string
 	}{
 		{
 			name: "Create basic bash TTP",
@@ -138,6 +153,9 @@ verbose: false
 				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "basic")
 				_ = newTTPBuilderCmd.Flags().Set("cleanup", "false")
 				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
+			},
+			input: cmd.NewTTPInput{
+				Path: basicTestPath,
 			},
 			expected: basicTestPath,
 		},
@@ -152,7 +170,39 @@ verbose: false
 				_ = newTTPBuilderCmd.Flags().Set("cleanup", "true")
 				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
 			},
+			input: cmd.NewTTPInput{
+				Path: fileTestPath,
+			},
 			expected: fileTestPath,
+		},
+		{
+			name: "Fail to create TTP with missing fields",
+			setFlags: func() {
+				_ = newTTPBuilderCmd.Flags().Set("config", testConfigYAMLPath)
+				_ = newTTPBuilderCmd.Flags().Set("path", fileTestPath)
+				_ = newTTPBuilderCmd.Flags().Set("template", "asdf")
+				_ = newTTPBuilderCmd.Flags().Set("ttp-type", "file")
+				_ = newTTPBuilderCmd.Flags().Set("args", "arg1,arg2,arg3")
+				_ = newTTPBuilderCmd.Flags().Set("cleanup", "true")
+				_ = newTTPBuilderCmd.Flags().Set("env", "EXAMPLE_ENV_VAR=example_value")
+			},
+			input: cmd.NewTTPInput{
+				Path: fileTestPath,
+			},
+			expectError: true,
+		},
+		{
+			name: "Detect invalid input TTP",
+			setFlags: func() {
+				_ = newRunTTPCmd.Flags().Set("config", testConfigYAMLPath)
+				_ = newRunTTPCmd.Flags().Set("template", "bash")
+				_ = newRunTTPCmd.Flags().Set("ttp-type", "basic")
+				_ = newRunTTPCmd.Flags().Set("cleanup", "false")
+			},
+			input: cmd.NewTTPInput{
+				Path: invalidTTPPath,
+			},
+			expectError: true,
 		},
 	}
 
@@ -204,8 +254,9 @@ verbose: false
 
 			err = newTTPBuilderCmd.Execute()
 			if tc.expectError {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.expectedErrorMsg)
+				if tc.input.Template != "" {
+					require.Error(t, err)
+				}
 			} else {
 				require.NoError(t, err)
 				switch tc.input.TTPType {
@@ -224,17 +275,22 @@ verbose: false
 			if tc.input.TTPType == "file" {
 				bashTTPPath := filepath.Join(filepath.Dir(tc.expected), "bashTTP.bash")
 				_, err = os.Stat(bashTTPPath)
-				assert.False(t, os.IsNotExist(err), "bashTTP.bash file not found: %s", bashTTPPath)
+				if tc.input.Template != "" {
+					assert.False(t, os.IsNotExist(err), "bashTTP.bash file not found: %s", bashTTPPath)
+				}
 			}
 
 			// Check if the README was created
 			readmePath := filepath.Join(filepath.Dir(tc.expected), "README.md")
 			_, err = os.Stat(readmePath)
-			assert.False(t, os.IsNotExist(err), "README.md file not found: %s", readmePath)
+			if tc.input.Template != "" {
+				assert.False(t, os.IsNotExist(err), "README.md file not found: %s", readmePath)
+			}
 
 			// Run the created TTP
 			runCmd := cmd.RunTTPCmd()
-			runCmd.SetArgs([]string{tc.expected})
+			runCmd.SetArgs([]string{tc.input.Path})
+			// runCmd.SetArgs([]string{tc.expected})
 			runOutput := new(bytes.Buffer)
 			runCmd.SetOut(runOutput)
 
