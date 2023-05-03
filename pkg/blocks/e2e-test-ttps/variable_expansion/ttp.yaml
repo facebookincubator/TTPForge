@@ -1,0 +1,20 @@
+---
+name: Test Variable Expansion
+description: |
+  Tests environment + step output variable expansion
+steps:
+  - name: test_env_inline
+    inline: |
+      echo $HOME
+    cleanup:
+      inline: |
+        echo "cleaning up now"
+  - name: test_step_output_as_input_env
+    inline: |
+      echo "{\"test_key\" : \"$input\", \"another_key\":\"wut\"}"
+    env:
+      input: steps.test_env_inline.output
+  - name: test_step_output_in_arg_list
+    file: echo.sh
+    args:
+      - steps.test_step_output_as_input_env.another_key

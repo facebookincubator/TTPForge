@@ -82,6 +82,7 @@ func NewAct() *Act {
 type CleanupAct interface {
 	Cleanup() error
 	CleanupName() string
+	GetOutput() map[string]any
 	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	IsNil() bool

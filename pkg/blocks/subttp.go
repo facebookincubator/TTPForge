@@ -125,11 +125,10 @@ func (s *SubTTPStep) Execute() error {
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP() error {
-	ttps, err := LoadTTP(s.TtpFile)
+	err := s.ttp.InitializeFromYAML(s.TtpFile)
 	if err != nil {
 		return err
 	}
-	s.ttp = ttps
 
 	// uses the directory of the yaml file as full path reference
 	// s.TtpFile may be a relative dir
