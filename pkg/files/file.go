@@ -25,6 +25,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/spf13/afero"
@@ -99,6 +100,7 @@ func CreateDirIfNotExists(fsys afero.Fs, path string) error {
 // expandedPath := ExpandHomeDir(pathWithTilde)
 // log.Printf("Expanded path: %s", expandedPath)
 func ExpandHomeDir(path string) string {
+	path = strings.TrimSpace(path)
 	if len(path) == 0 || path[0] != '~' {
 		return path
 	}
