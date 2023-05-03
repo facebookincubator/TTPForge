@@ -131,6 +131,22 @@ verbose: false
 	return testDir, testConfigYAMLPath
 }
 
+func captureStdout(t *testing.T, f func()) string {
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	f()
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	var buf bytes.Buffer
+	_, err := io.Copy(&buf, r)
+	assert.NoError(t, err, "failed to copy to buffer")
+	return buf.String()
+}
+
 func TestCreateAndValidateTTP(t *testing.T) {
 	testDir, testConfigYAMLPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
@@ -162,7 +178,7 @@ func TestCreateAndValidateTTP(t *testing.T) {
 			input: cmd.NewTTPInput{
 				Path: basicTestPath,
 			},
-			expected: basicTestPath,
+			expected: "Hello, World\n",
 		},
 		{
 			name: "Create file-based bash TTP",
@@ -178,7 +194,7 @@ func TestCreateAndValidateTTP(t *testing.T) {
 			input: cmd.NewTTPInput{
 				Path: fileTestPath,
 			},
-			expected: fileTestPath,
+			expected: "Now running testFileTTP.yaml, please wait\n\n",
 		},
 		{
 			name: "Fail to create TTP with missing fields",
@@ -293,14 +309,15 @@ func TestCreateAndValidateTTP(t *testing.T) {
 			}
 
 			// Run the created TTP
-			runCmd := cmd.RunTTPCmd()
-			runCmd.SetArgs([]string{tc.input.Path})
-			// runCmd.SetArgs([]string{tc.expected})
-			runOutput := new(bytes.Buffer)
-			runCmd.SetOut(runOutput)
+			output := captureStdout(t, func() {
+				runCmd := cmd.RunTTPCmd()
+				runCmd.SetArgs([]string{tc.input.Path})
+				err := runCmd.Execute()
+				// assert.Equal(t, tc.expected, output, "The output of the executed TTP script does not match the expected output")
+				require.NoError(t, err, fmt.Sprintf("failed to run TTP: %v", err))
+			})
 
-			err = runCmd.Execute()
-			require.NoError(t, err, fmt.Sprintf("failed to run TTP: %v", err))
+			assert.Equal(t, tc.expected, output, "The output of the executed TTP script does not match the expected output")
 
 			// Cleanup
 			os.RemoveAll(filepath.Dir(tc.expected))
