@@ -20,9 +20,11 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/files"
@@ -80,25 +82,22 @@ func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult) 
 	}
 }
 
-// func TestVariableExpansion(t *testing.T) {
-// 	dirname, err := os.UserHomeDir()
-// 	require.Nil(t, err)
+func TestVariableExpansion(t *testing.T) {
+	dirname, err := os.UserHomeDir()
+	require.Nil(t, err)
 
-// 	c := TTPConfig{
-// 		RelativePath: filepath.Join("variable-expansion", "ttp.yaml"),
-// 	}
-
-// 	resultLines := []string{
-// 		fmt.Sprintf("{\"test_key\":\"%v\",\"another_key\":\"wut\"}", dirname),
-// 		"you said: foo",
-// 		"cleaning up now",
-// 	}
-// 	runE2ETest(t, c, ScenarioResult{
-// 		FileContents: map[string]string{
-// 			"result.txt": strings.Join(resultLines, "\n") + "\n",
-// 		},
-// 	})
-// }
+	ttpPath := filepath.Join("variable-expansion", "ttp.yaml")
+	resultLines := []string{
+		fmt.Sprintf("{\"test_key\":\"%v\",\"another_key\":\"wut\"}", dirname),
+		"you said: foo",
+		"cleaning up now",
+	}
+	runE2ETest(t, ttpPath, ScenarioResult{
+		FileContents: map[string]string{
+			"result.txt": strings.Join(resultLines, "\n") + "\n",
+		},
+	})
+}
 
 func TestRelativePaths(t *testing.T) {
 	ttpPath := filepath.Join("relative-paths", "very", "nested", "ttp.yaml")
@@ -108,15 +107,3 @@ func TestRelativePaths(t *testing.T) {
 		},
 	})
 }
-
-// func TestNoCleanup(t *testing.T) {
-// 	c := TTPConfig{
-// 		RelativePath: filepath.Join("relative-paths", "very", "nested", "ttp.yaml"),
-// 		NoCleanup:    true,
-// 	}
-// 	runE2ETest(t, c, ScenarioResult{
-// 		FileContents: map[string]string{
-// 			"result.txt": "A\nB\nC\n",
-// 		},
-// 	})
-// }
