@@ -21,6 +21,7 @@ package blocks
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -61,12 +62,18 @@ type TTPConfig struct {
 	InventoryPaths []string
 }
 
+// NewTTPFromConfig instantiates a new TTP
+// based on YAML file contents + cobra flags
 func NewTTPFromConfig(c TTPConfig) (*TTP, error) {
 	// manually copying params is not exactly DRY but
 	// maintaining proper encapsulation is worth it - can revisit if this gets annoying to maintain
 	ttp := &TTP{
 		noCleanup:      c.NoCleanup,
 		inventoryPaths: c.InventoryPaths,
+	}
+
+	if c.RelativePath == "" {
+		return nil, errors.New("you must set RelativePath in your TTPConfig")
 	}
 
 	// always fall back to the current directory (but don't prefer it)
