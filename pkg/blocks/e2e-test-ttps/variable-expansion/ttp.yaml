@@ -3,10 +3,10 @@ name: Test Variable Expansion
 description: |
   Tests environment + step output variable expansion
 
-  Produces a result.txt file that is intentionally not 
+  Produces a result.txt file that is intentionally not
   cleaned up so that it can be asserted against
 steps:
-  - name: echo_env_inline 
+  - name: echo_env_inline
     inline: |
       echo $HOME
     cleanup:

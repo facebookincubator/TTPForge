@@ -3,7 +3,7 @@ name: Test Relative Paths
 description: |
   Tests that relative paths are correctly interpreted
 
-  Produces a result.txt file that is intentionally not 
+  Produces a result.txt file that is intentionally not
   cleaned up so that it can be asserted against
 steps:
   - name: init
