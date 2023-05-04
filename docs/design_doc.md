@@ -49,12 +49,10 @@ type Step interface {
 
 To highlight the usefulness of tokenization with this setup we can create the sub structures which will make up our basic language. 
 
-1. BasicBlock (runs interpreter bash/sh/powershell)
-2. FileBlock (runs a program with default method provided)
+1. BasicStep (runs interpreter bash/sh/powershell)
+2. FileStep (runs a program with default method provided)
 
-We can build our language model like such:
-
-a TTP is made up of a collection of BasicBlocks and FileBlocks.
+a TTP is made up of a collection of BasicSteps and FileSteps.
 
 ```
 RunBook = (TTP)*
@@ -96,8 +94,8 @@ func unmarshal {
 
 You can now extend this by defining more bits of the language like so:
 
-1. BasicBlock (runs interpreter bash/sh/powershell)
-2. FileBlock (runs a program with default method provided)
+1. BasicStep (runs interpreter bash/sh/powershell)
+2. FileStep (runs a program with default method provided)
 3. SubTTPs (file which contains collections of Basic and File)
 
 The language is now:
