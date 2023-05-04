@@ -21,11 +21,8 @@ package blocks
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -34,74 +31,13 @@ import (
 )
 
 // TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.
-// You probably shouldn't instantiate this directly (it's only exported because we unmarshal into it)
-// Instead, use NewTTPFromConfig to create a TTP
 type TTP struct {
-	// these fields are all expected to be set by deserialization TTP YAML file
-	// via InitializeFromYAML
 	Name        string            `yaml:"name,omitempty"`
 	Description string            `yaml:"description"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
-
-	// behaviors we expect to be set via top-level CLI flags/configs, not via
-	// deserialization of yaml config
-	noCleanup bool
-	workDir   string
-	// singular as opposed to plural to be like unix $PATH - has multiple elements
-	inventoryPaths []string
-}
-
-// TTPConfig is used to create a new TTP
-// just pass it to NewTTPFromConfig
-// Intended to have cobra flags unpacked directly into its fields
-type TTPConfig struct {
-	RelativePath   string
-	WorkDir        string
-	NoCleanup      bool
-	InventoryPaths []string
-}
-
-// NewTTPFromConfig instantiates a new TTP
-// based on YAML file contents + cobra flags
-func NewTTPFromConfig(c TTPConfig) (*TTP, error) {
-	// manually copying params is not exactly DRY but
-	// maintaining proper encapsulation is worth it - can revisit if this gets annoying to maintain
-	ttp := &TTP{
-		noCleanup:      c.NoCleanup,
-		inventoryPaths: c.InventoryPaths,
-	}
-
-	if c.RelativePath == "" {
-		return nil, errors.New("you must set RelativePath in your TTPConfig")
-	}
-
-	// always fall back to the current directory (but don't prefer it)
-	ttp.inventoryPaths = append(ttp.inventoryPaths, "")
-
-	// find the TTP
-	// If FilePath is set, ensure that the file exists.
-	curDir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	fullPath, err := FindFilePath(c.RelativePath, curDir, nil)
-	if err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
-		return nil, err
-	}
-
-	// default to the containing directory of the TTP YAML File
-	// unless explicitly overridden
-	if c.WorkDir == "" {
-		ttp.workDir = filepath.Dir(fullPath)
-	}
-
-	err = ttp.initializeFromYAML(fullPath)
-	if err != nil {
-		return nil, err
-	}
-	return ttp, nil
+	// Omit WorkDir, but expose for testing.
+	WorkDir string `yaml:"-"`
 }
 
 // MarshalYAML is a custom marshalling implementation for the TTP structure. It encodes a TTP object into a formatted
@@ -244,6 +180,19 @@ func (t *TTP) fetchEnv() {
 	}
 }
 
+func (t *TTP) setWorkingDirectory() error {
+	if t.WorkDir != "" {
+		return nil
+	}
+
+	path, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	t.WorkDir = path
+	return nil
+}
+
 // ValidateSteps iterates through each step in the TTP and validates it. It sets the working directory
 // for each step before calling its Validate method. If any step fails validation, the method returns
 // an error. If all steps are successfully validated, the method returns nil.
@@ -256,6 +205,8 @@ func (t *TTP) ValidateSteps() error {
 
 	for _, step := range t.Steps {
 		stepCopy := step
+		// pass in the directory
+		stepCopy.SetDir(t.WorkDir)
 		if err := stepCopy.Validate(); err != nil {
 			logging.Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
@@ -297,25 +248,10 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 //
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps() error {
-
-	// chdir
-	if t.workDir != "" {
-		curDir, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err := os.Chdir(curDir); err != nil {
-				logging.Logger.Sugar().Errorf("failed to revert directory: %v", err)
-			}
-		}()
-		if err := os.Chdir(t.workDir); err != nil {
-			return err
-		}
-
+	if err := t.setWorkingDirectory(); err != nil {
+		return err
 	}
 
-	// validate
 	if err := t.ValidateSteps(); err != nil {
 		return err
 	}
@@ -329,7 +265,7 @@ func (t *TTP) RunSteps() error {
 
 	logging.Logger.Sugar().Info("[*] Completed TTP")
 
-	if len(cleanup) > 0 && !t.noCleanup {
+	if len(cleanup) > 0 {
 		logging.Logger.Sugar().Info("[*] Beginning Cleanup")
 		if err := t.Cleanup(availableSteps, cleanup); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
@@ -374,25 +310,4 @@ func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct)
 		return err
 	}
 	return nil
-}
-
-// called from NewTTPFromConfig - actually loads the file contents
-// and makes the TTP runnable
-func (t *TTP) initializeFromYAML(filename string) (err error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-
-	contents, err := io.ReadAll(file)
-	if err != nil {
-		return
-	}
-
-	err = yaml.Unmarshal(contents, t)
-	if err != nil {
-		return
-	}
-
-	return
 }

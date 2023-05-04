@@ -218,6 +218,42 @@ func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []stri
 	return "", nil
 }
 
+// TTPExists checks if a TTP file exists in any of the inventory directories specified in the inventoryPaths parameter.
+// If the TTP file is found, it returns true, otherwise, it returns false.
+//
+// Parameters:
+//
+// fsys: An afero.Fs representing the file system to operate on.
+// ttpName: A string representing the name of the TTP file to search for in the inventory directories.
+// inventoryPaths: A []string containing the inventory directory paths to search.
+//
+// Returns:
+//
+// bool: A boolean value indicating whether the TTP file exists in any of the inventory directories (true) or not (false).
+// error: An error if there is an issue checking the TTP file's existence.
+//
+// Example:
+//
+// ttpName := "exampleTTP"
+// inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
+// fsys := afero.NewOsFs()
+// exists, err := TTPExists(fsys, ttpName, inventoryPaths)
+//
+// if err != nil {
+// log.Fatalf("failed to check TTP existence: %v", err)
+// }
+//
+// if exists {
+// log.Printf("TTP %s found in the inventory directories\n", ttpName)
+// } else {
+//
+// log.Printf("TTP %s not found in the inventory directories\n", ttpName)
+// }
+func TTPExists(fsys afero.Fs, ttpName string, inventoryPaths []string) (bool, error) {
+	ttpPath := filepath.Join("ttps", ttpName+".yaml")
+	return PathExistsInInventory(fsys, ttpPath, inventoryPaths)
+}
+
 // MkdirAllFS is a filesystem-agnostic version of os.MkdirAll. It creates a directory named path,
 // along with any necessary parents, and returns nil, or else returns an error.
 // The permission bits perm are used for all directories that MkdirAll creates.

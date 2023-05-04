@@ -124,7 +124,6 @@ func (f *FileStep) Cleanup() error {
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
 func (f *FileStep) GetCleanup() []CleanupAct {
 	if f.CleanupStep != nil {
-		f.CleanupStep.SetDir(f.WorkDir)
 		return []CleanupAct{f.CleanupStep}
 	}
 	return []CleanupAct{}

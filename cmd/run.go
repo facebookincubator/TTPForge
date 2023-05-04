@@ -22,45 +22,26 @@ package cmd
 import (
 	"go.uber.org/zap"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-
 	rootCmd.AddCommand(RunTTPCmd())
 }
 
 // RunTTPCmd runs an input TTP.
 func RunTTPCmd() *cobra.Command {
-	var ttpConfig blocks.TTPConfig
 	runCmd := &cobra.Command{
 		Use:   "run",
-		Short: "Run the TTP contained in the specified YAML file",
+		Short: "Run the forgery using the file specified in args.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-
-			// root level flag that we need to pass - other flags handled in init()
-			ttpConfig.RelativePath = args[0]
-			ttpConfig.InventoryPaths = Conf.InventoryPath
-			ttp, err := blocks.NewTTPFromConfig(ttpConfig)
-			if err != nil {
-				Logger.Sugar().Errorw("failed to load TTP", zap.Error(err))
-				return
-			}
-
-			if err := ttp.RunSteps(); err != nil {
+			relativeTTPPath := args[0]
+			if _, err := files.ExecuteYAML(relativeTTPPath, Conf.InventoryPath); err != nil {
 				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
-				return
 			}
 		},
 	}
-
-	// FLAGS
-	runCmd.Flags().StringVar(&ttpConfig.WorkDir, "workdir", "", "Working Directory to use for TTP Execution")
-	// leads to some awkward double negatives but given that false is bool default value it is better to have
-	// NoCleanup than Cleanup trust me
-	runCmd.Flags().BoolVar(&ttpConfig.NoCleanup, "no-cleanup", false, "Disable TTP Cleanup (useful for debugging)")
-
 	return runCmd
 }

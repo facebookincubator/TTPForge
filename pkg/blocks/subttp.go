@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
@@ -125,29 +124,16 @@ func (s *SubTTPStep) Execute() error {
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP() error {
-	var err error
-	s.ttp, err = NewTTPFromConfig(TTPConfig{
-		RelativePath: s.TtpFile,
-	})
+	ttps, err := LoadTTP(s.TtpFile)
 	if err != nil {
 		return err
 	}
-
-	// uses the directory of the yaml file as full path reference
-	// s.TtpFile may be a relative dir
-	fp, err := FetchAbs(s.TtpFile, s.WorkDir)
-	if err != nil {
-		return err
-	}
-
-	dir := filepath.Dir(fp)
+	s.ttp = ttps
 
 	// run validate to flesh out issues
 	logging.Logger.Sugar().Infof("[*] Validating Sub TTP: %s", s.Name)
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		// pass in the directory
-		stepCopy.SetDir(dir)
 		if err := stepCopy.Validate(); err != nil {
 			return err
 		}
