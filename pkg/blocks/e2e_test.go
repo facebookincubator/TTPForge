@@ -20,123 +20,108 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	cp "github.com/otiai10/copy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type ScenarioResult struct {
-	StepOutputs    []string
-	CleanupOutputs []string
+	FileContents map[string]string
 }
 
-// this is broken out from runE2ETest so that a given
-// test case can tweak the TTP after loading as needed
-func loadEndToEndTestTTP(t *testing.T, cfg TTPConfig) *TTP {
-	cfg.RelativePath = filepath.Join("e2e-test-ttps", cfg.RelativePath)
-	ttp, err := NewTTPFromConfig(cfg)
+func runE2ETest(t *testing.T, c TTPConfig, expectedResult ScenarioResult) {
+
+	const e2eTTPDir = "e2e-test-ttps"
+
+	// create temporary working directory
+	testDir, err := os.MkdirTemp("", "ttpforge-e2e-test")
+	require.NoError(t, err, "failed to create temporary directory")
+	defer func() {
+		err := os.RemoveAll(testDir)
+		require.NoError(t, err, "failed to delete test directory")
+	}()
+
+	// copy the entire tree so that TTP relative paths work - just as if we
+	// were running the real command E2E
+	err = cp.Copy(e2eTTPDir, filepath.Join(testDir, e2eTTPDir))
+	require.NoError(t, err, "failed to copy TTPs")
+
+	// execute the test from the temporary directory to keep things clean
+	curDir, err := os.Getwd()
+	require.NoError(t, err, "failed to get current directory")
+	workDir := filepath.Join(testDir, e2eTTPDir)
+	err = os.Chdir(workDir)
+	require.NoError(t, err, "failed to chdir to test directory")
+	defer func() {
+		err := os.Chdir(curDir)
+		require.NoError(t, err, "failed to chdir back to former current directory")
+	}()
+
+	ttp, err := NewTTPFromConfig(c)
+	require.NoError(t, err, "failed to load TTP")
+	err = ttp.RunSteps()
 	require.Nil(t, err)
-	return ttp
-}
 
-func runE2ETest(t *testing.T, ttp *TTP, expectedResult ScenarioResult) {
-	err := ttp.RunSteps()
-	assert.Nil(t, err)
-	assert.NotNil(t, ttp)
+	// validate that correct files were generated
+	ttpDir := filepath.Dir(c.RelativePath)
+	for fileName, expectedContents := range expectedResult.FileContents {
+		fileRelPath := filepath.Join(ttpDir, fileName)
+		r, err := os.Open(fileRelPath)
+		require.Nil(t, err)
 
-	expectedStepOutputs := expectedResult.StepOutputs
-	assert.Equal(t, len(expectedStepOutputs), len(ttp.Steps), "step outputs should have correct length")
-
-	// check step outputs
-	var cleanupOutputs []string
-	for stepIdx, step := range ttp.Steps {
-		output := step.GetOutput()
-		b, err := json.Marshal(output)
-		assert.Nil(t, err)
-		assert.Equal(t, expectedStepOutputs[stepIdx], string(b), "step output is incorrect")
-		cleanups := step.GetCleanup()
-		for _, cleanup := range cleanups {
-			// cleanups that weren't run (bcs NoCleanup) have nil output
-			cleanupOutput := cleanup.GetOutput()
-			if cleanupOutput == nil {
-				continue
-			}
-			cb, err := json.Marshal(cleanupOutput)
-			assert.Nil(t, err)
-			// put them in reverse order
-			cleanupOutputs = append([]string{string(cb)}, cleanupOutputs...)
-		}
-	}
-
-	// check cleanup outputs
-	expectedCleanupOutputs := expectedResult.CleanupOutputs
-	assert.Equal(t, len(expectedCleanupOutputs), len(cleanupOutputs), "Number of cleanup steps does not match expectation")
-	for cleanupIdx, cleanupOutput := range cleanupOutputs {
-		assert.Equal(t, expectedCleanupOutputs[cleanupIdx], cleanupOutput)
+		contents, err := io.ReadAll(r)
+		require.Nil(t, err)
+		assert.Equal(t, expectedContents, string(contents))
 	}
 }
 
 func TestVariableExpansion(t *testing.T) {
-	// something dynamic to keep things interesting
 	dirname, err := os.UserHomeDir()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	ttp := loadEndToEndTestTTP(t, TTPConfig{
+	c := TTPConfig{
 		RelativePath: filepath.Join("variable-expansion", "ttp.yaml"),
-	})
-	runE2ETest(t, ttp, ScenarioResult{
-		StepOutputs: []string{
-			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
-			fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", dirname),
-			"{\"output\":\"you said: wut\"}",
-		},
-		CleanupOutputs: []string{
-			"{\"output\":\"cleaning up now\"}",
+	}
+
+	resultLines := []string{
+		fmt.Sprintf("{\"test_key\":\"%v\",\"another_key\":\"wut\"}", dirname),
+		"you said: foo",
+		"cleaning up now",
+	}
+	runE2ETest(t, c, ScenarioResult{
+		FileContents: map[string]string{
+			"result.txt": strings.Join(resultLines, "\n") + "\n",
 		},
 	})
 }
 
 func TestRelativePaths(t *testing.T) {
-	ttp := loadEndToEndTestTTP(t, TTPConfig{
-		RelativePath: filepath.Join("relative-paths", "nested.yaml"),
-	})
-	runE2ETest(t, ttp, ScenarioResult{
-		StepOutputs: []string{
-			"{\"output\":\"A\"}",
-			"{\"output\":\"B\"}",
-			"{\"output\":\"D\"}",
-		},
-		CleanupOutputs: []string{
-			"{\"output\":\"E\"}",
-			"{\"output\":\"C\"}",
+	c := TTPConfig{
+		RelativePath: filepath.Join("relative-paths", "very", "nested", "ttp.yaml"),
+	}
+	runE2ETest(t, c, ScenarioResult{
+		FileContents: map[string]string{
+			"result.txt": "A\nB\nC\nD\nE\n",
 		},
 	})
 }
 
 func TestNoCleanup(t *testing.T) {
-
-	// need an explicit workdir
-	// bcs we will clean it up manually
-	wd := "TestNoCleanup-WorkDir"
-	err := os.Mkdir(wd, 0700)
-	assert.Nil(t, err)
-	defer os.RemoveAll(wd)
-
-	ttp := loadEndToEndTestTTP(t, TTPConfig{
-		RelativePath: filepath.Join("relative-paths", "nested.yaml"),
+	c := TTPConfig{
+		RelativePath: filepath.Join("relative-paths", "very", "nested", "ttp.yaml"),
 		NoCleanup:    true,
-	})
-
-	runE2ETest(t, ttp, ScenarioResult{
-		StepOutputs: []string{
-			"{\"output\":\"A\"}",
-			"{\"output\":\"B\"}",
-			"{\"output\":\"D\"}",
+	}
+	runE2ETest(t, c, ScenarioResult{
+		FileContents: map[string]string{
+			"result.txt": "A\nB\nC\n",
 		},
 	})
 }
