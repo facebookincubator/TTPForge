@@ -33,7 +33,7 @@ func init() {
 
 // RunTTPCmd runs an input TTP.
 func RunTTPCmd() *cobra.Command {
-	var ttp blocks.TTP
+	var ttpConfig blocks.TTPConfig
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the TTP contained in the specified YAML file",
@@ -41,11 +41,9 @@ func RunTTPCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			// root level flag that we need to pass - other flags handled in init()
-			ttp.InventoryPath = Conf.InventoryPath
-
-			// TTP not actually loaded till this happens
-			relativeTTPPath := args[0]
-			err := ttp.InitializeFromYAML(relativeTTPPath)
+			ttpConfig.RelativePath = args[0]
+			ttpConfig.InventoryPaths = Conf.InventoryPath
+			ttp, err := blocks.NewTTPFromConfig(ttpConfig)
 			if err != nil {
 				Logger.Sugar().Errorw("failed to load TTP", zap.Error(err))
 				return
@@ -59,10 +57,10 @@ func RunTTPCmd() *cobra.Command {
 	}
 
 	// FLAGS
-	runCmd.Flags().StringVar(&ttp.WorkDir, "workdir", "", "Working Directory to use for TTP Execution")
+	runCmd.Flags().StringVar(&ttpConfig.WorkDir, "workdir", "", "Working Directory to use for TTP Execution")
 	// leads to some awkward double negatives but given that false is bool default value it is better to have
 	// NoCleanup than Cleanup trust me
-	runCmd.Flags().BoolVar(&ttp.NoCleanup, "no-cleanup", false, "Disable TTP Cleanup (useful for debugging)")
+	runCmd.Flags().BoolVar(&ttpConfig.NoCleanup, "no-cleanup", false, "Disable TTP Cleanup (useful for debugging)")
 
 	return runCmd
 }

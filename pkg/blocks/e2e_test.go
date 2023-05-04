@@ -37,11 +37,11 @@ type ScenarioResult struct {
 
 // this is broken out from runE2ETest so that a given
 // test case can tweak the TTP after loading as needed
-func loadEndToEndTestTTP(t *testing.T, yamlRelPath string) *TTP {
-	var ttp TTP
-	err := ttp.InitializeFromYAML(filepath.Join("e2e-test-ttps", yamlRelPath))
+func loadEndToEndTestTTP(t *testing.T, cfg TTPConfig) *TTP {
+	cfg.RelativePath = filepath.Join("e2e-test-ttps", cfg.RelativePath)
+	ttp, err := NewTTPFromConfig(cfg)
 	require.Nil(t, err)
-	return &ttp
+	return ttp
 }
 
 func runE2ETest(t *testing.T, ttp *TTP, expectedResult ScenarioResult) {
@@ -86,7 +86,9 @@ func TestVariableExpansion(t *testing.T) {
 	dirname, err := os.UserHomeDir()
 	assert.Nil(t, err)
 
-	ttp := loadEndToEndTestTTP(t, filepath.Join("variable_expansion", "ttp.yaml"))
+	ttp := loadEndToEndTestTTP(t, TTPConfig{
+		RelativePath: filepath.Join("variable_expansion", "ttp.yaml"),
+	})
 	runE2ETest(t, ttp, ScenarioResult{
 		StepOutputs: []string{
 			fmt.Sprintf("{\"output\":\"%v\"}", dirname),
@@ -100,7 +102,9 @@ func TestVariableExpansion(t *testing.T) {
 }
 
 func TestRelativePaths(t *testing.T) {
-	ttp := loadEndToEndTestTTP(t, filepath.Join("relative_paths", "nested.yaml"))
+	ttp := loadEndToEndTestTTP(t, TTPConfig{
+		RelativePath: filepath.Join("relative_paths", "nested.yaml"),
+	})
 	runE2ETest(t, ttp, ScenarioResult{
 		StepOutputs: []string{
 			"{\"output\":\"A\"}",
@@ -123,9 +127,10 @@ func TestNoCleanup(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(wd)
 
-	ttp := loadEndToEndTestTTP(t, filepath.Join("relative_paths", "nested.yaml"))
-	ttp.NoCleanup = true
-	ttp.WorkDir = wd
+	ttp := loadEndToEndTestTTP(t, TTPConfig{
+		RelativePath: filepath.Join("relative_paths", "nested.yaml"),
+		NoCleanup:    true,
+	})
 
 	runE2ETest(t, ttp, ScenarioResult{
 		StepOutputs: []string{

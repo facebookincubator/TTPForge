@@ -36,7 +36,7 @@ type SubTTPStep struct {
 	FileSystem fs.StatFS `yaml:"-,omitempty"`
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
-	ttp          TTP
+	ttp          *TTP
 }
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
@@ -125,7 +125,10 @@ func (s *SubTTPStep) Execute() error {
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP() error {
-	err := s.ttp.InitializeFromYAML(s.TtpFile)
+	var err error
+	s.ttp, err = NewTTPFromConfig(TTPConfig{
+		RelativePath: s.TtpFile,
+	})
 	if err != nil {
 		return err
 	}
