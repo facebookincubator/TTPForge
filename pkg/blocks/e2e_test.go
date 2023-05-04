@@ -87,7 +87,7 @@ func TestVariableExpansion(t *testing.T) {
 	assert.Nil(t, err)
 
 	ttp := loadEndToEndTestTTP(t, TTPConfig{
-		RelativePath: filepath.Join("variable_expansion", "ttp.yaml"),
+		RelativePath: filepath.Join("variable-expansion", "ttp.yaml"),
 	})
 	runE2ETest(t, ttp, ScenarioResult{
 		StepOutputs: []string{
@@ -103,7 +103,7 @@ func TestVariableExpansion(t *testing.T) {
 
 func TestRelativePaths(t *testing.T) {
 	ttp := loadEndToEndTestTTP(t, TTPConfig{
-		RelativePath: filepath.Join("relative_paths", "nested.yaml"),
+		RelativePath: filepath.Join("relative-paths", "nested.yaml"),
 	})
 	runE2ETest(t, ttp, ScenarioResult{
 		StepOutputs: []string{
@@ -128,7 +128,7 @@ func TestNoCleanup(t *testing.T) {
 	defer os.RemoveAll(wd)
 
 	ttp := loadEndToEndTestTTP(t, TTPConfig{
-		RelativePath: filepath.Join("relative_paths", "nested.yaml"),
+		RelativePath: filepath.Join("relative-paths", "nested.yaml"),
 		NoCleanup:    true,
 	})
 
