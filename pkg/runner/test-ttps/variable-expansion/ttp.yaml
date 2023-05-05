@@ -1,0 +1,26 @@
+---
+name: Test Variable Expansion
+description: |
+  Tests environment + step output variable expansion
+
+  Produces a result.txt file that is intentionally not
+  cleaned up so that it can be asserted against
+steps:
+  - name: echo_env_inline
+    inline: |
+      echo $HOME
+    cleanup:
+      inline: |
+        echo "cleaning up now" >> result.txt
+  - name: test_step_output_as_input_env
+    inline: |
+      echo "{\"test_key\":\"$input\",\"another_key\":\"wut\"}" >> result.txt
+    env:
+      input: steps.echo_env_inline.output
+  - name: echo_more_json
+    inline: |
+      echo "{\"yet_another_key\":\"foo\"}"
+  - name: test_step_output_in_arg_list
+    file: write-to-result.sh
+    args:
+      - steps.echo_more_json.yet_another_key

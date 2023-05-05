@@ -104,7 +104,6 @@ func (b *BasicStep) Cleanup() error {
 // GetCleanup returns the cleanup steps for a BasicStep.
 func (b *BasicStep) GetCleanup() []CleanupAct {
 	if b.CleanupStep != nil {
-		b.CleanupStep.SetDir(b.WorkDir)
 		return []CleanupAct{b.CleanupStep}
 	}
 	return []CleanupAct{}

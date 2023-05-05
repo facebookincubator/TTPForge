@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
@@ -36,7 +35,7 @@ type SubTTPStep struct {
 	FileSystem fs.StatFS `yaml:"-,omitempty"`
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
-	ttp          TTP
+	ttp          *TTP
 }
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
@@ -131,21 +130,10 @@ func (s *SubTTPStep) loadSubTTP() error {
 	}
 	s.ttp = ttps
 
-	// uses the directory of the yaml file as full path reference
-	// s.TtpFile may be a relative dir
-	fp, err := FetchAbs(s.TtpFile, s.WorkDir)
-	if err != nil {
-		return err
-	}
-
-	dir := filepath.Dir(fp)
-
 	// run validate to flesh out issues
 	logging.Logger.Sugar().Infof("[*] Validating Sub TTP: %s", s.Name)
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		// pass in the directory
-		stepCopy.SetDir(dir)
 		if err := stepCopy.Validate(); err != nil {
 			return err
 		}

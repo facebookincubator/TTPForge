@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -35,29 +36,46 @@ var FileSystem fs.FS
 //
 // Parameters:
 //
-// filename: A string representing the path to the TTP file.
+// ttpFilePath: the absolute or relative path to the TTP file.
 //
 // Returns:
 //
-// loadedTTPs: The created TTP instance, or an empty TTP if the file is empty or invalid.
+// ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(filename string) (loadedTTPs TTP, err error) {
-	file, err := os.Open(filename)
+func LoadTTP(ttpFilePath string) (*TTP, error) {
+	var ttp TTP
+	file, err := os.Open(ttpFilePath)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	contents, err := io.ReadAll(file)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	err = yaml.Unmarshal(contents, &loadedTTPs)
+	err = yaml.Unmarshal(contents, &ttp)
 	if err != nil {
-		return
+		return nil, err
+	}
+	absPath, err := filepath.Abs(ttpFilePath)
+	if err != nil {
+		return nil, err
+	}
+	ttp.WorkDir = filepath.Dir(absPath)
+
+	// TODO: refactor directory handling - this is in-elegant
+	// but has less bugs than previous way
+	for _, step := range ttp.Steps {
+		step.SetDir(ttp.WorkDir)
+		if cleanups := step.GetCleanup(); cleanups != nil {
+			for _, c := range cleanups {
+				c.SetDir(ttp.WorkDir)
+			}
+		}
 	}
 
-	return
+	return &ttp, nil
 }
 
 // Actors represents the various actors involved in the execution of TTPs.

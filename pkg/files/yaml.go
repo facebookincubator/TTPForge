@@ -20,6 +20,7 @@ THE SOFTWARE.
 package files
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -55,46 +56,56 @@ import (
 //
 // log.Printf("TTP %s executed successfully\n", ttp.Name)
 func ExecuteYAML(yamlFile string, inventoryPaths []string) (*blocks.TTP, error) {
-	ttp, err := blocks.LoadTTP(yamlFile)
-	if err != nil {
-		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
-		return nil, err
-	}
 
 	if len(inventoryPaths) == 0 {
 		logging.Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
 
-	var ttpDir string
-	for _, inventoryPath := range inventoryPaths {
-		absInventoryPath, err := blocks.FindFilePath(inventoryPath, filepath.Dir(inventoryPath), nil)
+	// see if the relative path exists in current dir
+	var absPathToTTP string
+	_, err := os.Stat(yamlFile)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("unexpected error when checking TTP existence: %v", err)
+		}
+	} else {
+		absPathToTTP, err = filepath.Abs(yamlFile)
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		exists, err := os.Stat(absInventoryPath)
-		if err != nil {
-			logging.Logger.Sugar().Errorw("failed to locate the path to the TTP", "path", inventoryPath, zap.Error(err))
-			return nil, err
-		}
+	// TTP not found in current dir - search inventoryPath
+	if absPathToTTP == "" {
+		for _, inventoryPath := range inventoryPaths {
+			absInventoryPath, err := blocks.FindFilePath(inventoryPath, filepath.Dir(inventoryPath), nil)
+			if err != nil {
+				return nil, err
+			}
 
-		if exists != nil {
-			ttpDir = filepath.Dir(absInventoryPath)
-			break
+			exists, err := os.Stat(absInventoryPath)
+			if err != nil {
+				logging.Logger.Sugar().Errorw("failed to locate the path to the TTP", "path", inventoryPath, zap.Error(err))
+				return nil, err
+			}
+
+			if exists != nil {
+				absPathToTTP = absInventoryPath
+				break
+			}
 		}
 	}
 
-	if ttpDir == "" {
-		return nil, fmt.Errorf("failed to find the TTP directory")
+	ttp, err := blocks.LoadTTP(absPathToTTP)
+	if err != nil {
+		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
+		return nil, err
 	}
-
-	// Set the working directory for the TTP.
-	ttp.WorkDir = ttpDir
 
 	if err := ttp.RunSteps(); err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}
 
-	return &ttp, nil
+	return ttp, nil
 }

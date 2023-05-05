@@ -51,7 +51,7 @@ steps:
     env:
       input: steps.test_env_inline.output
   - name: test_step_output_in_arg_list
-    file: ttps/test-variable-expansion.sh
+    file: test-variable-expansion.sh
     args:
       - steps.test_step_output_as_input_env.another_key
 `

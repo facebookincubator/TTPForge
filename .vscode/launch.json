@@ -39,17 +39,12 @@
       ]
     },
     {
+      "name": "Test Current File",
       "type": "go",
       "request": "launch",
-      "name": "Debug E2E Tests (test_variable_expansion.yaml)",
-      "mode": "debug",
-      "program": "${workspaceRoot}",
-      "args": [
-        "-c",
-        "pkg/files/e2e-tests/config.yaml",
-        "run",
-        "pkg/files/e2e-tests/test_variable_expansion.yaml"
-      ]
+      "mode": "test",
+      "program": "${workspaceFolder}/${relativeFileDirname}",
+      "showLog": true
     },
     {
       "type": "go",
