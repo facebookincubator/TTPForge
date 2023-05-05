@@ -16,9 +16,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
 package runner
 
-// Execute: executes a given TTP
+// Execute runs a given TTP
 //
 // this is an empty stub right now to silence "no non-test Go files" complains
 // from the go-build pre-commit hook, but will be populated shortly
