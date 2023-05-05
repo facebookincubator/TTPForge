@@ -10,9 +10,9 @@ env:
 steps:
 {{- range $step := .Steps }}
   - name: {{ $step.Act.Name }}
-  {{- if eq $step.Type "FILESTEP" }}
+  {{- if eq $step.Type "fileStep" }}
     file: {{ $step.FilePath }}
-  {{- else if eq $step.Type "BASICSTEP" }}
+  {{- else if eq $step.Type "basicStep" }}
     inline: |
       {{ $step.Inline }}
   {{- end }}
@@ -27,9 +27,9 @@ steps:
     cleanup:
     {{- range $cleanupStep := $cleanupSteps }}
       name: {{ $cleanupStep.Act.Name }}
-      {{- if eq $cleanupStep.Type "FILESTEP" }}
+      {{- if eq $cleanupStep.Type "fileStep" }}
         file: {{ $cleanupStep.FilePath }}
-      {{- else if eq $cleanupStep.Type "BASICSTEP" }}
+      {{- else if eq $cleanupStep.Type "basicStep" }}
       inline: |
         {{ $cleanupStep.Inline }}
       {{- end }}
