@@ -17,6 +17,7 @@ targets and mediums.
 - [Developer Environment Setup](docs/dev.md)
 - [Writing Tests](docs/testing.md)
 - [Creating a new release](docs/release.md)
+- [TTPForge Building Blocks](docs/building-blocks.md)
 
 ---
 
