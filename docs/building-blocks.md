@@ -1,15 +1,13 @@
 # Building Blocks
 
 This document introduces our use of Golang Interfaces and Structs
-in `TTPForge` to create the concepts of `Acts` and `Steps`.
-These structures provide self-contained structures to
-represent the components of a Tactic, Technique, and Procedure (TTP).
+in `TTPForge` to create the concepts of `Acts` and `Steps`, which
+form the building blocks of Tactics, Techniques, and Procedures (TTPs).
 
 ## Act
 
-`Acts` contain the fields and functionality that are common across TTPs.
-They provide an interface called a `Step` that has all of the methods
-required to run a TTP.
+`Acts` contain the fields and functionality that are common across
+different types of `Steps`.
 
 This interface facilitates building TTPs with steps that don't need to
 explicitly understand what the others are doing to function. Each step
@@ -30,15 +28,12 @@ instructions or `Steps` that make up a TTP. The following `Steps` exist today:
 - `FileStep`: Simulates direct process execution without an
   intermediate interpreter, which can be used to simulate an attacker
   executing logic from a file.
+- `SubTTPStep`: A Collection of `TTPs` that are used together to represent a `TTP`.
 
 ## TTP
 
 `TTPs` are collections of `Steps` that make up the logic to represent
 a component of a Tactic, Technique, and Procedure.
-
-## SubTTP
-
-`SubTTPs` are collections of `TTPs` that are used together to represent a TTP.
 
 ## Cleanup
 
