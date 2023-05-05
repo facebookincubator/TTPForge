@@ -12,7 +12,7 @@ source "${GVM_BIN}"
 
 # Install Go version
 if ! gvm list | grep -q "go${GO_VER}"; then
-  gvm install "go${GO_VER}"
+  gvm install "go${GO_VER}" -B
 fi
 
 # Use Go version

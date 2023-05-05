@@ -1,3 +1,18 @@
 ---
 area/github:
   - ".github/**/*"
+
+area/pre-commit:
+  - ".pre-commit-config.yaml"
+  - ".hooks/**/*"
+
+area/go:
+  - "pkg/**/*"
+  - "cmd/**/*"
+  - "main.go"
+
+area/docs:
+  - "docs/*"
+
+area/ttps:
+  - "ttps/**/*"

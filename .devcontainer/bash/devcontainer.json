@@ -1,6 +1,6 @@
 {
-  "name": "TTPForge",
-  "image": "ghcr.io/facebookincubator/ttpforge:latest",
+  "name": "TTPForge ZSH Container",
+  "image": "ghcr.io/facebookincubator/ttpforge-bash:latest",
   "remoteUser": "ttpforge",
   "extensions": [
     // Go Extension
