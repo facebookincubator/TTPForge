@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/l50/goutils v1.2.6-0.20230401052415-5bd8b824f836
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/otiai10/copy v1.9.0
+	github.com/otiai10/copy v1.11.0
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
