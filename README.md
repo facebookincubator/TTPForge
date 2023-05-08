@@ -3,6 +3,7 @@
 [![Tests](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml)
 [![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml)
 [![Renovate](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml)
+[![Nancy 3p Vulnerability Scan](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml)
 
 This repo hosts the TTPForge tool created by Meta's Purple Team.
 It is intended to provide an interface to execute TTPs across various
@@ -17,6 +18,7 @@ targets and mediums.
 - [Developer Environment Setup](docs/dev.md)
 - [Writing Tests](docs/testing.md)
 - [Creating a new release](docs/release.md)
+- [TTPForge Building Blocks](docs/building-blocks.md)
 
 ---
 
