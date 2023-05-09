@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -42,8 +43,15 @@ type TTP struct {
 	Description string            `yaml:"description"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
+	Inputs      []struct {
+		Name     string `yaml:"name"`
+		Type     string `yaml:"type"`
+		Value    string `yaml:"value"`
+		Required bool   `yaml:"required,omitempty"`
+	} `yaml:"inputs,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
-	WorkDir string `yaml:"-"`
+	WorkDir  string `yaml:"-"`
+	inputMap map[string]string
 }
 
 // MarshalYAML is a custom marshalling implementation for the TTP structure. It encodes a TTP object into a formatted
@@ -114,6 +122,12 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		Description string            `yaml:"description"`
 		Environment map[string]string `yaml:"env,flow,omitempty"`
 		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
+		Inputs      []struct {
+			Name     string `yaml:"name"`
+			Type     string `yaml:"type"`
+			Value    string `yaml:"value"`
+			Required bool   `yaml:"required,omitempty"`
+		} `yaml:"inputs,omitempty,flow"`
 	}
 
 	var tmpl TTPTmpl
@@ -124,6 +138,8 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Name = tmpl.Name
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
+	t.Inputs = tmpl.Inputs
+	t.inputMap = make(map[string]string)
 
 	return t.decodeAndValidateSteps(tmpl.Steps)
 }
@@ -232,7 +248,7 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Execute(); err != nil {
+		if err := stepCopy.Execute(t.inputMap); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			return nil, nil, err
 		}
@@ -255,6 +271,11 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 	if err := t.setWorkingDirectory(); err != nil {
+		return err
+	}
+
+	if err := t.validateInputs(); err != nil {
+		logging.Logger.Sugar().Error("why is the err")
 		return err
 	}
 
@@ -293,7 +314,7 @@ func (t *TTP) executeCleanupSteps(availableSteps map[string]Step, cleanupSteps [
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Cleanup(); err != nil {
+		if err := stepCopy.Cleanup(t.inputMap); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}
@@ -316,6 +337,33 @@ func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
 		return err
+	}
+	return nil
+}
+
+func (t *TTP) validateInputs() error {
+	for _, input := range t.Inputs {
+		logging.Logger.Sugar().Error(input.Type)
+		switch v := strings.TrimSpace(strings.ToLower(input.Type)); v {
+		case "int":
+			if _, err := strconv.Atoi(input.Value); err != nil {
+				return fmt.Errorf("%v cannot format to a number", v)
+			}
+		case "bool":
+			if _, err := strconv.ParseBool(input.Value); err != nil {
+				return fmt.Errorf("%v cannot parse to bool", v)
+			}
+		case "string":
+			if input.Value == "" && input.Required {
+				return fmt.Errorf("%v is required and is not provided", input.Value)
+			}
+		}
+
+		if input.Required && input.Value == "" {
+			return fmt.Errorf("%v is required and is not provided", input.Value)
+		}
+
+		t.inputMap[input.Name] = input.Value
 	}
 	return nil
 }

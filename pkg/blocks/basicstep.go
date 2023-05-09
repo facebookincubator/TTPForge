@@ -27,8 +27,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -97,8 +97,8 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 }
 
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup() error {
-	return b.Execute()
+func (b *BasicStep) Cleanup(inputs map[string]string) error {
+	return b.Execute(inputs)
 }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
@@ -189,7 +189,7 @@ func (b *BasicStep) Validate() error {
 }
 
 // Execute runs the BasicStep and returns an error if any occur.
-func (b *BasicStep) Execute() (err error) {
+func (b *BasicStep) Execute(inputs map[string]string) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 	logging.Logger.Sugar().Debugw("available data", "outputs", b.output)
@@ -197,7 +197,7 @@ func (b *BasicStep) Execute() (err error) {
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if b.Inline != "" {
-		if err := b.executeBashStdin(ctx); err != nil {
+		if err := b.executeBashStdin(ctx, inputs); err != nil {
 			logging.Logger.Sugar().Error(zap.Error(err))
 			return err
 		}
@@ -208,16 +208,13 @@ func (b *BasicStep) Execute() (err error) {
 	return nil
 }
 
-func (b *BasicStep) executeBashStdin(ptx context.Context) (err error) {
+func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]string) (err error) {
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()
 
-	inline, err := b.processInlineTemplate()
-	if err != nil {
-		return err
-	}
+	replaced := b.replaceInput(inputs)
 
-	cmd := b.prepareCommand(ctx, inline)
+	cmd := b.prepareCommand(ctx, replaced)
 
 	err = b.runCommand(cmd)
 	if err != nil {
@@ -227,27 +224,18 @@ func (b *BasicStep) executeBashStdin(ptx context.Context) (err error) {
 	return nil
 }
 
-func (b *BasicStep) processInlineTemplate() (string, error) {
-	funcMap := template.FuncMap{
-		"json": JSONString,
-	}
-
-	tmpl, err := template.New("inline").Funcs(funcMap).Parse(b.Inline)
-	if err != nil {
-		logging.Logger.Sugar().Warnw("failed to parse template", "err", err)
-		return "", err
-	}
-
-	var inline bytes.Buffer
-	err = tmpl.Execute(&inline, b.output)
-	if err != nil {
-		logging.Logger.Sugar().Warnw("failed to execute template", "err", err)
-		return "", err
-	}
-
-	logging.Logger.Sugar().Debugw("value of inline parsed", "inline", inline.String())
-
-	return inline.String(), nil
+func (b *BasicStep) replaceInput(inputs map[string]string) string {
+	re := regexp.MustCompile(`\{\{([a-zA-Z\_\-\.][a-zA-Z0-9\.\-\_]+)\}\}`)
+	replaced := re.ReplaceAllStringFunc(b.Inline, func(match string) string {
+		s := strings.TrimLeft(match, "{")
+		s = strings.TrimRight(s, "}")
+		if val, ok := inputs[s]; ok {
+			return val
+		}
+		// return match if not present in args
+		return match
+	})
+	return replaced
 }
 
 func (b *BasicStep) prepareCommand(ctx context.Context, inline string) *exec.Cmd {
