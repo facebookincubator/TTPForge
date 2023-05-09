@@ -27,6 +27,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	cp "github.com/otiai10/copy"
 
@@ -38,7 +39,12 @@ type ScenarioResult struct {
 	FileContents map[string]string
 }
 
-func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult) {
+func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, opts ...blocks.TTPExecutionConfig) {
+	// learned this trick from here
+	var ttpConfig blocks.TTPExecutionConfig
+	if len(opts) > 0 {
+		ttpConfig = opts[0]
+	}
 
 	const testTTPDir = "test-ttps"
 
@@ -66,7 +72,7 @@ func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult) 
 		require.NoError(t, err, "failed to chdir back to former current directory")
 	}()
 
-	_, err = files.ExecuteYAML(ttpRelPath, []string{})
+	_, err = files.ExecuteYAML(ttpRelPath, ttpConfig)
 	require.NoError(t, err, "failed to execute TTP")
 
 	// validate that correct files were generated
@@ -105,5 +111,16 @@ func TestRelativePaths(t *testing.T) {
 		FileContents: map[string]string{
 			"result.txt": "A\nB\nC\nD\nE\n",
 		},
+	})
+}
+
+func TestNoCleanup(t *testing.T) {
+	ttpPath := filepath.Join("relative-paths", "very", "nested", "ttp.yaml")
+	runE2ETest(t, ttpPath, ScenarioResult{
+		FileContents: map[string]string{
+			"result.txt": "A\nB\nC\n",
+		},
+	}, blocks.TTPExecutionConfig{
+		NoCleanup: true,
 	})
 }

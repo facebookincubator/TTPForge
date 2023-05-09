@@ -30,6 +30,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TTPExecutionConfig - pass this into RunSteps to control TTP execution
+type TTPExecutionConfig struct {
+	NoCleanup      bool
+	InventoryPaths []string
+}
+
 // TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.
 type TTP struct {
 	Name        string            `yaml:"name,omitempty"`
@@ -247,7 +253,7 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 // Returns:
 //
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps() error {
+func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 	if err := t.setWorkingDirectory(); err != nil {
 		return err
 	}
@@ -265,15 +271,17 @@ func (t *TTP) RunSteps() error {
 
 	logging.Logger.Sugar().Info("[*] Completed TTP")
 
-	if len(cleanup) > 0 {
-		logging.Logger.Sugar().Info("[*] Beginning Cleanup")
-		if err := t.Cleanup(availableSteps, cleanup); err != nil {
-			logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
-			return err
+	if !c.NoCleanup {
+		if len(cleanup) > 0 {
+			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
+			if err := t.Cleanup(availableSteps, cleanup); err != nil {
+				logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
+				return err
+			}
+			logging.Logger.Sugar().Info("[*] Finished Cleanup")
+		} else {
+			logging.Logger.Sugar().Info("[*] No Cleanup Steps Found")
 		}
-		logging.Logger.Sugar().Info("[*] Finished Cleanup")
-	} else {
-		logging.Logger.Sugar().Info("[*] No Cleanup Steps Found")
 	}
 
 	return nil

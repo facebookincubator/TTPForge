@@ -55,8 +55,9 @@ import (
 // }
 //
 // log.Printf("TTP %s executed successfully\n", ttp.Name)
-func ExecuteYAML(yamlFile string, inventoryPaths []string) (*blocks.TTP, error) {
+func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, error) {
 
+	inventoryPaths := c.InventoryPaths
 	if len(inventoryPaths) == 0 {
 		logging.Logger.Sugar().Warn("No inventory path specified, using current directory")
 	}
@@ -102,7 +103,7 @@ func ExecuteYAML(yamlFile string, inventoryPaths []string) (*blocks.TTP, error) 
 		return nil, err
 	}
 
-	if err := ttp.RunSteps(); err != nil {
+	if err := ttp.RunSteps(c); err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}

@@ -22,26 +22,30 @@ package cmd
 import (
 	"go.uber.org/zap"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	rootCmd.AddCommand(RunTTPCmd())
+	rootCmd.AddCommand()
 }
 
 // RunTTPCmd runs an input TTP.
 func RunTTPCmd() *cobra.Command {
+	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the forgery using the file specified in args.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			relativeTTPPath := args[0]
-			if _, err := files.ExecuteYAML(relativeTTPPath, Conf.InventoryPath); err != nil {
+			ttpCfg.InventoryPaths = Conf.InventoryPath
+			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg); err != nil {
 				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 			}
 		},
 	}
+	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging)")
 	return runCmd
 }

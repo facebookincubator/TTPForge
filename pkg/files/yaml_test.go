@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,9 +111,6 @@ verbose: false
 			err = os.WriteFile(testConfigYAMLPath, []byte(testConfigYAML), 0644)
 			assert.NoError(t, err, "failed to write the temporary YAML file")
 
-			// Add the inventoryPath to the inventoryPaths slice
-			inventoryPaths := []string{inventoryPath}
-
 			relTestYAMLPath := filepath.Join("ttps", tc.testFile)
 			err = os.WriteFile(relTestYAMLPath, []byte(testVariableExpansionYAML), 0644)
 			assert.NoError(t, err, "failed to write the temporary YAML file")
@@ -121,7 +119,9 @@ verbose: false
 			err = os.WriteFile(relScriptPath, []byte(testVariableExpansionSH), 0755)
 			assert.NoError(t, err, "failed to write the temporary shell script")
 
-			ttp, err := files.ExecuteYAML(relTestYAMLPath, inventoryPaths)
+			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionConfig{
+				InventoryPaths: []string{inventoryPath},
+			})
 			assert.NoError(t, err, "execution of the testFile should not cause an error")
 			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
