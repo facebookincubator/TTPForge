@@ -65,7 +65,11 @@ and run the `Remote-Containers: Reopen Locally` command.
    - ZSH container:
 
       ```zsh
-      docker pull ghcr.io/facebookincubator/ttpforge-zsh:latest
+      if [[ "$(uname -a | awk '{ print $NF }')" == "arm64" ]]; then
+         docker pull --platform linux/x86_64 ghcr.io/facebookincubator/ttpforge-zsh
+      else
+         docker pull ghcr.io/facebookincubator/ttpforge-zsh:latest
+      fi
       ```
 
    - Bash Container:
