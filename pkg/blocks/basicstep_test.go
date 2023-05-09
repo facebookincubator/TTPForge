@@ -17,12 +17,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 
 	"github.com/stretchr/testify/assert"
@@ -81,12 +81,52 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestArgsExpansion(t *testing.T) {
+	testCases := []struct {
+		name  string
+		basic BasicStep
+		want  string
+	}{
+		{
+			name: "Simple basic",
+			basic: BasicStep{
+				Inline: `ls
+{{test}}
+{{test_second}}`,
+			},
+			want: `ls
+test_value
+test_value_second`,
+		},
+		{
+			name: "Simple basic",
+			basic: BasicStep{
+				Inline: `ls
+{{test_not_expanded}}`,
+			},
+			want: `ls
+{{test_not_expanded}}`,
+		},
+	}
+
+	InputArgs["test"] = "test_value"
+	InputArgs["test_second"] = "test_value_second"
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			replaced := tc.basic.replaceInput(InputArgs)
+			if tc.want != strings.TrimSpace(replaced) {
+				t.Errorf("expected output does not match return of replacement %v != %v", tc.want, replaced)
 			}
 		})
 	}

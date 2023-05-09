@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
 
@@ -72,7 +71,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -113,7 +112,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -166,7 +165,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
+			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			assert.NoError(t, err)
 
@@ -205,7 +204,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
+			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -218,6 +217,65 @@ steps:
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTTP_ValidateInputs(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Simple input",
+			content: `
+name: test
+description: this is a test
+inputs:
+    - name: test
+      required: true
+      value: someval
+      type: string
+steps:
+  - name: step1
+    inline: |
+      echo "step1"
+`,
+			wantError: false,
+		},
+		{
+			name: "Simple bad input",
+			content: `
+name: test
+description: this is a test
+inputs:
+    - name: test
+      required: true
+      type: string
+steps:
+  - name: step1
+    inline: |
+      echo "step1"
+`,
+			wantError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			if err != nil {
+				t.Fatalf("invalid yaml provided for unmarshalling: %v", tc.content)
+			}
+			err = ttp.validateInputs()
+			t.Log(err)
+			if tc.wantError && err == nil {
+				t.Fatalf("error not returned when error expected: %v", tc.content)
+			} else if !tc.wantError && err != nil {
+				t.Fatalf("error returned when error not expected: %v", tc.content)
 			}
 		})
 	}

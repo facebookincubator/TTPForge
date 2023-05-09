@@ -33,8 +33,15 @@ import (
 	"go.uber.org/zap"
 )
 
+func init() {
+	InputArgs = make(map[string]string)
+}
+
 // InventoryPath is a list of paths to search when checking for file existence.
 var InventoryPath []string
+
+// InputArgs contain a global map of inputs defined in the yaml for all steps to read from
+var InputArgs map[string]string
 
 // FetchAbs returns the absolute path of a file given its path and the working directory. It handles cases where the path starts with "~/",
 // is an absolute path, or is a relative path from the working directory. It logs any errors and returns them.

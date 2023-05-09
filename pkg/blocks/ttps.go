@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -36,6 +37,12 @@ type TTP struct {
 	Description string            `yaml:"description"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
+	Inputs      []struct {
+		Name     string `yaml:"name"`
+		Type     string `yaml:"type"`
+		Value    string `yaml:"value"`
+		Required bool   `yaml:"required,omitempty"`
+	} `yaml:"inputs,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
 }
@@ -108,6 +115,12 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		Description string            `yaml:"description"`
 		Environment map[string]string `yaml:"env,flow,omitempty"`
 		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
+		Inputs      []struct {
+			Name     string `yaml:"name"`
+			Type     string `yaml:"type"`
+			Value    string `yaml:"value"`
+			Required bool   `yaml:"required,omitempty"`
+		} `yaml:"inputs,omitempty,flow"`
 	}
 
 	var tmpl TTPTmpl
@@ -118,6 +131,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Name = tmpl.Name
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
+	t.Inputs = tmpl.Inputs
 
 	return t.decodeAndValidateSteps(tmpl.Steps)
 }
@@ -252,6 +266,11 @@ func (t *TTP) RunSteps() error {
 		return err
 	}
 
+	if err := t.validateInputs(); err != nil {
+		logging.Logger.Sugar().Error("why is the err")
+		return err
+	}
+
 	if err := t.ValidateSteps(); err != nil {
 		return err
 	}
@@ -308,6 +327,33 @@ func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
 		return err
+	}
+	return nil
+}
+
+func (t *TTP) validateInputs() error {
+	for _, input := range t.Inputs {
+		logging.Logger.Sugar().Error(input.Type)
+		switch v := strings.TrimSpace(strings.ToLower(input.Type)); v {
+		case "int":
+			if _, err := strconv.Atoi(input.Value); err != nil {
+				return fmt.Errorf("%v cannot format to a number", v)
+			}
+		case "bool":
+			if _, err := strconv.ParseBool(input.Value); err != nil {
+				return fmt.Errorf("%v cannot parse to bool", v)
+			}
+		case "string":
+			if input.Value == "" && input.Required {
+				return fmt.Errorf("%v is required and is not provided", input.Value)
+			}
+		}
+
+		if input.Required && input.Value == "" {
+			return fmt.Errorf("%v is required and is not provided", input.Value)
+		}
+
+		InputArgs[input.Name] = input.Value
 	}
 	return nil
 }
