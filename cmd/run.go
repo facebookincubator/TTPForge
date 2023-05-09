@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand()
+	rootCmd.AddCommand(RunTTPCmd())
 }
 
 // RunTTPCmd runs an input TTP.
@@ -36,7 +36,7 @@ func RunTTPCmd() *cobra.Command {
 	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{
 		Use:   "run",
-		Short: "Run the forgery using the file specified in args.",
+		Short: "Run the TTP found in the specified YAML file.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			relativeTTPPath := args[0]
