@@ -1,5 +1,5 @@
 {
-  "name": "TTPForge ZSH Container",
+  "name": "TTPForge Bash Container",
   "image": "ghcr.io/facebookincubator/ttpforge-bash:latest",
   "remoteUser": "ttpforge",
   "extensions": [
