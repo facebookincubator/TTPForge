@@ -1,16 +1,8 @@
 # Writing Tests
 
-## Testing Standards
+## Testing Template
 
-At a high level, the following testing standards are employed for the TTPForge:
-
-1. All exported functions should have a corresponding test.
-2. Integration tests must be created to accompany new functionality and ensure that everything works as
-   expected going forward and with existing logic.
-
-## Testing Templates
-
-Ensure tests are written using the following template as a starting point:
+Ensure unit and integration tests are written using the following template as a starting point:
 
 ```go
 package some_test
@@ -43,10 +35,65 @@ func TestSomething(t *testing.T) {
 }
 ```
 
-This template employs a separate test package.
+Several examples of complete tests can be found throughout the TTPForge repo.
 
-It's considered a best practice to place tests in separate packages from the code they're testing.
-By doing this, we're adhering to the Go convention of using external test packages.
+---
+
+## Testing Standards
+
+At a high level, the following testing standards are employed for TTPForge:
+
+1. All exported functions should have a corresponding test.
+
+2. Integration tests must be created to accompany new functionality and ensure
+   that everything works as expected going forward and with existing logic.
+
+3. Tests should not modify anything in the main codebase.
+
+4. When possible, tests should be built to execute in a temporary directory
+   specific to that test. Several examples can be found in `file_test.go`.
+
+### Unit Testing
+
+Consider the following criteria when writing unit tests for the TTPForge:
+
+1. **Functionality:** Unit tests should test a single function or method. The
+   test should be isolated from dependencies where possible.
+
+2. **Inputs and Outputs:** Describe what type of input the function requires
+   and what type of output is expected.
+
+3. **Edge Cases:** Include how to handle edge cases. This can include null
+   inputs, empty strings, maximum and minimum values, etc.
+
+4. **Mocking:** If the function depends on other services or functions, discuss
+   how to mock these dependencies for testing.
+
+5. Error Handling: Explain how to test error handling within the function.
+
+### Integration Testing
+
+Consider the following criteria when writing integration tests for the TTPForge:
+
+1. **Components:** Identify the components that are being tested together. This
+   could be multiple functions, methods, or even whole modules or services.
+
+2. **Data Flow:** Describe how data flows between the components and what the expected outcomes are.
+
+3. **Setup and Tear Down:** Include instructions for setting up the necessary
+   environment for the test and tearing it down after the test.
+
+4. **Mocking:** Explain when and how to mock dependencies in integration tests.
+   Unlike unit tests, integration tests may require fewer mocks and more actual services.
+
+5. **Error Handling:** Explain how to test for errors at the integration level.
+   This might include testing how one component handles another component's failure.
+
+---
+
+## Building Tests
+
+Our tests should be built under a separate package from the one that the code under test lives in.
 
 There are several reasons for this convention:
 
@@ -57,20 +104,38 @@ There are several reasons for this convention:
 
 **Testing exported functionality:**
 
-- Using external test packages encourages testing only the exported functionality,
-  which is what consumers of your package will be using. This helps focus on the package's
-  public API and ensures it behaves as expected.
+- Using external test packages encourages testing only the exported
+  functionality, which is what consumers of your package will be using. This
+  helps focus on the package's public API and ensures it behaves as expected.
 
 **Preventing circular dependencies:**
 
 - External test packages minimize the risk of creating circular dependencies,
   which can occur when you import the package under test within the test code.
 
-Avoiding test-only dependencies: External test packages prevent test-only dependencies from
-being included in the compiled binary, reducing the size of the final binary and ensuring
-production code does not accidentally use test dependencies.
+**Avoiding test-only dependencies:**
+
+- External test packages prevent test-only dependencies from being included in
+  the compiled binary, reducing the size of the final binary and ensuring
+  production code does not accidentally use test dependencies.
 
 **Resources:**
 
 - <https://www.red-gate.com/simple-talk/devops/testing/go-unit-tests-tips-from-the-trenches/>
 - <https://segment.com/blog/5-advanced-testing-techniques-in-go/>
+
+---
+
+## Updating Existing Tests
+
+If any updates are made to existing library code that change the existing
+functionality (add, update, remove, etc.), tests should be updated to capture
+these changes.
+
+For example:
+
+If an existing exported function is updated to support `github.com/spf13/
+afero`, the associated tests for that function should be updated so that the
+existing tests still work properly. In the event that a test needs to be
+deprecated or removed, an issue should be created to ensure that there aren't
+any unknown issues with doing that.
