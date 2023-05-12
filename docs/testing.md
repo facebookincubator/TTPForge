@@ -45,12 +45,10 @@ At a high level, the following testing standards are employed for TTPForge:
 
 1. All exported functions should have a corresponding test.
 
-2. Integration tests must be created to accompany new functionality and ensure
+1. Integration tests must be created to accompany new functionality and ensure
    that everything works as expected going forward and with existing logic.
 
-3. Tests should not modify anything in the main codebase.
-
-4. When possible, tests should be built to execute in a temporary directory
+1. If tests touch the filesystem, they should be built to execute in a temporary directory
    specific to that test. Several examples can be found in `file_test.go`.
 
 ### Unit Testing
@@ -60,16 +58,16 @@ Consider the following criteria when writing unit tests for the TTPForge:
 1. **Functionality:** Unit tests should test a single function or method. The
    test should be isolated from dependencies where possible.
 
-2. **Inputs and Outputs:** Describe what type of input the function requires
+1. **Inputs and Outputs:** Describe what type of input the function requires
    and what type of output is expected.
 
-3. **Edge Cases:** Include how to handle edge cases. This can include null
+1. **Edge Cases:** Include how to handle edge cases. This can include null
    inputs, empty strings, maximum and minimum values, etc.
 
-4. **Mocking:** If the function depends on other services or functions, discuss
-   how to mock these dependencies for testing.
+1. **Mocking:** If the function depends on other services or functions, you
+   may need to mock these dependencies for testing.
 
-5. Error Handling: Explain how to test error handling within the function.
+1. Error Handling: Explain how to test error handling within the function.
 
 ### Integration Testing
 
@@ -78,15 +76,15 @@ Consider the following criteria when writing integration tests for the TTPForge:
 1. **Components:** Identify the components that are being tested together. This
    could be multiple functions, methods, or even whole modules or services.
 
-2. **Data Flow:** Describe how data flows between the components and what the expected outcomes are.
+1. **Data Flow:** Describe how data flows between the components and what the expected outcomes are.
 
-3. **Setup and Tear Down:** Include instructions for setting up the necessary
+1. **Setup and Tear Down:** Include instructions for setting up the necessary
    environment for the test and tearing it down after the test.
 
-4. **Mocking:** Explain when and how to mock dependencies in integration tests.
+1. **Mocking:** Explain when and how to mock dependencies in integration tests.
    Unlike unit tests, integration tests may require fewer mocks and more actual services.
 
-5. **Error Handling:** Explain how to test for errors at the integration level.
+1. **Error Handling:** Explain how to test for errors at the integration level.
    This might include testing how one component handles another component's failure.
 
 ---
@@ -113,6 +111,68 @@ There are several reasons for this convention:
 - External test packages minimize the risk of creating circular dependencies,
   which can occur when you import the package under test within the test code.
 
+  Example:
+
+  Assume we have a package named `calculator`:
+
+  ```go
+  // calculator/calculator.go
+  package calculator
+
+  func Add(a, b int) int {
+      return a + b
+  }
+  ```
+
+  And we want to create a test for it.
+
+  Here's how you might do it with an internal test package:
+
+  ```go
+  // calculator/calculator_test.go
+  package calculator
+
+  import "testing"
+
+  func TestAdd(t *testing.T) {
+      result := Add(2, 3)
+      if result != 5 {
+          t.Errorf("Expected 5, got %d", result)
+      }
+  }
+  ```
+
+  This works, but the problem is that it's testing the internal workings of the calculator package,
+  rather than its exported API. Also, if you import another package that depends on calculator into
+  this test file, you might create a circular dependency.
+
+  To avoid this, you can use an external test package:
+
+  ```go
+  // calculator/calculator_test.go
+  package calculator_test
+
+  import (
+      "testing"
+      "example.com/myapp/calculator"
+  )
+
+  func TestAdd(t *testing.T) {
+      result := calculator.Add(2, 3)
+      if result != 5 {
+          t.Errorf("Expected 5, got %d", result)
+      }
+  }
+  ```
+
+  In this case, we're importing the calculator package as if we were any other consumer,
+  and testing only its public API. This encourages good encapsulation practices and prevents
+  the possibility of creating a circular dependency.
+
+  The \_test suffix in package calculator_test is a convention in Go for external test
+  packages. Note that the test files for external test packages still reside in the same
+  directory as the package under test.
+
 **Avoiding test-only dependencies:**
 
 - External test packages prevent test-only dependencies from being included in
@@ -136,6 +196,4 @@ For example:
 
 If an existing exported function is updated to support `github.com/spf13/
 afero`, the associated tests for that function should be updated so that the
-existing tests still work properly. In the event that a test needs to be
-deprecated or removed, an issue should be created to ensure that there aren't
-any unknown issues with doing that.
+existing tests still work properly.
