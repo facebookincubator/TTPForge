@@ -74,8 +74,6 @@ func InstallPreCommitHooks() error {
 
 // RunPreCommit runs all pre-commit hooks locally
 func RunPreCommit() error {
-	mg.Deps(InstallDeps)
-
 	fmt.Println(color.YellowString("Updating pre-commit hooks."))
 	if err := goutils.UpdatePCHooks(); err != nil {
 		return err
@@ -97,8 +95,6 @@ func RunPreCommit() error {
 
 // RunTests runs all of the unit tests
 func RunTests() error {
-	mg.Deps(InstallDeps)
-
 	fmt.Println(color.YellowString("Running unit tests."))
 	if err := sh.RunV(filepath.Join(".hooks", "go-unit-tests.sh"), "all"); err != nil {
 		return fmt.Errorf(color.RedString("failed to run unit tests: %v", err))
