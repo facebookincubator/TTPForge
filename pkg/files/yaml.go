@@ -103,6 +103,11 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, err
 		return nil, err
 	}
 
+	// Cli inputs placed inside the Input mappings for ttp
+	for key, val := range c.CliInputs {
+		ttp.InputMap[key] = val
+	}
+
 	if err := ttp.RunSteps(c); err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err

@@ -92,7 +92,7 @@ func (s *SubTTPStep) Execute(inputs map[string]string) error {
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
-	for key, val := range s.ttp.inputMap {
+	for key, val := range s.ttp.InputMap {
 		inputs[key] = val
 	}
 
