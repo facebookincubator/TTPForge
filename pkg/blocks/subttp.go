@@ -88,16 +88,20 @@ func (s *SubTTPStep) UnmarshalSubTTP() error {
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
-func (s *SubTTPStep) Execute() error {
+func (s *SubTTPStep) Execute(inputs map[string]string) error {
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
+
+	for key, val := range s.ttp.InputMap {
+		inputs[key] = val
+	}
 
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
 		stepCopy.Setup(s.Environment, availableSteps)
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
-		if err := stepCopy.Execute(); err != nil {
+		if err := stepCopy.Execute(inputs); err != nil {
 			return err
 		}
 

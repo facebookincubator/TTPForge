@@ -80,7 +80,7 @@ func NewAct() *Act {
 
 // CleanupAct is required for anything that requires a cleanup step.
 type CleanupAct interface {
-	Cleanup() error
+	Cleanup(inputs map[string]string) error
 	CleanupName() string
 	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
@@ -101,7 +101,7 @@ type Step interface {
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
 	// Execute will need to take care of the condition checks/etc...
-	Execute() error
+	Execute(inputs map[string]string) error
 	IsNil() bool
 	ExplainInvalid() error
 	Validate() error
@@ -156,7 +156,7 @@ func (a *Act) ExplainInvalid() error {
 // Returns:
 //
 // error: Always returns nil for the base Act.
-func (a *Act) Cleanup() error {
+func (a *Act) Cleanup(inputs map[string]string) error {
 	// base act will not do anything, this allows sub types to do what they need
 	return nil
 }
