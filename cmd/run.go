@@ -47,6 +47,6 @@ func RunTTPCmd() *cobra.Command {
 		},
 	}
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging)")
-	runCmd.Flags().StringToStringVarP(&ttpCfg.CliInputs, "arg", "a", map[string]string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
+	runCmd.Flags().StringToStringVarP(&ttpCfg.CliInputs, "args", "a", map[string]string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
 	return runCmd
 }
