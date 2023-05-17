@@ -105,13 +105,18 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 	// Check if file exists using provided fs.StatFS
 	if system != nil {
 		fsPath := filepath.Join(workdir, path)
-		if _, err := system.Stat(fsPath); !errors.Is(err, fs.ErrNotExist) {
-			logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
-			return fsPath, nil
+		if _, err := system.Stat(fsPath); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
+				return "", err
+			} else {
+				logging.Logger.Sugar().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
+				return "", err
+			}
 		}
+		logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
+		return fsPath, nil
 
-		logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
-		return "", err
 	}
 
 	// Handle home directory representation in Windows.
