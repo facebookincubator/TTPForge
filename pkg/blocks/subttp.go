@@ -128,7 +128,7 @@ func (s *SubTTPStep) Execute(inputs map[string]string) error {
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP() error {
-	ttps, err := LoadTTP(s.TtpFile)
+	ttps, err := LoadTTP(s.TtpFile, s.FileSystem)
 	if err != nil {
 		return err
 	}

@@ -21,6 +21,7 @@ package blocks
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -33,14 +34,22 @@ import (
 // Parameters:
 //
 // ttpFilePath: the absolute or relative path to the TTP file.
+// system: An optional fs.StatFS from which to load the TTP
 //
 // Returns:
 //
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string) (*TTP, error) {
+func LoadTTP(ttpFilePath string, system fs.StatFS) (*TTP, error) {
+
 	var ttp TTP
-	file, err := os.Open(ttpFilePath)
+	var file fs.File
+	var err error
+	if system == nil {
+		file, err = os.Open(ttpFilePath)
+	} else {
+		file, err = system.Open(ttpFilePath)
+	}
 	if err != nil {
 		return nil, err
 	}

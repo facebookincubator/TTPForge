@@ -37,31 +37,28 @@ func init() {
 }
 
 func TestUnmarshalAndValidateSubTtp(t *testing.T) {
-	ttps := blocks.SubTTPStep{
+	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
 			"test.yaml": &fstest.MapFile{
-				Data: []byte(`
-name: test
+				Data: []byte(`name: test
 description: test ttp sub step
 steps:
-  name: testing_sub_ttp
-  inline: |
-    ls
-        `),
+  - name: testing_sub_ttp
+    inline: |
+      ls`),
 			},
 		},
 	}
 
 	content := `
 name: testing
-ttp: test.yaml
-  `
+ttp: test.yaml`
 
-	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
-		t.Error("invalid sub ttp format", ttps)
+	if err := yaml.Unmarshal([]byte(content), &step); err != nil {
+		t.Error("invalid sub ttp step format", step)
 	}
 
-	if err := ttps.Validate(); err != nil {
+	if err := step.Validate(); err != nil {
 		t.Error("TTP failed to validate", err)
 	}
 }

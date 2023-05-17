@@ -81,7 +81,7 @@ steps:
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := blocks.LoadTTP(tc.filename); (err != nil) != tc.wantErr {
+			if _, err := blocks.LoadTTP(tc.filename, nil); (err != nil) != tc.wantErr {
 				t.Errorf("error running LoadTTP() = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
