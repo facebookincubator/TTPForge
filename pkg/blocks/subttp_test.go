@@ -36,7 +36,7 @@ func init() {
 	logging.ToggleDebug()
 }
 
-func TestUnmarshalSubTtp(t *testing.T) {
+func TestUnmarshalAndValidateSubTtp(t *testing.T) {
 	ttps := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
 			"test.yaml": &fstest.MapFile{
@@ -61,7 +61,9 @@ ttp: test.yaml
 		t.Error("invalid sub ttp format", ttps)
 	}
 
-	t.Logf("sub ttp step populated with data: %v", ttps)
+	if err := ttps.Validate(); err != nil {
+		t.Error("TTP failed to validate", err)
+	}
 }
 
 func TestUnmarshalSubTtpInvalid(t *testing.T) {
