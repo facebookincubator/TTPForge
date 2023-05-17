@@ -21,15 +21,11 @@ package blocks
 
 import (
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
-
-// FileSystem is a global fs.FS instance used for file system operations.
-var FileSystem fs.FS
 
 // LoadTTP reads a TTP file and creates a TTP instance based on its contents.
 // If the file is empty or contains invalid data, it returns an error.
