@@ -65,21 +65,7 @@ ttp: test.yaml
 }
 
 func TestUnmarshalSubTtpInvalid(t *testing.T) {
-	ttps := blocks.SubTTPStep{
-		FileSystem: fstest.MapFS{
-			"test.yaml": &fstest.MapFile{
-				Data: []byte(`
-name: test
-description: test ttp sub step
-steps:
-  name: testing_sub_ttp
-  inline: |
-    ls
-        `),
-			},
-		},
-	}
-
+	var ttps blocks.SubTTPStep
 	content := `
 name: testing
 ttp: bad.yaml
