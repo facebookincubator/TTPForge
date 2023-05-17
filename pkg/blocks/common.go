@@ -109,10 +109,9 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 			if errors.Is(err, fs.ErrNotExist) {
 				logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
 				return "", err
-			} else {
-				logging.Logger.Sugar().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
-				return "", err
 			}
+			logging.Logger.Sugar().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
+			return "", err
 		}
 		logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
 		return fsPath, nil

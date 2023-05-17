@@ -206,9 +206,8 @@ func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []stri
 			// see comment above - callers expect this error to be suppressed
 			if errors.Is(err, fs.ErrNotExist) {
 				return "", nil
-			} else {
-				return "", err
 			}
+			return "", err
 		}
 
 		// parentDir := filepath.Dir(inventoryPath)
