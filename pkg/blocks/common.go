@@ -97,9 +97,9 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 //
 // Returns:
 //
-// foundPath: A string representing the path to the file if it exists.
-// error: An error if the file cannot be found.
-func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath string, err error) {
+// * A string representing the path to the file, or an empty string if the file does not exists.
+// * An error if the file cannot be found or if other errors occur
+func FindFilePath(path string, workdir string, system fs.StatFS) (string, error) {
 	logging.Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
 
 	// Check if file exists using provided fs.StatFS

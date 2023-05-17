@@ -203,7 +203,12 @@ func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []stri
 		iofs := afero.NewIOFS(fsys)
 		fullPath, err := blocks.FindFilePath(relTemplatePath, filepath.Dir(inventoryPath), iofs)
 		if err != nil {
-			return "", err
+			// see comment above - callers expect this error to be suppressed
+			if errors.Is(err, fs.ErrNotExist) {
+				return "", nil
+			} else {
+				return "", err
+			}
 		}
 
 		// parentDir := filepath.Dir(inventoryPath)
