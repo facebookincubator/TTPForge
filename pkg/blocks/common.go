@@ -97,10 +97,26 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 //
 // Returns:
 //
-// foundPath: A string representing the path to the file if it exists.
-// error: An error if the file cannot be found.
-func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath string, err error) {
+// * A string representing the path to the file, or an empty string if the file does not exist.
+// * An error if the file cannot be found or if other errors occur.
+func FindFilePath(path string, workdir string, system fs.StatFS) (string, error) {
 	logging.Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
+
+	// Check if file exists using provided fs.StatFS
+	if system != nil {
+		fsPath := filepath.Join(workdir, path)
+		if _, err := system.Stat(fsPath); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
+				return "", err
+			}
+			logging.Logger.Sugar().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
+			return "", err
+		}
+		logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
+		return fsPath, nil
+
+	}
 
 	// Handle home directory representation in Windows.
 	if strings.HasPrefix(path, "~/") || (runtime.GOOS == "windows" && strings.HasPrefix(path, "%USERPROFILE%")) {
@@ -139,18 +155,6 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (foundPath stri
 			logging.Logger.Sugar().Debugw("File found in inventory path", "inventoryPath", inventoryPath)
 			return inventoryPath, nil
 		}
-	}
-
-	// Check if file exists using provided fs.StatFS
-	if system != nil {
-
-		if _, err := system.Stat(absPath); !errors.Is(err, fs.ErrNotExist) {
-			logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
-			return path, nil
-		}
-
-		logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
-		return "", err
 	}
 
 	// If the file is not found in any of the locations, return an error
