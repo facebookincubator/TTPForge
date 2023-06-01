@@ -47,15 +47,6 @@ func NewEditStep() *EditStep {
 	}
 }
 
-// // UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
-// func (s *EditStep) UnmarshalYAML(node *yaml.Node) error {
-
-// 	if err := node.Decode(&s); err != nil {
-// 		return err
-// 	}
-// 	return s.Validate()
-// }
-
 // GetCleanup returns the cleanup steps for a BasicStep.
 func (s *EditStep) GetCleanup() []CleanupAct {
 	// TODO: implement
@@ -97,9 +88,9 @@ func (s *EditStep) Validate() error {
 	} else {
 		for editIdx, edit := range s.Edits {
 			if edit.Old == "" {
-				err = fmt.Errorf("edit #%d is missing 'old:'", editIdx)
+				err = fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
 			} else if edit.New == "" {
-				err = fmt.Errorf("edit #%d is missing 'new:'", editIdx)
+				err = fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
 			}
 		}
 	}

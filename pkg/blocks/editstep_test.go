@@ -27,15 +27,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestUnmarshalEdit(t *testing.T) {
-	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
-	}{
-		{
-			name: "Valid editStep",
-			content: `name: test
+func TestUnmarshalEditValid(t *testing.T) {
+	content := `name: test
 description: this is a test
 steps:
   - name: valid_edit
@@ -44,20 +37,35 @@ steps:
       - old: foo
         new: yolo
       - old: another
-        new: one`,
-			wantError: false,
-		},
-	}
+        new: one`
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	assert.NoError(t, err)
+
+	err = ttp.ValidateSteps()
+	assert.NoError(t, err)
+}
+
+func TestUnmarshalEditNoNew(t *testing.T) {
+	content := `name: test
+description: this is a test
+steps:
+  - name: valid_edit
+    edit_file: yolo
+    edits:
+      - old: foo
+        new: yolo
+      - old: wutwut 
+      - old: another 
+        new: one`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	assert.NoError(t, err)
+
+	err = ttp.ValidateSteps()
+	assert.Error(t, err)
+
+	assert.Equal(t, err.Error(), "[!] invalid editstep: [valid_edit] edit #2 is missing 'new:'")
 }
