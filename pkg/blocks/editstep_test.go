@@ -24,6 +24,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -41,10 +42,10 @@ steps:
 
 	var ttp blocks.TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = ttp.ValidateSteps()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestUnmarshalEditNoNew(t *testing.T) {
@@ -62,10 +63,10 @@ steps:
 
 	var ttp blocks.TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = ttp.ValidateSteps()
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	assert.Equal(t, "[!] invalid editstep: [missing_new] edit #2 is missing 'new:'", err.Error())
 }
@@ -85,10 +86,38 @@ steps:
 
 	var ttp blocks.TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = ttp.ValidateSteps()
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	assert.Equal(t, "[!] invalid editstep: [missing_old] edit #1 is missing 'old:'", err.Error())
+}
+
+func TestUnmarshalNonListEdits(t *testing.T) {
+	content := `name: test
+description: this is a test
+steps:
+  - name: non_list_edits
+    edit_file: yolo
+    edits: haha`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.Error(t, err)
+}
+
+func TestUnmarshalEmptyEdits(t *testing.T) {
+	content := `name: test
+description: this is a test
+steps:
+  - name: no_edits 
+    edit_file: yolo`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.NoError(t, err)
+
+	err = ttp.ValidateSteps()
+	assert.Equal(t, "[!] invalid editstep: [no_edits] no edits specified", err.Error())
 }
