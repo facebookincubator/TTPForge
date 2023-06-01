@@ -51,7 +51,7 @@ func TestUnmarshalEditNoNew(t *testing.T) {
 	content := `name: test
 description: this is a test
 steps:
-  - name: valid_edit
+  - name: missing_new 
     edit_file: yolo
     edits:
       - old: foo
@@ -67,5 +67,28 @@ steps:
 	err = ttp.ValidateSteps()
 	assert.Error(t, err)
 
-	assert.Equal(t, err.Error(), "[!] invalid editstep: [valid_edit] edit #2 is missing 'new:'")
+	assert.Equal(t, "[!] invalid editstep: [missing_new] edit #2 is missing 'new:'", err.Error())
+}
+
+func TestUnmarshalEditNoOld(t *testing.T) {
+	content := `name: test
+description: this is a test
+steps:
+  - name: missing_old 
+    edit_file: yolo
+    edits:
+      - new: yolo
+      - old: wutwut 
+        new: haha
+      - old: another 
+        new: one`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	assert.NoError(t, err)
+
+	err = ttp.ValidateSteps()
+	assert.Error(t, err)
+
+	assert.Equal(t, "[!] invalid editstep: [missing_old] edit #1 is missing 'old:'", err.Error())
 }
