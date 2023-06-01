@@ -24,7 +24,6 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 type Edit struct {
@@ -43,19 +42,19 @@ type EditStep struct {
 func NewEditStep() *EditStep {
 	return &EditStep{
 		Act: &Act{
-			Type: StepBasic,
+			Type: StepEdit,
 		},
 	}
 }
 
-// UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
-func (s *EditStep) UnmarshalYAML(node *yaml.Node) error {
+// // UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
+// func (s *EditStep) UnmarshalYAML(node *yaml.Node) error {
 
-	if err := node.Decode(&s); err != nil {
-		return err
-	}
-	return s.Validate()
-}
+// 	if err := node.Decode(&s); err != nil {
+// 		return err
+// 	}
+// 	return s.Validate()
+// }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
 func (s *EditStep) GetCleanup() []CleanupAct {
@@ -74,9 +73,14 @@ func (s *EditStep) GetType() StepType {
 }
 
 func (s *EditStep) IsNil() bool {
-	// TODO: refactor this - don't need this until I do MakeCleanupStep
-	logging.Logger.Sugar().Panic("not implemented")
-	return false
+	switch {
+	case s.Act.IsNil():
+		return true
+	case s.FileToEdit == "":
+		return true
+	default:
+		return false
+	}
 }
 
 // Validate validates the BasicStep, checking for the necessary attributes and dependencies.
