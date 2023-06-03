@@ -21,21 +21,27 @@ package blocks
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
-	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"go.uber.org/zap"
+	"github.com/spf13/afero"
 )
 
 type Edit struct {
-	Old string `yaml:"old,omitempty"`
-	New string `yaml:"new,omitempty"`
+	Old    string `yaml:"old,omitempty"`
+	New    string `yaml:"new,omitempty"`
+	Regexp bool   `yaml:"regexp,omitempty`
+
+	oldRegexp *regexp.Regexp
+	newRegexp *regexp.Regexp
 }
 
 // EditStep represents one or more edits to a specific file
 type EditStep struct {
 	*Act       `yaml:",inline"`
-	FileToEdit string `yaml:"edit_file,omitempty"`
-	Edits      []Edit `yaml:"edits,omitempty"`
+	FileToEdit string   `yaml:"edit_file,omitempty"`
+	Edits      []*Edit  `yaml:"edits,omitempty"`
+	FileSystem afero.Fs `yaml:"-,omitempty"`
 }
 
 // NewEditStep creates a new EditStep instance with an initialized Act struct.
@@ -47,7 +53,7 @@ func NewEditStep() *EditStep {
 	}
 }
 
-// GetCleanup returns the cleanup steps for a BasicStep.
+// GetCleanup returns the cleanup steps for a EditStep.
 func (s *EditStep) GetCleanup() []CleanupAct {
 	// TODO: implement
 	return []CleanupAct{}
@@ -58,7 +64,7 @@ func (s *EditStep) CleanupName() string {
 	return s.Name
 }
 
-// GetType returns the step type for a BasicStep.
+// GetType returns the step type for a EditStep.
 func (s *EditStep) GetType() StepType {
 	return s.Type
 }
@@ -74,35 +80,68 @@ func (s *EditStep) IsNil() bool {
 	}
 }
 
-// Validate validates the BasicStep, checking for the necessary attributes and dependencies.
-func (s *EditStep) Validate() error {
+// wrapped by exported Validate to standardize
+// the error message prefix
+func (s *EditStep) check() error {
 	// Validate Act
 	if err := s.Act.Validate(); err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
 	}
 
 	var err error
 	if len(s.Edits) == 0 {
-		err = fmt.Errorf("no edits specified")
+		return fmt.Errorf("no edits specified")
 	} else {
+
+		// TODO: make this compatibile with deleting lines
 		for editIdx, edit := range s.Edits {
 			if edit.Old == "" {
-				err = fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
+				return fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
 			} else if edit.New == "" {
-				err = fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
+				return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
+			}
+
+			if edit.Regexp {
+				edit.oldRegexp, err = regexp.Compile(edit.Old)
+				if err != nil {
+					return fmt.Errorf("edit #%d has invalid regex for 'old:'", editIdx+1)
+				}
+				edit.newRegexp, err = regexp.Compile(edit.New)
+				if err != nil {
+					return fmt.Errorf("edit #%d has invalid regex for 'new:'", editIdx+1)
+				}
+
 			}
 		}
 	}
+	return nil
+}
 
-	if s.Name != "" && err != nil {
+// Validate validates the EditStep, checking for the necessary attributes and dependencies.
+func (s *EditStep) Validate() error {
+	err := s.check()
+	if err != nil {
 		return fmt.Errorf("[!] invalid editstep: [%s] %w", s.Name, err)
 	}
 	return nil
 }
 
 // Execute runs the EditStep and returns an error if any occur.
-func (s *EditStep) Execute(inputs map[string]string) (err error) {
-	logging.Logger.Sugar().Panic("not implemented")
+func (s *EditStep) Execute(inputs map[string]string) error {
+	rawContents, err := afero.ReadFile(s.FileSystem, s.FileToEdit)
+	if err != nil {
+		return err
+	}
+
+	contents := string(rawContents)
+	for _, edit := range s.Edits {
+		contents = strings.Replace(contents, edit.Old, edit.New, -1)
+	}
+
+	err = afero.WriteFile(s.FileSystem, s.FileToEdit, []byte(contents), 0644)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

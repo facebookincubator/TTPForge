@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -120,4 +121,31 @@ steps:
 
 	err = ttp.ValidateSteps()
 	assert.Equal(t, "[!] invalid editstep: [no_edits] no edits specified", err.Error())
+}
+
+func TestExecuteSimple(t *testing.T) {
+	content := `
+name: valid_edit
+edit_file: a.txt 
+edits:
+  - old: foo
+    new: yolo
+  - old: another
+    new: one`
+
+	var step blocks.EditStep
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err)
+
+	testFs := afero.NewMemMapFs()
+	afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
+	step.FileSystem = testFs
+
+	err = step.Execute(nil)
+	require.NoError(t, err)
+
+	contents, err := afero.ReadFile(testFs, "a.txt")
+	require.NoError(t, err)
+
+	assert.Equal(t, "yolo\none", string(contents))
 }
