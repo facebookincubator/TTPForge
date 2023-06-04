@@ -22,7 +22,6 @@ package blocks
 import (
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/spf13/afero"
 )
@@ -30,10 +29,9 @@ import (
 type Edit struct {
 	Old    string `yaml:"old,omitempty"`
 	New    string `yaml:"new,omitempty"`
-	Regexp bool   `yaml:"regexp,omitempty`
+	Regexp bool   `yaml:"regexp,omitempty"`
 
 	oldRegexp *regexp.Regexp
-	newRegexp *regexp.Regexp
 }
 
 // EditStep represents one or more edits to a specific file
@@ -106,11 +104,8 @@ func (s *EditStep) check() error {
 				if err != nil {
 					return fmt.Errorf("edit #%d has invalid regex for 'old:'", editIdx+1)
 				}
-				edit.newRegexp, err = regexp.Compile(edit.New)
-				if err != nil {
-					return fmt.Errorf("edit #%d has invalid regex for 'new:'", editIdx+1)
-				}
-
+			} else {
+				edit.oldRegexp = regexp.MustCompile(regexp.QuoteMeta(edit.Old))
 			}
 		}
 	}
@@ -135,7 +130,7 @@ func (s *EditStep) Execute(inputs map[string]string) error {
 
 	contents := string(rawContents)
 	for _, edit := range s.Edits {
-		contents = strings.Replace(contents, edit.Old, edit.New, -1)
+		contents = edit.oldRegexp.ReplaceAllString(contents, edit.New)
 	}
 
 	err = afero.WriteFile(s.FileSystem, s.FileToEdit, []byte(contents), 0644)
