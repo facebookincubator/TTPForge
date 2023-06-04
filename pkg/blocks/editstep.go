@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/afero"
 )
 
+// Edit represents a single old+new find-and-replace pair
 type Edit struct {
 	Old    string `yaml:"old,omitempty"`
 	New    string `yaml:"new,omitempty"`
@@ -67,6 +68,7 @@ func (s *EditStep) GetType() StepType {
 	return s.Type
 }
 
+// IsNil checks if an EditStep is considered empty or uninitialized.
 func (s *EditStep) IsNil() bool {
 	switch {
 	case s.Act.IsNil():
@@ -89,24 +91,23 @@ func (s *EditStep) check() error {
 	var err error
 	if len(s.Edits) == 0 {
 		return fmt.Errorf("no edits specified")
-	} else {
+	}
 
-		// TODO: make this compatibile with deleting lines
-		for editIdx, edit := range s.Edits {
-			if edit.Old == "" {
-				return fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
-			} else if edit.New == "" {
-				return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
-			}
+	// TODO: make this compatible with deleting lines
+	for editIdx, edit := range s.Edits {
+		if edit.Old == "" {
+			return fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
+		} else if edit.New == "" {
+			return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
+		}
 
-			if edit.Regexp {
-				edit.oldRegexp, err = regexp.Compile(edit.Old)
-				if err != nil {
-					return fmt.Errorf("edit #%d has invalid regex for 'old:'", editIdx+1)
-				}
-			} else {
-				edit.oldRegexp = regexp.MustCompile(regexp.QuoteMeta(edit.Old))
+		if edit.Regexp {
+			edit.oldRegexp, err = regexp.Compile(edit.Old)
+			if err != nil {
+				return fmt.Errorf("edit #%d has invalid regex for 'old:'", editIdx+1)
 			}
+		} else {
+			edit.oldRegexp = regexp.MustCompile(regexp.QuoteMeta(edit.Old))
 		}
 	}
 	return nil

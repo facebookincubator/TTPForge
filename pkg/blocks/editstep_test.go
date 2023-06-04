@@ -53,13 +53,13 @@ func TestUnmarshalEditNoNew(t *testing.T) {
 	content := `name: test
 description: this is a test
 steps:
-  - name: missing_new 
+  - name: missing_new
     edit_file: yolo
     edits:
       - old: foo
         new: yolo
-      - old: wutwut 
-      - old: another 
+      - old: wutwut
+      - old: another
         new: one`
 
 	var ttp blocks.TTP
@@ -76,13 +76,13 @@ func TestUnmarshalEditNoOld(t *testing.T) {
 	content := `name: test
 description: this is a test
 steps:
-  - name: missing_old 
+  - name: missing_old
     edit_file: yolo
     edits:
       - new: yolo
-      - old: wutwut 
+      - old: wutwut
         new: haha
-      - old: another 
+      - old: another
         new: one`
 
 	var ttp blocks.TTP
@@ -112,7 +112,7 @@ func TestUnmarshalEmptyEdits(t *testing.T) {
 	content := `name: test
 description: this is a test
 steps:
-  - name: no_edits 
+  - name: no_edits
     edit_file: yolo`
 
 	var ttp blocks.TTP
@@ -126,7 +126,7 @@ steps:
 func TestExecuteSimple(t *testing.T) {
 	content := `
 name: valid_edit
-edit_file: a.txt 
+edit_file: a.txt
 edits:
   - old: foo
     new: yolo
@@ -138,7 +138,8 @@ edits:
 	require.NoError(t, err)
 
 	testFs := afero.NewMemMapFs()
-	afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
+	err = afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
+	require.NoError(t, err)
 	step.FileSystem = testFs
 
 	err = step.Validate()
@@ -155,7 +156,7 @@ edits:
 
 func TestExecuteMultiline(t *testing.T) {
 	content := `name: delete_function
-edit_file: b.txt 
+edit_file: b.txt
 edits:
   - old: (?ms:^await MyAwesomeClass\.myAwesomeAsyncFn\(.*?\)$)
     new: "# function call removed by TTP"
@@ -177,7 +178,8 @@ moarawesomestuff`
 	require.NoError(t, err)
 
 	testFs := afero.NewMemMapFs()
-	afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	require.NoError(t, err)
 	step.FileSystem = testFs
 
 	err = step.Validate()
@@ -194,7 +196,7 @@ moarawesomestuff`
 
 func TestExecuteVariableExpansion(t *testing.T) {
 	content := `name: delete_function
-edit_file: b.txt 
+edit_file: b.txt
 edits:
   - old: (?P<fn_call>(?ms:^await MyAwesomeClass\.myAwesomeAsyncFn\(.*?\)$))
     new: "/*${fn_call}*/"
@@ -219,7 +221,8 @@ moarawesomestuff`
 	require.NoError(t, err)
 
 	testFs := afero.NewMemMapFs()
-	afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	require.NoError(t, err)
 	step.FileSystem = testFs
 
 	err = step.Validate()
@@ -236,7 +239,7 @@ moarawesomestuff`
 
 func TestExecuteNotFound(t *testing.T) {
 	content := `name: delete_function
-edit_file: b.txt 
+edit_file: b.txt
 edits:
   - old: not_going_to_find_this
     new: will_not_be_used`
@@ -248,7 +251,8 @@ edits:
 	require.NoError(t, err)
 
 	testFs := afero.NewMemMapFs()
-	afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	require.NoError(t, err)
 	step.FileSystem = testFs
 
 	err = step.Validate()
