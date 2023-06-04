@@ -191,3 +191,45 @@ moarawesomestuff`
 
 	assert.Equal(t, correctResult, string(contents))
 }
+
+func TestExecuteVariableExpansion(t *testing.T) {
+	content := `name: delete_function
+edit_file: b.txt 
+edits:
+  - old: (?P<fn_call>(?ms:^await MyAwesomeClass\.myAwesomeAsyncFn\(.*?\)$))
+    new: "/*${fn_call}*/"
+    regexp: true`
+
+	fileContentsToEdit := `otherstuff
+await MyAwesomeClass.myAwesomeAsyncFn(
+	param1,
+	param2,
+)
+moarawesomestuff`
+
+	correctResult := `otherstuff
+/*await MyAwesomeClass.myAwesomeAsyncFn(
+	param1,
+	param2,
+)*/
+moarawesomestuff`
+
+	var step blocks.EditStep
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err)
+
+	testFs := afero.NewMemMapFs()
+	afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	step.FileSystem = testFs
+
+	err = step.Validate()
+	require.NoError(t, err)
+
+	err = step.Execute(nil)
+	require.NoError(t, err)
+
+	contents, err := afero.ReadFile(testFs, "b.txt")
+	require.NoError(t, err)
+
+	assert.Equal(t, correctResult, string(contents))
+}
