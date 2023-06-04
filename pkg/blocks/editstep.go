@@ -129,7 +129,23 @@ func (s *EditStep) Execute(inputs map[string]string) error {
 	}
 
 	contents := string(rawContents)
-	for _, edit := range s.Edits {
+
+	// this is inefficient - searches string 2 * num_edits times -
+	// but it's unlikely to be a performance issue in practice. If it is,
+	// we can optimize
+	for editIdx, edit := range s.Edits {
+		matches := edit.oldRegexp.FindAllStringIndex(contents, -1)
+		// we want to error here because otherwise ppl will be confused by silent
+		// failures if the format of the file they're trying to edit changes
+		// and their regexes no longer work
+		if len(matches) == 0 {
+			return fmt.Errorf(
+				"pattern '%v' from edit #%d was not found in file %v",
+				edit.Old,
+				editIdx+1,
+				s.FileToEdit,
+			)
+		}
 		contents = edit.oldRegexp.ReplaceAllString(contents, edit.New)
 	}
 

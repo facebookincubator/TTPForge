@@ -233,3 +233,28 @@ moarawesomestuff`
 
 	assert.Equal(t, correctResult, string(contents))
 }
+
+func TestExecuteNotFound(t *testing.T) {
+	content := `name: delete_function
+edit_file: b.txt 
+edits:
+  - old: not_going_to_find_this
+    new: will_not_be_used`
+
+	fileContentsToEdit := `hello`
+
+	var step blocks.EditStep
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err)
+
+	testFs := afero.NewMemMapFs()
+	afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
+	step.FileSystem = testFs
+
+	err = step.Validate()
+	require.NoError(t, err)
+
+	err = step.Execute(nil)
+	require.Error(t, err, "not finding a search string should result in an error")
+	assert.Equal(t, "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt", err.Error())
+}
