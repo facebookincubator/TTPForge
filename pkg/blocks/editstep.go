@@ -124,7 +124,11 @@ func (s *EditStep) Validate() error {
 
 // Execute runs the EditStep and returns an error if any occur.
 func (s *EditStep) Execute(inputs map[string]string) error {
-	rawContents, err := afero.ReadFile(s.FileSystem, s.FileToEdit)
+	fileSystem := s.FileSystem
+	if fileSystem == nil {
+		fileSystem = afero.NewOsFs()
+	}
+	rawContents, err := afero.ReadFile(fileSystem, s.FileToEdit)
 	if err != nil {
 		return err
 	}
@@ -150,7 +154,7 @@ func (s *EditStep) Execute(inputs map[string]string) error {
 		contents = edit.oldRegexp.ReplaceAllString(contents, edit.New)
 	}
 
-	err = afero.WriteFile(s.FileSystem, s.FileToEdit, []byte(contents), 0644)
+	err = afero.WriteFile(fileSystem, s.FileToEdit, []byte(contents), 0644)
 	if err != nil {
 		return err
 	}
