@@ -1,7 +1,8 @@
+---
 name: edit_step_example
 description: edits a file in various ways
 steps:
-  - name: edit_target_file 
+  - name: edit_target_file
     edit_file: "file-to-edit.txt"
     backup_file: "my-backup.txt"
     edits:
