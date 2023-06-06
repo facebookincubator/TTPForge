@@ -9,7 +9,6 @@ require (
 )
 
 require (
-	bitbucket.org/creachadair/shell v0.0.7 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230424174541-a2e3b023bd29 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
@@ -27,14 +26,12 @@ require (
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/otiai10/copy v1.11.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
-	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.4 // indirect
 	github.com/shoenig/go-m1cpu v0.1.5 // indirect
@@ -52,4 +49,5 @@ require (
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	mvdan.cc/sh/v3 v3.6.0 // indirect
 )
