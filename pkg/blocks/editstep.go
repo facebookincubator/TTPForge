@@ -41,8 +41,10 @@ type EditStep struct {
 	FileToEdit string   `yaml:"edit_file,omitempty"`
 	Edits      []*Edit  `yaml:"edits,omitempty"`
 	FileSystem afero.Fs `yaml:"-,omitempty"`
+	BackupFile string   `yaml:"backup_file,omitempty"`
 }
 
+// UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
 // NewEditStep creates a new EditStep instance with an initialized Act struct.
 func NewEditStep() *EditStep {
 	return &EditStep{
@@ -53,8 +55,9 @@ func NewEditStep() *EditStep {
 }
 
 // GetCleanup returns the cleanup steps for a EditStep.
+// Currently this is always empty because we use backup
+// files instead for this type of step
 func (s *EditStep) GetCleanup() []CleanupAct {
-	// TODO: implement
 	return []CleanupAct{}
 }
 
@@ -140,6 +143,13 @@ func (s *EditStep) Execute(inputs map[string]string) error {
 	}
 
 	contents := string(rawContents)
+
+	if s.BackupFile != "" {
+		err = afero.WriteFile(fileSystem, s.BackupFile, []byte(contents), 0644)
+		if err != nil {
+			return fmt.Errorf("could not write backup file %v: %v", s.BackupFile, err)
+		}
+	}
 
 	// this is inefficient - searches string 2 * num_edits times -
 	// but it's unlikely to be a performance issue in practice. If it is,

@@ -154,6 +154,39 @@ edits:
 	assert.Equal(t, "yolo\none", string(contents))
 }
 
+func TestExecuteBackupFile(t *testing.T) {
+	content := `
+name: valid_edit
+edit_file: a.txt
+backup_file: backup.txt
+edits:
+  - old: foo
+    new: yolo
+  - old: another
+    new: one`
+
+	var step blocks.EditStep
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err)
+
+	testFs := afero.NewMemMapFs()
+	origContents := []byte("foo\nanother")
+	err = afero.WriteFile(testFs, "a.txt", origContents, 0644)
+	require.NoError(t, err)
+	step.FileSystem = testFs
+
+	err = step.Validate()
+	require.NoError(t, err)
+
+	err = step.Execute(nil)
+	require.NoError(t, err)
+
+	backupContents, err := afero.ReadFile(testFs, "backup.txt")
+	require.NoError(t, err)
+
+	assert.Equal(t, string(origContents), string(backupContents))
+}
+
 func TestExecuteMultiline(t *testing.T) {
 	content := `name: delete_function
 edit_file: b.txt

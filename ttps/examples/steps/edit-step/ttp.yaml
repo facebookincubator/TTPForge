@@ -3,6 +3,7 @@ description: edits a file in various ways
 steps:
   - name: edit_target_file 
     edit_file: "file-to-edit.txt"
+    backup_file: "my-backup.txt"
     edits:
       - old: REPLACE_ME
         new: REPLACED_BY_EDIT
