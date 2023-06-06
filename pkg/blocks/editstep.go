@@ -44,7 +44,6 @@ type EditStep struct {
 	BackupFile string   `yaml:"backup_file,omitempty"`
 }
 
-// UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
 // NewEditStep creates a new EditStep instance with an initialized Act struct.
 func NewEditStep() *EditStep {
 	return &EditStep{
