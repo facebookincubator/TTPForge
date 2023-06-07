@@ -54,6 +54,7 @@ const (
 	StepBasic   = "basicStep"
 	StepSubTTP  = "subTTPStep"
 	StepCleanup = "cleanupStep"
+	StepEdit    = "editStep"
 )
 
 // Act represents a single action within a TTP (Tactics, Techniques, and Procedures) step. It contains information

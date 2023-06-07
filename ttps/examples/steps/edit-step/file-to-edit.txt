@@ -1,0 +1,21 @@
+This is an example file.
+
+The TTP will replace the string below:
+
+REPLACE_ME
+
+It will also delete the multi-line string below and replace
+it with a comment:
+
+
+result = await myclass.multi_line_function_call(
+    param1,
+    param2,
+)
+
+Finally, it will comment out the line below using a C-Style /* ... */ comment.
+
+another_multline_function_call(
+    param1,
+    param2,
+)

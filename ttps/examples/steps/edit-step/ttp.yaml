@@ -1,0 +1,16 @@
+---
+name: edit_step_example
+description: edits a file in various ways
+steps:
+  - name: edit_target_file
+    edit_file: "file-to-edit.txt"
+    backup_file: "my-backup.txt"
+    edits:
+      - old: REPLACE_ME
+        new: REPLACED_BY_EDIT
+      - old: (?ms:^result = await myclass\.multi_line_function_call\(.*?\)$)
+        new: "# replaced with comment"
+        regexp: true
+      - old: (?P<fn_call>(?ms:^another_multline_function_call\(.*?\)$))
+        new: "/*${fn_call}*/"
+        regexp: true
