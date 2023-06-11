@@ -1,4 +1,4 @@
-FROM golang:1.20.4
+FROM golang:1.20.5
 
 # Set build-time arguments for user and group IDs
 ARG USER_ID=1000
