@@ -33,7 +33,7 @@ import (
 
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
-	CliInputs      map[string]string
+	CliInputs      []string
 	NoCleanup      bool
 	InventoryPaths []string
 }
