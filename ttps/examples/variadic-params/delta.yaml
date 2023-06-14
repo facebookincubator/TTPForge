@@ -1,0 +1,48 @@
+---
+name: delta
+description: Login with a Meta account that has the delta check triggered.
+steps:
+  - name: "delta"
+    inline: |
+      set -e
+
+      ### Set default headless value if one isn't provided ###
+      headless="{{headless}}"
+      # Set default headless value if one isn't provided
+      if [[ $headless == 'false' ]]; then
+          headless=false
+      else
+          headless=true
+      fi
+
+      keeperRecord="$(echo {{keeperRecord}} | tr -d '\n\t\r')"
+      if [[ "{{keeperRecord}}" == *'{{'* ]]; then
+        keeperRecord=""
+      fi
+
+      user="$(echo {{user}} | tr -d '\n\t\r')"
+      if [[ "{{user}}" == *'{{'* ]]; then
+        user=""
+      fi
+
+      password="$(echo {{password}} | tr -d '\n\t\r')"
+      if [[ "{{password}}" == *'{{'* ]]; then
+        password=""
+      fi
+
+      token="$(echo {{token}} | tr -d '\n\t\r')"
+      if [[ "{{token}}" == *'{{'* ]]; then
+        token=""
+      fi
+
+      if [[ -z "$keeperRecord" ]] && [[ (-z "$user") || (-z "$password") ]]; then
+          echo "Error: Either keeperRecord or both user and password must have a value."
+          exit 1
+      fi
+
+      go run delta.go \
+        --user $user \
+        --password $password \
+        --kr "$keeperRecord" \
+        --token "$token" \
+        --headless=$headless

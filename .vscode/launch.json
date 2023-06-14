@@ -39,6 +39,22 @@
       ]
     },
     {
+      "type": "go",
+      "request": "launch",
+      "name": "Debug params example",
+      "mode": "debug",
+      "program": "${workspaceRoot}/ttps/examples/variadic-params/delta.go",
+      "args": ["--headless=false", "--kr", "WPlgP-G2xlR2B_MV-6XRaA"]
+    },
+    {
+      "type": "go",
+      "request": "launch",
+      "name": "Delta TTP",
+      "mode": "debug",
+      "program": "${workspaceRoot}/ttps/meta-account/brute-force/delta",
+      "args": ["--headless=false", "--keeperRecord", "WPlgP-G2xlR2B_MV-6XRaA"]
+    },
+    {
       "name": "Test Current File",
       "type": "go",
       "request": "launch",
