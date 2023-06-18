@@ -28,46 +28,30 @@ import (
 )
 
 var (
-	deltaCmd = &cobra.Command{
-		Use:   "delta",
-		Short: "Execute login flow for account with delta 2FA triggered",
+	variadicParamsExampleCmd = &cobra.Command{
+		Use:   "variadicParamsExample",
+		Short: "Execute variadic parameters example",
 		Run: func(cmd *cobra.Command, args []string) {
-			// Create TTP log
-			logPath := fmt.Sprintf("%s.log", cmd.Use)
-			if err := logging.InitLog(false, logPath, false, false); err != nil {
-				logging.Logger.Sugar().Errorf("failed to initialize logger: %v", err)
-				cobra.CheckErr(err)
-			}
-
-			logging.Logger.Sugar().Infof(
-				"Executing %s - %s, please wait...",
-				cmd.Use, cmd.Short)
-			fmt.Printf("USER: %s", user)
+			fmt.Printf("User input: %s\n", user)
+			fmt.Printf("Password input: %s\n", password)
 		},
 	}
 
-	ignoreCertErrors bool
-	headless         bool
-	password         string
-	target           string
-	user             string
-	token            string
+	password string
+	user     string
 )
 
 func init() {
-	deltaCmd.Flags().StringVar(&user,
-		"user", "", "Email address for the delta user")
+	variadicParamsExampleCmd.Flags().StringVar(&user,
+		"user", "", "Email address for the variadicParamsExample user")
 
-	deltaCmd.Flags().StringVar(&password,
-		"password", "", "Password for the delta user")
-
-	deltaCmd.Flags().StringVar(&token,
-		"token", "", "Delta user's 2FA token")
+	variadicParamsExampleCmd.Flags().StringVar(&password,
+		"password", "", "Password for the variadicParamsExample user")
 }
 
 func main() {
-	if err := deltaCmd.Execute(); err != nil {
-		logging.Logger.Sugar().Errorf("%s failed to run: %v", deltaCmd.Short, err)
+	if err := variadicParamsExampleCmd.Execute(); err != nil {
+		logging.Logger.Sugar().Errorf("%s failed to run: %v", variadicParamsExampleCmd.Short, err)
 		os.Exit(1)
 	}
 }

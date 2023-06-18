@@ -1,28 +1,21 @@
-# delta.yaml
+# Variadic Parameter Example
 
-Test a Meta account for the Delta 2FA mechanism.
+This example demonstrates how to use variadic parameters.
 
 ## Arguments
 
-- target: target URL (default: <https://auth.meta.com>)
-- ignoreCertErrors: ignore certificate errors (default: false)
-- headless: run the TTP in headless mode (default: true)
-- keeperRecord: record ID of credential in Keeper (required if no user or password provided)
-- user: email address for the user (required if no keeperRecord is present)
-- password: password (required if no keeperRecord is present)
+- user: fake username
+- password: fake password
 
-## Examples
+## Example Usage
 
-Test an account for the delta 2FA gating mechanism using credentials from keeper:
+Run the example with the following command:
 
 ```bash
-KEEPER_RECORD=WPlgP-G2xlR2B_MV-6XRaA # Non 2FA that had no delta at the time of creation - 6/8/2023
-KEEPER_RECORD=r0H-B6_g3PdEfVI4AAKMOw # Account with delta activated
-
 ./ttpforge \
     -c config.yaml \
     -l ttpforge.log \
-    run ttps/examples/variadic-params/delta.yaml \
-    --arg headless=false \
-    --arg keeperRecord=$KEEPER_RECORD
+    run ttps/examples/variadic-params/variadicParameterExample.yaml \
+    --arg user=bob \
+    --arg password=fakepassword123
 ```

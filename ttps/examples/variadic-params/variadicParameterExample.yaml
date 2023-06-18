@@ -8,17 +8,12 @@ steps:
 
       user="$(echo {{user}} | tr -d '\n\t\r')"
       if [[ "{{user}}" == *'{{'* ]]; then
-        user=""
+          user=""
       fi
 
       password="$(echo {{password}} | tr -d '\n\t\r')"
       if [[ "{{password}}" == *'{{'* ]]; then
-        password=""
-      fi
-
-      token="$(echo {{token}} | tr -d '\n\t\r')"
-      if [[ "{{token}}" == *'{{'* ]]; then
-        token=""
+          password=""
       fi
 
       if [[ (-z "$user") || (-z "$password") ]]; then
@@ -26,7 +21,6 @@ steps:
           exit 1
       fi
 
-      go run delta.go \
+      go run variadicParameterExample.go \
         --user $user \
-        --password $password \
-        --token "$token"
+        --password $password
