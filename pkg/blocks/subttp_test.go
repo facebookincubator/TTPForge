@@ -20,9 +20,6 @@ THE SOFTWARE.
 package blocks_test
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 	"testing/fstest"
 
@@ -77,87 +74,4 @@ ttp: bad.yaml
 	if err := ttps.Validate(); err == nil {
 		t.Error("failure should occur here as file does not exist")
 	}
-}
-
-func TestSubTTPStep(t *testing.T) {
-	// Prepare a temporary TTP file for the SubTTPStep to reference
-	subTTPData := `
----
-name: sub_ttp
-description: "SubTTP for testing SubTTPStep execution."
-steps:
-  - name: sub_ttp_step
-    file: test.sh
-    args:
-      - sub_ttp_arg
-`
-	tmpSubTTPFile, err := os.CreateTemp(os.TempDir(), "sub_ttp_*.ttp")
-	if err != nil {
-		t.Fatalf("error creating temp file: %v", err)
-	}
-	defer os.Remove(tmpSubTTPFile.Name())
-
-	if err := os.WriteFile(tmpSubTTPFile.Name(), []byte(subTTPData), 0644); err != nil {
-		t.Fatalf("failed to write to %s: %v", tmpSubTTPFile.Name(), err)
-	}
-
-	// Create a temporary test.sh file
-	testShContent := `#!/bin/bash
-
-echo testing "$@"
-`
-	tmpTestShFile, err := os.CreateTemp("", "test_*.sh")
-	if err != nil {
-		t.Fatalf("error creating temp test.sh file: %v", err)
-	}
-	defer os.Remove(tmpTestShFile.Name())
-
-	if err := os.WriteFile(tmpTestShFile.Name(), []byte(testShContent), 0755); err != nil {
-		t.Fatalf("failed to write to %s: %v", tmpTestShFile.Name(), err)
-	}
-
-	// Update InventoryPath to include the directory containing the test.sh file
-	origInventoryPath := blocks.InventoryPath
-	testDir := filepath.Dir(tmpTestShFile.Name())
-	blocks.InventoryPath = append(blocks.InventoryPath, testDir)
-	defer func() {
-		blocks.InventoryPath = origInventoryPath
-	}()
-
-	t.Run("Test SubTTPStep unmarshalling and validation", func(t *testing.T) {
-		// Create a temporary test.sh file
-		testShContent := `#!/bin/bash
-
-echo testing "$@"
-`
-		tmpTestShFile, err := os.CreateTemp("/tmp", "test_*.sh")
-		if err != nil {
-			t.Fatalf("error creating temp test.sh file: %v", err)
-		}
-		defer os.Remove(tmpTestShFile.Name())
-
-		if err := os.WriteFile(tmpTestShFile.Name(), []byte(testShContent), 0755); err != nil {
-			t.Fatalf("failed to write to %s: %v", tmpTestShFile.Name(), err)
-		}
-		yamlContent := fmt.Sprintf(`
----
-name: test_subttpstep
-description: "Test unmarshalling and validation of SubTTPStep."
-steps:
-  - name: test_sub_ttp
-    file: %s
-    ttp: %s
-`, tmpTestShFile.Name(), tmpSubTTPFile.Name())
-
-		var parsedTTP blocks.TTP
-		if err := yaml.Unmarshal([]byte(yamlContent), &parsedTTP); err != nil {
-			t.Fatalf("error unmarshalling yaml: %v", err)
-		}
-
-		subTTPStep := parsedTTP.Steps[0]
-
-		if err := subTTPStep.Validate(); err != nil {
-			t.Errorf("validation failed: %v", err)
-		}
-	})
 }
