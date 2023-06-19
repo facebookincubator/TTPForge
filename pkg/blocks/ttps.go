@@ -146,7 +146,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
-	for _, stepNode := range steps {
+	for stepIdx, stepNode := range steps {
 		decoded := false
 		// these candidate steps are pointers, so this line
 		// MUST be inside the outer step loop or horrible things will happen
@@ -155,10 +155,19 @@ func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
 		for _, stepType := range stepTypes {
 			err := stepNode.Decode(stepType)
 			if err == nil && !stepType.IsNil() {
+				// Must catch bad steps with ambiguous types, such as:
+				// - name: hello
+				//   file: bar
+				//   ttp: foo
+				//
+				// we can't use KnownFields to solve this without a massive
+				// refactor due to https://github.com/go-yaml/yaml/issues/460
+				if decoded {
+					return fmt.Errorf("Step #%v has ambiguous type", stepIdx+1)
+				}
 				logging.Logger.Sugar().Debugw("decoded step", "step", stepType)
 				t.Steps = append(t.Steps, stepType)
 				decoded = true
-				break
 			}
 		}
 
