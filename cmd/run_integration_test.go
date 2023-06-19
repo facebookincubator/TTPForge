@@ -99,6 +99,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -231,7 +232,7 @@ verbose: false
 	return testDir, testConfigYAMLPath
 }
 
-// Added function to capture command output.
+// Function to capture command output.
 func captureOutput(f func()) string {
 	old := os.Stdout // keep backup of the real stdout
 	r, w, _ := os.Pipe()
@@ -243,7 +244,9 @@ func captureOutput(f func()) string {
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		if _, err := io.Copy(&buf, r); err != nil {
+			log.Fatalf("failed to copy buffer: %v", err)
+		}
 		outC <- buf.String()
 	}()
 
@@ -305,7 +308,9 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 			}
 
 			// Run this to generate go.sum
-			mageutils.Tidy()
+			if err := mageutils.Tidy(); err != nil {
+				t.Fatalf("failed to run go mod tidy: %v", err)
+			}
 
 			// Capture command output and error
 			output := captureOutput(func() {

@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	goutils "github.com/l50/goutils"
+	"github.com/l50/goutils/v2/str"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -218,7 +218,7 @@ func TestFetchEnv(t *testing.T) {
 			sort.Strings(result)
 			sort.Strings(tt.expected)
 
-			if !goutils.StringSlicesEqual(tt.expected, result) {
+			if !str.SlicesEqual(tt.expected, result) {
 				t.Errorf("mismatch in environment variable slice. expected length: %d, got length: %d, expected: %v, got: %v", len(tt.expected), len(result), tt.expected, result)
 			} else {
 				t.Logf("passed: expected length: %d, got length: %d, expected: %v, got: %v", len(tt.expected), len(result), tt.expected, result)
