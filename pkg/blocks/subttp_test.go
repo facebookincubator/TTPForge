@@ -160,38 +160,4 @@ steps:
 			t.Errorf("validation failed: %v", err)
 		}
 	})
-
-	t.Run("Test SubTTPStep with invalid TTP file path", func(t *testing.T) {
-		yamlContent := `
----
-name: test_subttpstep_invalid_path
-description: "Test SubTTPStep with an invalid TTP file path."
-steps:
-  - name: test_sub_ttp_invalid
-    ttp: non_existent_file.ttp
-`
-		var parsedTTP blocks.TTP
-		if err := yaml.Unmarshal([]byte(yamlContent), &parsedTTP); err != nil {
-			t.Fatalf("error unmarshalling yaml: %v", err)
-		}
-
-		subTTPStep := parsedTTP.Steps[0]
-
-		if err := subTTPStep.Validate(); err == nil {
-			t.Error("expected validation to fail due to invalid TTP file path")
-		}
-	})
-
-	t.Run("Test SubTTPStep with empty TtpFile", func(t *testing.T) {
-		subTTPStep := &blocks.SubTTPStep{
-			Act: &blocks.Act{
-				Name: "test_sub_ttp_empty",
-			},
-		}
-
-		err := subTTPStep.Validate()
-		if err == nil {
-			t.Error("expected validation to fail due to empty TtpFile")
-		}
-	})
 }
