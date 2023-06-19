@@ -33,7 +33,7 @@ func init() {
 	logging.ToggleDebug()
 }
 
-func TestUnmarshalAndValidateSubTtp(t *testing.T) {
+func TestExecuteSubTtp(t *testing.T) {
 	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
 			"test.yaml": &fstest.MapFile{
@@ -42,7 +42,7 @@ description: test ttp sub step
 steps:
   - name: testing_sub_ttp
     inline: |
-      ls`),
+      echo victory`),
 			},
 		},
 	}
@@ -57,6 +57,11 @@ ttp: test.yaml`
 
 	if err := step.Validate(); err != nil {
 		t.Error("TTP failed to validate", err)
+	}
+
+	step.Setup(nil, nil)
+	if err := step.Execute(map[string]string{}); err != nil {
+		t.Error("TTP failed to execute", err)
 	}
 }
 
