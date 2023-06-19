@@ -25,6 +25,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/yaml.v3"
 )
@@ -59,10 +60,18 @@ ttp: test.yaml`
 		t.Error("TTP failed to validate", err)
 	}
 
+	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
 	if err := step.Execute(map[string]string{}); err != nil {
 		t.Error("TTP failed to execute", err)
 	}
+
+	// TODO: clean this up after output handling refactor
+	stepOutput := step.GetOutput()
+	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
+	subStepOutput := subStepOutputMap["output"].(string)
+
+	assert.Equal(t, "victory", subStepOutput)
 }
 
 func TestUnmarshalSubTtpInvalid(t *testing.T) {
