@@ -30,8 +30,10 @@ import (
 
 // SubTTPStep represents a step within a parent TTP that references a separate TTP file.
 type SubTTPStep struct {
-	*Act       `yaml:",inline"`
-	TtpFile    string    `yaml:"ttp"`
+	*Act    `yaml:",inline"`
+	TtpFile string            `yaml:"ttp"`
+	Args    map[string]string `yaml:"args"`
+
 	FileSystem fs.StatFS `yaml:"-,omitempty"`
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
@@ -53,7 +55,8 @@ func (s *SubTTPStep) GetCleanup() []CleanupAct {
 func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	type Subtmpl struct {
 		Act     `yaml:",inline"`
-		TtpFile string `yaml:"ttp"`
+		TtpFile string            `yaml:"ttp"`
+		Args    map[string]string `yaml:"args"`
 	}
 	var substep Subtmpl
 
@@ -64,6 +67,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 
 	s.Act = &substep.Act
 	s.TtpFile = substep.TtpFile
+	s.Args = substep.Args
 
 	return nil
 }
@@ -92,16 +96,12 @@ func (s *SubTTPStep) Execute(inputs map[string]string) error {
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
-	for key, val := range s.ttp.InputMap {
-		inputs[key] = val
-	}
-
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
 		stepCopy.Setup(s.Environment, availableSteps)
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
-		if err := stepCopy.Execute(inputs); err != nil {
+		if err := stepCopy.Execute(s.Args); err != nil {
 			return err
 		}
 
