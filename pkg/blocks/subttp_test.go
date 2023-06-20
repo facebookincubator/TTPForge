@@ -74,6 +74,48 @@ ttp: test.yaml`
 	assert.Equal(t, "victory", subStepOutput)
 }
 
+func TestExecuteSubTtpWithArgs(t *testing.T) {
+	step := blocks.SubTTPStep{
+		FileSystem: fstest.MapFS{
+			"test.yaml": &fstest.MapFile{
+				Data: []byte(`name: test
+description: test ttp sub step
+steps:
+  - name: testing_sub_ttp
+    inline: |
+      echo {{arg_number_one}} {{arg_number_two}}`),
+			},
+		},
+	}
+
+	content := `name: testing
+ttp: test.yaml
+args:
+  arg_number_one: hello
+  arg_number_two: world`
+
+	if err := yaml.Unmarshal([]byte(content), &step); err != nil {
+		t.Error("invalid sub ttp step format", step)
+	}
+
+	if err := step.Validate(); err != nil {
+		t.Error("TTP failed to validate", err)
+	}
+
+	// TODO: remove Setup() call after upcoming ExecutionContext refactor
+	step.Setup(nil, nil)
+	if err := step.Execute(map[string]string{}); err != nil {
+		t.Error("TTP failed to execute", err)
+	}
+
+	// TODO: clean this up after output handling refactor
+	stepOutput := step.GetOutput()
+	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
+	subStepOutput := subStepOutputMap["output"].(string)
+
+	assert.Equal(t, "hello world", subStepOutput)
+}
+
 func TestUnmarshalSubTtpInvalid(t *testing.T) {
 	var ttps blocks.SubTTPStep
 	content := `
