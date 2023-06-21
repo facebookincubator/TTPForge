@@ -26,6 +26,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -37,7 +38,7 @@ func init() {
 func TestExecuteSubTtp(t *testing.T) {
 	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
-			"test.yaml": &fstest.MapFile{
+			"ttps/test.yaml": &fstest.MapFile{
 				Data: []byte(`name: test
 description: test ttp sub step
 steps:
@@ -52,13 +53,11 @@ steps:
 name: testing
 ttp: test.yaml`
 
-	if err := yaml.Unmarshal([]byte(content), &step); err != nil {
-		t.Error("invalid sub ttp step format", step)
-	}
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err, "invalid sub ttp step format")
 
-	if err := step.Validate(); err != nil {
-		t.Error("TTP failed to validate", err)
-	}
+	err = step.Validate()
+	require.NoError(t, err, "TTP failed to validate")
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
