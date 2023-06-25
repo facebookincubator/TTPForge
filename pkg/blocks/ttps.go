@@ -33,9 +33,8 @@ import (
 
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
-	CliInputs      []string
-	NoCleanup      bool
-	InventoryPaths []string
+	CliInputs []string
+	NoCleanup bool
 }
 
 // TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.

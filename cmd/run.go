@@ -40,7 +40,6 @@ func RunTTPCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			relativeTTPPath := args[0]
-			ttpCfg.InventoryPaths = Conf.InventoryPath
 			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg); err != nil {
 				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 			}

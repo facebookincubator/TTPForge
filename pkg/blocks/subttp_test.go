@@ -38,7 +38,8 @@ func init() {
 func TestExecuteSubTtp(t *testing.T) {
 	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
-			"ttps/test.yaml": &fstest.MapFile{
+			// "ttps/test.yaml": &fstest.MapFile{
+			"test.yaml": &fstest.MapFile{
 				Data: []byte(`name: test
 description: test ttp sub step
 steps:
