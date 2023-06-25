@@ -97,8 +97,8 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 }
 
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup(execCfg TTPExecutionContext) error {
-	return b.Execute(execCfg)
+func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) error {
+	return b.Execute(execCtx)
 }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
@@ -189,7 +189,7 @@ func (b *BasicStep) Validate() error {
 }
 
 // Execute runs the BasicStep and returns an error if any occur.
-func (b *BasicStep) Execute(execCfg TTPExecutionContext) (err error) {
+func (b *BasicStep) Execute(execCtx TTPExecutionContext) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 	logging.Logger.Sugar().Debugw("available data", "outputs", b.output)
@@ -197,7 +197,7 @@ func (b *BasicStep) Execute(execCfg TTPExecutionContext) (err error) {
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if b.Inline != "" {
-		if err := b.executeBashStdin(ctx, execCfg.Args); err != nil {
+		if err := b.executeBashStdin(ctx, execCtx.Args); err != nil {
 			logging.Logger.Sugar().Error(zap.Error(err))
 			return err
 		}

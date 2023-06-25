@@ -81,7 +81,7 @@ func NewAct() *Act {
 
 // CleanupAct is required for anything that requires a cleanup step.
 type CleanupAct interface {
-	Cleanup(execCfg TTPExecutionContext) error
+	Cleanup(execCtx TTPExecutionContext) error
 	CleanupName() string
 	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
