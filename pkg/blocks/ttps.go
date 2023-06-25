@@ -31,8 +31,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TTPExecutionConfig - pass this into RunSteps to control TTP execution
-type TTPExecutionConfig struct {
+// TTPExecutionContext - pass this into RunSteps to control TTP execution
+type TTPExecutionContext struct {
 	CliInputs []string
 	NoCleanup bool
 	Args      map[string]string
@@ -248,7 +248,7 @@ func (t *TTP) ValidateSteps() error {
 	return nil
 }
 
-func (t *TTP) executeSteps(execCfg TTPExecutionConfig) (map[string]Step, []CleanupAct, error) {
+func (t *TTP) executeSteps(execCfg TTPExecutionContext) (map[string]Step, []CleanupAct, error) {
 	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
 	availableSteps := make(map[string]Step)
 	var cleanup []CleanupAct
@@ -279,7 +279,7 @@ func (t *TTP) executeSteps(execCfg TTPExecutionConfig) (map[string]Step, []Clean
 // Returns:
 //
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(c TTPExecutionConfig) error {
+func (t *TTP) RunSteps(c TTPExecutionContext) error {
 	if err := t.setWorkingDirectory(); err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 
 	t.fetchEnv()
 
-	execCfg := TTPExecutionConfig{
+	execCfg := TTPExecutionContext{
 		Args: t.InputMap,
 	}
 
@@ -322,7 +322,7 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 	return nil
 }
 
-func (t *TTP) executeCleanupSteps(execCfg TTPExecutionConfig, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+func (t *TTP) executeCleanupSteps(execCfg TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
 	for _, step := range cleanupSteps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
@@ -346,7 +346,7 @@ func (t *TTP) executeCleanupSteps(execCfg TTPExecutionConfig, availableSteps map
 // Returns:
 //
 // error: An error if any of the cleanup steps fail to execute.
-func (t *TTP) Cleanup(execCfg TTPExecutionConfig, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+func (t *TTP) Cleanup(execCfg TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
 	err := t.executeCleanupSteps(execCfg, availableSteps, cleanupSteps)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)

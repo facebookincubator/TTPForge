@@ -57,7 +57,7 @@ import (
 // }
 //
 // log.Printf("TTP %s executed successfully\n", ttp.Name)
-func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, error) {
+func ExecuteYAML(yamlFile string, c blocks.TTPExecutionContext) (*blocks.TTP, error) {
 
 	// see if the relative path exists in current dir
 	var absPathToTTP string
