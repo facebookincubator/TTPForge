@@ -125,7 +125,7 @@ func (s *EditStep) Validate() error {
 }
 
 // Execute runs the EditStep and returns an error if any occur.
-func (s *EditStep) Execute(inputs map[string]string) error {
+func (s *EditStep) Execute(execCfg TTPExecutionConfig) error {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
 	if fileSystem == nil {

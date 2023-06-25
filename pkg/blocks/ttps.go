@@ -35,6 +35,7 @@ import (
 type TTPExecutionConfig struct {
 	CliInputs []string
 	NoCleanup bool
+	Args      map[string]string
 }
 
 // TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.
@@ -247,7 +248,7 @@ func (t *TTP) ValidateSteps() error {
 	return nil
 }
 
-func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
+func (t *TTP) executeSteps(execCfg TTPExecutionConfig) (map[string]Step, []CleanupAct, error) {
 	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
 	availableSteps := make(map[string]Step)
 	var cleanup []CleanupAct
@@ -257,7 +258,7 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Execute(t.InputMap); err != nil {
+		if err := stepCopy.Execute(execCfg); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			return nil, nil, err
 		}
@@ -294,7 +295,11 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 
 	t.fetchEnv()
 
-	availableSteps, cleanup, err := t.executeSteps()
+	execCfg := TTPExecutionConfig{
+		Args: t.InputMap,
+	}
+
+	availableSteps, cleanup, err := t.executeSteps(execCfg)
 	if err != nil {
 		return err
 	}
@@ -304,7 +309,7 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 	if !c.NoCleanup {
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
-			if err := t.Cleanup(availableSteps, cleanup); err != nil {
+			if err := t.Cleanup(execCfg, availableSteps, cleanup); err != nil {
 				logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
 				return err
 			}
@@ -317,13 +322,13 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 	return nil
 }
 
-func (t *TTP) executeCleanupSteps(availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+func (t *TTP) executeCleanupSteps(execCfg TTPExecutionConfig, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
 	for _, step := range cleanupSteps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Cleanup(t.InputMap); err != nil {
+		if err := stepCopy.Cleanup(execCfg); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}
@@ -341,8 +346,8 @@ func (t *TTP) executeCleanupSteps(availableSteps map[string]Step, cleanupSteps [
 // Returns:
 //
 // error: An error if any of the cleanup steps fail to execute.
-func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
-	err := t.executeCleanupSteps(availableSteps, cleanupSteps)
+func (t *TTP) Cleanup(execCfg TTPExecutionConfig, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+	err := t.executeCleanupSteps(execCfg, availableSteps, cleanupSteps)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
 		return err

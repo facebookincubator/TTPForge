@@ -117,8 +117,8 @@ func (f *FileStep) GetType() StepType {
 
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by f.CleanupStep.Cleanup.
-func (f *FileStep) Cleanup(inputs map[string]string) error {
-	return f.Execute(inputs)
+func (f *FileStep) Cleanup(execCfg TTPExecutionConfig) error {
+	return f.Execute(execCfg)
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -166,7 +166,7 @@ func (f *FileStep) IsNil() bool {
 }
 
 // Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(inputs map[string]string) (err error) {
+func (f *FileStep) Execute(execCfg TTPExecutionConfig) (err error) {
 	logging.Logger.Sugar().Debugw("available data", "outputs", f.output)
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
