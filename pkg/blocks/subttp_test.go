@@ -57,12 +57,13 @@ ttp: test.yaml`
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err, "invalid sub ttp step format")
 
-	err = step.Validate()
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	err = step.Execute(blocks.TTPExecutionContext{})
+	err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
@@ -97,13 +98,14 @@ args:
 		t.Error("invalid sub ttp step format", step)
 	}
 
-	if err := step.Validate(); err != nil {
+	var execCtx blocks.TTPExecutionContext
+	if err := step.Validate(execCtx); err != nil {
 		t.Error("TTP failed to validate", err)
 	}
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	err := step.Execute(blocks.TTPExecutionContext{})
+	err := step.Execute(execCtx)
 	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
@@ -124,8 +126,8 @@ ttp: bad.yaml
 	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
 		t.Error("unmarshalling will not check for existence quite yet, should not fail here")
 	}
-
-	if err := ttps.Validate(); err == nil {
+	var execCtx blocks.TTPExecutionContext
+	if err := ttps.Validate(execCtx); err == nil {
 		t.Error("failure should occur here as file does not exist")
 	}
 }

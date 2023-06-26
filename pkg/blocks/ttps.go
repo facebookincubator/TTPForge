@@ -232,14 +232,14 @@ func (t *TTP) setWorkingDirectory() error {
 // Returns:
 //
 // error: An error if any step validation fails, otherwise nil.
-func (t *TTP) ValidateSteps() error {
+func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 	logging.Logger.Sugar().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
-		if err := stepCopy.Validate(); err != nil {
+		if err := stepCopy.Validate(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
 		}
@@ -279,7 +279,7 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 // Returns:
 //
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(c TTPExecutionContext) error {
+func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 	if err := t.setWorkingDirectory(); err != nil {
 		return err
 	}
@@ -289,15 +289,15 @@ func (t *TTP) RunSteps(c TTPExecutionContext) error {
 		return err
 	}
 
-	if err := t.ValidateSteps(); err != nil {
+	if err := t.ValidateSteps(execCtx); err != nil {
 		return err
 	}
 
 	t.fetchEnv()
 
-	execCtx := TTPExecutionContext{
-		Args: t.InputMap,
-	}
+	// TODO: move this to a better spot
+	// InputMap should go away entirely
+	execCtx.Args = t.InputMap
 
 	availableSteps, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
@@ -306,7 +306,7 @@ func (t *TTP) RunSteps(c TTPExecutionContext) error {
 
 	logging.Logger.Sugar().Info("[*] Completed TTP")
 
-	if !c.NoCleanup {
+	if !execCtx.NoCleanup {
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
 			if err := t.Cleanup(execCtx, availableSteps, cleanup); err != nil {

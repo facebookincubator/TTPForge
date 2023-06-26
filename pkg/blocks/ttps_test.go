@@ -251,7 +251,7 @@ steps:
 				assert.NoError(t, err)
 			}
 
-			err = ttp.ValidateSteps()
+			err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {

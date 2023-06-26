@@ -83,10 +83,6 @@ func (s *SubTTPStep) UnmarshalSubTTP() error {
 
 	s.TtpFile = fullpath
 
-	if err := s.loadSubTTP(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -130,7 +126,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
-func (s *SubTTPStep) loadSubTTP() error {
+func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 	ttps, err := LoadTTP(s.TtpFile, s.FileSystem)
 	if err != nil {
 		return err
@@ -141,7 +137,7 @@ func (s *SubTTPStep) loadSubTTP() error {
 	logging.Logger.Sugar().Infof("[*] Validating Sub TTP: %s", s.Name)
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		if err := stepCopy.Validate(); err != nil {
+		if err := stepCopy.Validate(execCtx); err != nil {
 			return err
 		}
 	}
@@ -188,17 +184,22 @@ func (s *SubTTPStep) IsNil() bool {
 // 3. The TTP file path is not empty.
 // 4. The steps within the TTP file do not contain any nested SubTTPSteps.
 // If any of these conditions are not met, an error is returned.
-func (s *SubTTPStep) Validate() error {
+func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
 	if err := s.Act.Validate(); err != nil {
 		return err
 	}
 
+	// TODO: can probably merge UnmarshalSubTTP into this
 	if err := s.UnmarshalSubTTP(); err != nil {
 		return err
 	}
 
 	if s.TtpFile == "" {
 		return errors.New("a TTP file path is required and must not be empty")
+	}
+
+	if err := s.loadSubTTP(execCtx); err != nil {
+		return err
 	}
 
 	// Check if steps contain any SubTTPSteps. If they do, return an error.

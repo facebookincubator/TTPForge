@@ -116,7 +116,7 @@ func (s *EditStep) check() error {
 }
 
 // Validate validates the EditStep, checking for the necessary attributes and dependencies.
-func (s *EditStep) Validate() error {
+func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	err := s.check()
 	if err != nil {
 		return fmt.Errorf("[!] invalid editstep: [%s] %w", s.Name, err)

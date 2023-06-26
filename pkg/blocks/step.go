@@ -87,7 +87,7 @@ type CleanupAct interface {
 	SetDir(dir string)
 	IsNil() bool
 	Success() bool
-	Validate() error
+	Validate(execCtx TTPExecutionContext) error
 }
 
 // Step is an interface that represents a TTP step. Types that implement this interface must
@@ -102,10 +102,10 @@ type Step interface {
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
 	// Execute will need to take care of the condition checks/etc...
-	Execute(cfg TTPExecutionContext) error
+	Execute(execCtx TTPExecutionContext) error
 	IsNil() bool
 	ExplainInvalid() error
-	Validate() error
+	Validate(execCtx TTPExecutionContext) error
 	FetchArgs(args []string) []string
 	GetOutput() map[string]any
 	SearchOutput(arg string) string

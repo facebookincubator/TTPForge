@@ -225,7 +225,7 @@ func (f *FileStep) fileExec() error {
 // Returns:
 //
 // error: An error if any validation checks fail.
-func (f *FileStep) Validate() error {
+func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	if err := f.Act.Validate(); err != nil {
 		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
@@ -267,7 +267,7 @@ func (f *FileStep) Validate() error {
 	}
 
 	if f.CleanupStep != nil {
-		if err := f.CleanupStep.Validate(); err != nil {
+		if err := f.CleanupStep.Validate(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
