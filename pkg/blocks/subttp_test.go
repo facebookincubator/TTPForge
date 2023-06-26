@@ -62,9 +62,8 @@ ttp: test.yaml`
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	if err := step.Execute(blocks.TTPExecutionContext{}); err != nil {
-		t.Error("TTP failed to execute", err)
-	}
+	err = step.Execute(blocks.TTPExecutionContext{})
+	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
 	stepOutput := step.GetOutput()
@@ -104,9 +103,8 @@ args:
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	if err := step.Execute(blocks.TTPExecutionContext{}); err != nil {
-		t.Error("TTP failed to execute", err)
-	}
+	err := step.Execute(blocks.TTPExecutionContext{})
+	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
 	stepOutput := step.GetOutput()
