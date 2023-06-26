@@ -35,13 +35,12 @@ func init() {
 	logging.ToggleDebug()
 }
 
-func TestExecuteSubTtp(t *testing.T) {
+func TestExecuteSubTtpSearchPath(t *testing.T) {
 	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
 			"ttps/test.yaml": &fstest.MapFile{
-				// "test.yaml": &fstest.MapFile{
 				Data: []byte(`name: test
-description: test ttp sub step
+description: test sub ttp in search path
 steps:
   - name: testing_sub_ttp
     inline: |
@@ -74,6 +73,44 @@ ttp: test.yaml`
 	subStepOutput := subStepOutputMap["output"].(string)
 
 	assert.Equal(t, "victory", subStepOutput)
+}
+
+func TestExecuteSubTtpCurrentDir(t *testing.T) {
+	step := blocks.SubTTPStep{
+		FileSystem: fstest.MapFS{
+			"anotherTest.yaml": &fstest.MapFile{
+				Data: []byte(`name: test
+description: test sub ttp in current dir
+steps:
+  - name: testing_sub_ttp
+    inline: |
+      echo in_current_dir`),
+			},
+		},
+	}
+
+	content := `
+name: testing
+ttp: anotherTest.yaml`
+
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err, "invalid sub ttp step format")
+
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
+	require.NoError(t, err, "TTP failed to validate")
+
+	// TODO: remove Setup() call after upcoming ExecutionContext refactor
+	step.Setup(nil, nil)
+	err = step.Execute(execCtx)
+	require.NoError(t, err)
+
+	// TODO: clean this up after output handling refactor
+	stepOutput := step.GetOutput()
+	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
+	subStepOutput := subStepOutputMap["output"].(string)
+
+	assert.Equal(t, "in_current_dir", subStepOutput)
 }
 
 func TestExecuteSubTtpWithArgs(t *testing.T) {
