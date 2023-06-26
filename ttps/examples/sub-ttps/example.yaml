@@ -1,0 +1,10 @@
+---
+name: sub_ttp_example
+description: run several subTTPs
+steps:
+  - name: first_sub_ttp
+    ttp: examples/sub-ttps/my-sub-ttps/ttp1.yaml
+  - name: second_sub_ttp
+    ttp: examples/sub-ttps/my-sub-ttps/ttp2.yaml
+    args:
+      arg1: testing

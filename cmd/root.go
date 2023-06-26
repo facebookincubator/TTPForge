@@ -21,6 +21,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -34,13 +35,15 @@ import (
 
 // Config maintains variables used throughout the TTPForge.
 type Config struct {
-	Verbose       bool     `mapstructure:"verbose"`
-	Logfile       string   `mapstructure:"logfile"`
-	NoColor       bool     `mapstructure:"nocolor"`
-	InventoryPath []string `mapstructure:"inventory"`
-	StackTrace    bool     `mapstructure:"stacktrace"`
-	cfgFile       string
-	saveConfig    string
+	Verbose           bool     `mapstructure:"verbose"`
+	Logfile           string   `mapstructure:"logfile"`
+	NoColor           bool     `mapstructure:"nocolor"`
+	InventoryPath     []string `mapstructure:"inventory"`
+	StackTrace        bool     `mapstructure:"stacktrace"`
+	SubTTPSearchPaths []string `mapstructure:"sub_ttp_search_paths"`
+
+	cfgFile    string
+	saveConfig string
 }
 
 var (
@@ -168,7 +171,20 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	err := logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose, Conf.StackTrace)
+	// You should be able to write repo-relative paths
+	// in sub_ttp_search_paths and have them expanded here
+	confAbsPath, err := filepath.Abs(viper.ConfigFileUsed())
+	cobra.CheckErr(err)
+	confDir := filepath.Dir(confAbsPath)
+	if len(Conf.SubTTPSearchPaths) > 0 {
+		for idx, searchPath := range Conf.SubTTPSearchPaths {
+			if !filepath.IsAbs(searchPath) {
+				Conf.SubTTPSearchPaths[idx] = filepath.Join(confDir, searchPath)
+			}
+		}
+	}
+
+	err = logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose, Conf.StackTrace)
 	cobra.CheckErr(err)
 	Logger = logging.Logger
 }
