@@ -33,9 +33,10 @@ import (
 
 // TTPExecutionContext - pass this into RunSteps to control TTP execution
 type TTPExecutionContext struct {
-	CliInputs []string
-	NoCleanup bool
-	Args      map[string]string
+	CliInputs         []string
+	NoCleanup         bool
+	Args              map[string]string
+	SubTTPSearchPaths []string
 }
 
 // TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.

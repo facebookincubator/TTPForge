@@ -38,8 +38,8 @@ func init() {
 func TestExecuteSubTtp(t *testing.T) {
 	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
-			// "ttps/test.yaml": &fstest.MapFile{
-			"test.yaml": &fstest.MapFile{
+			"ttps/test.yaml": &fstest.MapFile{
+				// "test.yaml": &fstest.MapFile{
 				Data: []byte(`name: test
 description: test ttp sub step
 steps:
@@ -57,7 +57,9 @@ ttp: test.yaml`
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err, "invalid sub ttp step format")
 
-	var execCtx blocks.TTPExecutionContext
+	execCtx := blocks.TTPExecutionContext{
+		SubTTPSearchPaths: []string{"ttps"},
+	}
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 

@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
@@ -72,20 +74,6 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-// UnmarshalSubTTP loads a TTP file associated with a SubTTPStep
-// and stores it in the instance.
-func (s *SubTTPStep) UnmarshalSubTTP() error {
-	logging.Logger.Sugar().Debugw("parameters used to grab file", "filename", s.TtpFile, "workdir", s.WorkDir)
-	fullpath, err := FindFilePath(s.TtpFile, s.WorkDir, s.FileSystem)
-	if err != nil {
-		return err
-	}
-
-	s.TtpFile = fullpath
-
-	return nil
-}
-
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
@@ -127,7 +115,35 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
-	ttps, err := LoadTTP(s.TtpFile, s.FileSystem)
+
+	// search for the referenced TTP in the configured search paths
+	// and the current directory
+	augmentedSearchPaths := append([]string{"."}, execCtx.SubTTPSearchPaths...)
+	var fullPath string
+	for _, searchPath := range augmentedSearchPaths {
+		fullPath = filepath.Join(searchPath, s.TtpFile)
+
+		var err error
+		if s.FileSystem != nil {
+			_, err = s.FileSystem.Stat(fullPath)
+		} else {
+			_, err = os.Stat(fullPath)
+		}
+
+		if err == nil {
+			// found
+			break
+		} else if errors.Is(err, os.ErrNotExist) {
+			continue
+		} else {
+			return fmt.Errorf("failed to check existence of file %v: %v", fullPath, err)
+		}
+	}
+	if fullPath == "" {
+		return fmt.Errorf("could not find TTP file in any configured search paths: %v", s.TtpFile)
+	}
+
+	ttps, err := LoadTTP(fullPath, s.FileSystem)
 	if err != nil {
 		return err
 	}
@@ -186,11 +202,6 @@ func (s *SubTTPStep) IsNil() bool {
 // If any of these conditions are not met, an error is returned.
 func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
 	if err := s.Act.Validate(); err != nil {
-		return err
-	}
-
-	// TODO: can probably merge UnmarshalSubTTP into this
-	if err := s.UnmarshalSubTTP(); err != nil {
 		return err
 	}
 

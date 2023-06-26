@@ -63,12 +63,21 @@ func LoadTTP(ttpFilePath string, system fs.StatFS) (*TTP, error) {
 	if err != nil {
 		return nil, err
 	}
-	absPath, err := filepath.Abs(ttpFilePath)
-	if err != nil {
-		return nil, err
-	}
-	ttp.WorkDir = filepath.Dir(absPath)
 
+	// embedded fs has no notion of workdirs
+	if system == nil {
+		absPath, err := filepath.Abs(ttpFilePath)
+		if err != nil {
+			return nil, err
+		}
+		ttp.WorkDir = filepath.Dir(absPath)
+	} else {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		ttp.WorkDir = wd
+	}
 	// TODO: refactor directory handling - this is in-elegant
 	// but has less bugs than previous way
 	for _, step := range ttp.Steps {
