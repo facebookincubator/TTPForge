@@ -163,7 +163,7 @@ func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
 				// we can't use KnownFields to solve this without a massive
 				// refactor due to https://github.com/go-yaml/yaml/issues/460
 				if decoded {
-					return fmt.Errorf("Step #%v has ambiguous type", stepIdx+1)
+					return fmt.Errorf("step #%v has ambiguous type", stepIdx+1)
 				}
 				logging.Logger.Sugar().Debugw("decoded step", "step", stepType)
 				t.Steps = append(t.Steps, stepType)
