@@ -143,10 +143,10 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Inputs = tmpl.Inputs
 	t.InputMap = make(map[string]string)
 
-	return t.decodeAndValidateSteps(tmpl.Steps)
+	return t.decodeSteps(tmpl.Steps)
 }
 
-func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
+func (t *TTP) decodeSteps(steps []yaml.Node) error {
 	for stepIdx, stepNode := range steps {
 		decoded := false
 		// these candidate steps are pointers, so this line
