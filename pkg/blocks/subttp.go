@@ -130,7 +130,6 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 			_, err = os.Stat(fullPath)
 		}
 
-		//nolint:gocritic,ifElseChain
 		if err == nil {
 			// found
 			break
