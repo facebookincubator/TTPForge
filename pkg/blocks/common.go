@@ -33,9 +33,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// InventoryPath is a list of paths to search when checking for file existence.
-var InventoryPath []string
-
 // FetchAbs returns the absolute path of a file given its path and the working directory. It handles cases where the path starts with "~/",
 // is an absolute path, or is a relative path from the working directory. It logs any errors and returns them.
 //
@@ -141,20 +138,6 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 	if _, err := os.Stat(absPath); !errors.Is(err, fs.ErrNotExist) {
 		logging.Logger.Sugar().Debugw("File found in absolute path", "absPath", absPath)
 		return absPath, nil
-	}
-
-	// If the path is not found, search for the file in the InventoryPath list
-	for _, dir := range InventoryPath {
-		inventoryPath, err := FetchAbs(path, dir)
-		if err != nil {
-			logging.Logger.Sugar().Errorw("failed to fetch absolute path in inventory", "path", path, "dir", dir, zap.Error(err))
-			return "", err
-		}
-
-		if _, err := os.Stat(inventoryPath); !errors.Is(err, fs.ErrNotExist) {
-			logging.Logger.Sugar().Debugw("File found in inventory path", "inventoryPath", inventoryPath)
-			return inventoryPath, nil
-		}
 	}
 
 	// If the file is not found in any of the locations, return an error

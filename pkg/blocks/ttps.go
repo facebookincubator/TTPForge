@@ -31,11 +31,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TTPExecutionConfig - pass this into RunSteps to control TTP execution
-type TTPExecutionConfig struct {
+// TTPExecutionContext - pass this into RunSteps to control TTP execution
+type TTPExecutionContext struct {
 	CliInputs      []string
 	NoCleanup      bool
-	InventoryPaths []string
+	Args           map[string]string
+	TTPSearchPaths []string
 }
 
 // TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.
@@ -142,10 +143,10 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Inputs = tmpl.Inputs
 	t.InputMap = make(map[string]string)
 
-	return t.decodeAndValidateSteps(tmpl.Steps)
+	return t.decodeSteps(tmpl.Steps)
 }
 
-func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
+func (t *TTP) decodeSteps(steps []yaml.Node) error {
 	for stepIdx, stepNode := range steps {
 		decoded := false
 		// these candidate steps are pointers, so this line
@@ -163,7 +164,7 @@ func (t *TTP) decodeAndValidateSteps(steps []yaml.Node) error {
 				// we can't use KnownFields to solve this without a massive
 				// refactor due to https://github.com/go-yaml/yaml/issues/460
 				if decoded {
-					return fmt.Errorf("Step #%v has ambiguous type", stepIdx+1)
+					return fmt.Errorf("step #%v has ambiguous type", stepIdx+1)
 				}
 				logging.Logger.Sugar().Debugw("decoded step", "step", stepType)
 				t.Steps = append(t.Steps, stepType)
@@ -232,14 +233,14 @@ func (t *TTP) setWorkingDirectory() error {
 // Returns:
 //
 // error: An error if any step validation fails, otherwise nil.
-func (t *TTP) ValidateSteps() error {
+func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 	logging.Logger.Sugar().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
-		if err := stepCopy.Validate(); err != nil {
+		if err := stepCopy.Validate(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
 		}
@@ -248,7 +249,7 @@ func (t *TTP) ValidateSteps() error {
 	return nil
 }
 
-func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
+func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []CleanupAct, error) {
 	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
 	availableSteps := make(map[string]Step)
 	var cleanup []CleanupAct
@@ -258,7 +259,7 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Execute(t.InputMap); err != nil {
+		if err := stepCopy.Execute(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			return nil, nil, err
 		}
@@ -279,7 +280,7 @@ func (t *TTP) executeSteps() (map[string]Step, []CleanupAct, error) {
 // Returns:
 //
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(c TTPExecutionConfig) error {
+func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 	if err := t.setWorkingDirectory(); err != nil {
 		return err
 	}
@@ -289,23 +290,27 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 		return err
 	}
 
-	if err := t.ValidateSteps(); err != nil {
+	if err := t.ValidateSteps(execCtx); err != nil {
 		return err
 	}
 
 	t.fetchEnv()
 
-	availableSteps, cleanup, err := t.executeSteps()
+	// TODO: move this to a better spot
+	// InputMap should go away entirely
+	execCtx.Args = t.InputMap
+
+	availableSteps, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
 		return err
 	}
 
 	logging.Logger.Sugar().Info("[*] Completed TTP")
 
-	if !c.NoCleanup {
+	if !execCtx.NoCleanup {
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
-			if err := t.Cleanup(availableSteps, cleanup); err != nil {
+			if err := t.Cleanup(execCtx, availableSteps, cleanup); err != nil {
 				logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
 				return err
 			}
@@ -318,13 +323,13 @@ func (t *TTP) RunSteps(c TTPExecutionConfig) error {
 	return nil
 }
 
-func (t *TTP) executeCleanupSteps(availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
 	for _, step := range cleanupSteps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Cleanup(t.InputMap); err != nil {
+		if err := stepCopy.Cleanup(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}
@@ -342,8 +347,8 @@ func (t *TTP) executeCleanupSteps(availableSteps map[string]Step, cleanupSteps [
 // Returns:
 //
 // error: An error if any of the cleanup steps fail to execute.
-func (t *TTP) Cleanup(availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
-	err := t.executeCleanupSteps(availableSteps, cleanupSteps)
+func (t *TTP) Cleanup(execCtx TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+	err := t.executeCleanupSteps(execCtx, availableSteps, cleanupSteps)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
 		return err

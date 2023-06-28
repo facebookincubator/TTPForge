@@ -45,7 +45,7 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps()
+	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
 	require.NoError(t, err)
 }
 
@@ -66,7 +66,7 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps()
+	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
 	require.Error(t, err)
 
 	assert.Equal(t, "[!] invalid editstep: [missing_new] edit #2 is missing 'new:'", err.Error())
@@ -89,7 +89,7 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps()
+	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
 	require.Error(t, err)
 
 	assert.Equal(t, "[!] invalid editstep: [missing_old] edit #1 is missing 'old:'", err.Error())
@@ -119,7 +119,7 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps()
+	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
 	assert.Equal(t, "[!] invalid editstep: [no_edits] no edits specified", err.Error())
 }
 
@@ -142,10 +142,11 @@ edits:
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	err = step.Validate()
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(nil)
+	err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	contents, err := afero.ReadFile(testFs, "a.txt")
@@ -175,10 +176,11 @@ edits:
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	err = step.Validate()
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(nil)
+	err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	backupContents, err := afero.ReadFile(testFs, "backup.txt")
@@ -214,11 +216,11 @@ moarawesomestuff`
 	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
 	require.NoError(t, err)
 	step.FileSystem = testFs
-
-	err = step.Validate()
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(nil)
+	err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	contents, err := afero.ReadFile(testFs, "b.txt")
@@ -258,10 +260,11 @@ moarawesomestuff`
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	err = step.Validate()
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(nil)
+	err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	contents, err := afero.ReadFile(testFs, "b.txt")
@@ -288,10 +291,11 @@ edits:
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	err = step.Validate()
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(nil)
+	err = step.Execute(blocks.TTPExecutionContext{})
 	require.Error(t, err, "not finding a search string should result in an error")
 	assert.Equal(t, "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt", err.Error())
 }

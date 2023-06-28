@@ -97,8 +97,8 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 }
 
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup(inputs map[string]string) error {
-	return b.Execute(inputs)
+func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) error {
+	return b.Execute(execCtx)
 }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
@@ -144,7 +144,7 @@ func (b *BasicStep) IsNil() bool {
 }
 
 // Validate validates the BasicStep, checking for the necessary attributes and dependencies.
-func (b *BasicStep) Validate() error {
+func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	// Validate Act
 	if err := b.Act.Validate(); err != nil {
 		logging.Logger.Sugar().Error(zap.Error(err))
@@ -177,7 +177,7 @@ func (b *BasicStep) Validate() error {
 
 	// Validate CleanupStep if it is not nil
 	if b.CleanupStep != nil {
-		if err := b.CleanupStep.Validate(); err != nil {
+		if err := b.CleanupStep.Validate(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
@@ -189,7 +189,7 @@ func (b *BasicStep) Validate() error {
 }
 
 // Execute runs the BasicStep and returns an error if any occur.
-func (b *BasicStep) Execute(inputs map[string]string) (err error) {
+func (b *BasicStep) Execute(execCtx TTPExecutionContext) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 	logging.Logger.Sugar().Debugw("available data", "outputs", b.output)
@@ -197,7 +197,7 @@ func (b *BasicStep) Execute(inputs map[string]string) (err error) {
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if b.Inline != "" {
-		if err := b.executeBashStdin(ctx, inputs); err != nil {
+		if err := b.executeBashStdin(ctx, execCtx.Args); err != nil {
 			logging.Logger.Sugar().Error(zap.Error(err))
 			return err
 		}

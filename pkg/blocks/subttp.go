@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
@@ -72,27 +74,9 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-// UnmarshalSubTTP loads a TTP file associated with a SubTTPStep
-// and stores it in the instance.
-func (s *SubTTPStep) UnmarshalSubTTP() error {
-	logging.Logger.Sugar().Debugw("parameters used to grab file", "filename", s.TtpFile, "workdir", s.WorkDir)
-	fullpath, err := FindFilePath(s.TtpFile, s.WorkDir, s.FileSystem)
-	if err != nil {
-		return err
-	}
-
-	s.TtpFile = fullpath
-
-	if err := s.loadSubTTP(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
-func (s *SubTTPStep) Execute(inputs map[string]string) error {
+func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
@@ -101,7 +85,10 @@ func (s *SubTTPStep) Execute(inputs map[string]string) error {
 		stepCopy.Setup(s.Environment, availableSteps)
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
-		if err := stepCopy.Execute(s.Args); err != nil {
+		subExecCtx := TTPExecutionContext{
+			Args: s.Args,
+		}
+		if err := stepCopy.Execute(subExecCtx); err != nil {
 			return err
 		}
 
@@ -127,8 +114,36 @@ func (s *SubTTPStep) Execute(inputs map[string]string) error {
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
-func (s *SubTTPStep) loadSubTTP() error {
-	ttps, err := LoadTTP(s.TtpFile, s.FileSystem)
+func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
+
+	// search for the referenced TTP in the configured search paths
+	// and the current directory
+	augmentedSearchPaths := append([]string{"."}, execCtx.TTPSearchPaths...)
+	var fullPath string
+	for _, searchPath := range augmentedSearchPaths {
+		fullPath = filepath.Join(searchPath, s.TtpFile)
+
+		var err error
+		if s.FileSystem != nil {
+			_, err = s.FileSystem.Stat(fullPath)
+		} else {
+			_, err = os.Stat(fullPath)
+		}
+
+		if err == nil {
+			// found
+			break
+		}
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		return fmt.Errorf("failed to check existence of file %v: %v", fullPath, err)
+	}
+	if fullPath == "" {
+		return fmt.Errorf("could not find TTP file in any configured search paths: %v", s.TtpFile)
+	}
+
+	ttps, err := LoadTTP(fullPath, s.FileSystem)
 	if err != nil {
 		return err
 	}
@@ -138,7 +153,7 @@ func (s *SubTTPStep) loadSubTTP() error {
 	logging.Logger.Sugar().Infof("[*] Validating Sub TTP: %s", s.Name)
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		if err := stepCopy.Validate(); err != nil {
+		if err := stepCopy.Validate(execCtx); err != nil {
 			return err
 		}
 	}
@@ -185,17 +200,17 @@ func (s *SubTTPStep) IsNil() bool {
 // 3. The TTP file path is not empty.
 // 4. The steps within the TTP file do not contain any nested SubTTPSteps.
 // If any of these conditions are not met, an error is returned.
-func (s *SubTTPStep) Validate() error {
+func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
 	if err := s.Act.Validate(); err != nil {
-		return err
-	}
-
-	if err := s.UnmarshalSubTTP(); err != nil {
 		return err
 	}
 
 	if s.TtpFile == "" {
 		return errors.New("a TTP file path is required and must not be empty")
+	}
+
+	if err := s.loadSubTTP(execCtx); err != nil {
+		return err
 	}
 
 	// Check if steps contain any SubTTPSteps. If they do, return an error.

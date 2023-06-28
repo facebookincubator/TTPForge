@@ -117,8 +117,8 @@ func (f *FileStep) GetType() StepType {
 
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by f.CleanupStep.Cleanup.
-func (f *FileStep) Cleanup(inputs map[string]string) error {
-	return f.Execute(inputs)
+func (f *FileStep) Cleanup(execCtx TTPExecutionContext) error {
+	return f.Execute(execCtx)
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -166,7 +166,7 @@ func (f *FileStep) IsNil() bool {
 }
 
 // Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(inputs map[string]string) (err error) {
+func (f *FileStep) Execute(execCtx TTPExecutionContext) (err error) {
 	logging.Logger.Sugar().Debugw("available data", "outputs", f.output)
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
@@ -225,7 +225,7 @@ func (f *FileStep) fileExec() error {
 // Returns:
 //
 // error: An error if any validation checks fail.
-func (f *FileStep) Validate() error {
+func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	if err := f.Act.Validate(); err != nil {
 		logging.Logger.Sugar().Error(zap.Error(err))
 		return err
@@ -267,7 +267,7 @@ func (f *FileStep) Validate() error {
 	}
 
 	if f.CleanupStep != nil {
-		if err := f.CleanupStep.Validate(); err != nil {
+		if err := f.CleanupStep.Validate(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}

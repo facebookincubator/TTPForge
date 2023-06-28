@@ -39,9 +39,9 @@ type ScenarioResult struct {
 	FileContents map[string]string
 }
 
-func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, opts ...blocks.TTPExecutionConfig) {
+func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, opts ...blocks.TTPExecutionContext) {
 	// learned this trick from here
-	var ttpConfig blocks.TTPExecutionConfig
+	var ttpConfig blocks.TTPExecutionContext
 	if len(opts) > 0 {
 		ttpConfig = opts[0]
 	}
@@ -120,7 +120,7 @@ func TestNoCleanup(t *testing.T) {
 		FileContents: map[string]string{
 			"result.txt": "A\nB\nC\n",
 		},
-	}, blocks.TTPExecutionConfig{
+	}, blocks.TTPExecutionContext{
 		NoCleanup: true,
 	})
 }

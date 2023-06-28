@@ -1,0 +1,6 @@
+---
+name: my_sub_ttp_2
+description: called from subttp example
+steps:
+  - name: step_one
+    inline: echo "you said {{arg1}}"

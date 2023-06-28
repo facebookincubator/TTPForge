@@ -26,6 +26,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -34,12 +35,12 @@ func init() {
 	logging.ToggleDebug()
 }
 
-func TestExecuteSubTtp(t *testing.T) {
+func TestExecuteSubTtpSearchPath(t *testing.T) {
 	step := blocks.SubTTPStep{
 		FileSystem: fstest.MapFS{
-			"test.yaml": &fstest.MapFile{
+			"ttps/test.yaml": &fstest.MapFile{
 				Data: []byte(`name: test
-description: test ttp sub step
+description: test sub ttp in search path
 steps:
   - name: testing_sub_ttp
     inline: |
@@ -52,19 +53,19 @@ steps:
 name: testing
 ttp: test.yaml`
 
-	if err := yaml.Unmarshal([]byte(content), &step); err != nil {
-		t.Error("invalid sub ttp step format", step)
-	}
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err, "invalid sub ttp step format")
 
-	if err := step.Validate(); err != nil {
-		t.Error("TTP failed to validate", err)
+	execCtx := blocks.TTPExecutionContext{
+		TTPSearchPaths: []string{"ttps"},
 	}
+	err = step.Validate(execCtx)
+	require.NoError(t, err, "TTP failed to validate")
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	if err := step.Execute(map[string]string{}); err != nil {
-		t.Error("TTP failed to execute", err)
-	}
+	err = step.Execute(execCtx)
+	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
 	stepOutput := step.GetOutput()
@@ -72,6 +73,44 @@ ttp: test.yaml`
 	subStepOutput := subStepOutputMap["output"].(string)
 
 	assert.Equal(t, "victory", subStepOutput)
+}
+
+func TestExecuteSubTtpCurrentDir(t *testing.T) {
+	step := blocks.SubTTPStep{
+		FileSystem: fstest.MapFS{
+			"anotherTest.yaml": &fstest.MapFile{
+				Data: []byte(`name: test
+description: test sub ttp in current dir
+steps:
+  - name: testing_sub_ttp
+    inline: |
+      echo in_current_dir`),
+			},
+		},
+	}
+
+	content := `
+name: testing
+ttp: anotherTest.yaml`
+
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err, "invalid sub ttp step format")
+
+	var execCtx blocks.TTPExecutionContext
+	err = step.Validate(execCtx)
+	require.NoError(t, err, "TTP failed to validate")
+
+	// TODO: remove Setup() call after upcoming ExecutionContext refactor
+	step.Setup(nil, nil)
+	err = step.Execute(execCtx)
+	require.NoError(t, err)
+
+	// TODO: clean this up after output handling refactor
+	stepOutput := step.GetOutput()
+	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
+	subStepOutput := subStepOutputMap["output"].(string)
+
+	assert.Equal(t, "in_current_dir", subStepOutput)
 }
 
 func TestExecuteSubTtpWithArgs(t *testing.T) {
@@ -98,15 +137,15 @@ args:
 		t.Error("invalid sub ttp step format", step)
 	}
 
-	if err := step.Validate(); err != nil {
+	var execCtx blocks.TTPExecutionContext
+	if err := step.Validate(execCtx); err != nil {
 		t.Error("TTP failed to validate", err)
 	}
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	if err := step.Execute(map[string]string{}); err != nil {
-		t.Error("TTP failed to execute", err)
-	}
+	err := step.Execute(execCtx)
+	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
 	stepOutput := step.GetOutput()
@@ -126,8 +165,8 @@ ttp: bad.yaml
 	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
 		t.Error("unmarshalling will not check for existence quite yet, should not fail here")
 	}
-
-	if err := ttps.Validate(); err == nil {
+	var execCtx blocks.TTPExecutionContext
+	if err := ttps.Validate(execCtx); err == nil {
 		t.Error("failure should occur here as file does not exist")
 	}
 }

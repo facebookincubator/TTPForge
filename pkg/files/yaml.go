@@ -57,12 +57,7 @@ import (
 // }
 //
 // log.Printf("TTP %s executed successfully\n", ttp.Name)
-func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, error) {
-
-	inventoryPaths := c.InventoryPaths
-	if len(inventoryPaths) == 0 {
-		logging.Logger.Sugar().Warn("No inventory path specified, using current directory")
-	}
+func ExecuteYAML(yamlFile string, c blocks.TTPExecutionContext) (*blocks.TTP, error) {
 
 	// see if the relative path exists in current dir
 	var absPathToTTP string
@@ -75,27 +70,6 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, err
 		absPathToTTP, err = filepath.Abs(yamlFile)
 		if err != nil {
 			return nil, err
-		}
-	}
-
-	// TTP not found in current dir - search inventoryPath
-	if absPathToTTP == "" {
-		for _, inventoryPath := range inventoryPaths {
-			absInventoryPath, err := blocks.FindFilePath(inventoryPath, filepath.Dir(inventoryPath), nil)
-			if err != nil {
-				return nil, err
-			}
-
-			exists, err := os.Stat(absInventoryPath)
-			if err != nil {
-				logging.Logger.Sugar().Errorw("failed to locate the path to the TTP", "path", inventoryPath, zap.Error(err))
-				return nil, err
-			}
-
-			if exists != nil {
-				absPathToTTP = absInventoryPath
-				break
-			}
 		}
 	}
 

@@ -98,8 +98,6 @@ echo "you said: $1"
 
 			// config for the test
 			testConfigYAML := `---
-inventory:
-  - ` + inventoryPath + `
 logfile: ""
 nocolor: false
 stacktrace: false
@@ -119,9 +117,7 @@ verbose: false
 			err = os.WriteFile(relScriptPath, []byte(testVariableExpansionSH), 0755)
 			assert.NoError(t, err, "failed to write the temporary shell script")
 
-			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionConfig{
-				InventoryPaths: []string{inventoryPath},
-			})
+			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionContext{})
 			assert.NoError(t, err, "execution of the testFile should not cause an error")
 			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
