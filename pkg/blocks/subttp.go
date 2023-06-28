@@ -133,11 +133,11 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 		if err == nil {
 			// found
 			break
-		} else if errors.Is(err, os.ErrNotExist) {
-			continue
-		} else {
-			return fmt.Errorf("failed to check existence of file %v: %v", fullPath, err)
 		}
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		return fmt.Errorf("failed to check existence of file %v: %v", fullPath, err)
 	}
 	if fullPath == "" {
 		return fmt.Errorf("could not find TTP file in any configured search paths: %v", s.TtpFile)
