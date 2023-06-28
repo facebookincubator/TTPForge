@@ -35,12 +35,12 @@ import (
 
 // Config maintains variables used throughout the TTPForge.
 type Config struct {
-	Verbose           bool     `mapstructure:"verbose"`
-	Logfile           string   `mapstructure:"logfile"`
-	NoColor           bool     `mapstructure:"nocolor"`
-	InventoryPath     []string `mapstructure:"inventory"`
-	StackTrace        bool     `mapstructure:"stacktrace"`
-	SubTTPSearchPaths []string `mapstructure:"sub_ttp_search_paths"`
+	Verbose        bool     `mapstructure:"verbose"`
+	Logfile        string   `mapstructure:"logfile"`
+	NoColor        bool     `mapstructure:"nocolor"`
+	InventoryPath  []string `mapstructure:"inventory"`
+	StackTrace     bool     `mapstructure:"stacktrace"`
+	TTPSearchPaths []string `mapstructure:"ttp_search_paths"`
 
 	cfgFile    string
 	saveConfig string
@@ -176,10 +176,10 @@ func initConfig() {
 	confAbsPath, err := filepath.Abs(viper.ConfigFileUsed())
 	cobra.CheckErr(err)
 	confDir := filepath.Dir(confAbsPath)
-	if len(Conf.SubTTPSearchPaths) > 0 {
-		for idx, searchPath := range Conf.SubTTPSearchPaths {
+	if len(Conf.TTPSearchPaths) > 0 {
+		for idx, searchPath := range Conf.TTPSearchPaths {
 			if !filepath.IsAbs(searchPath) {
-				Conf.SubTTPSearchPaths[idx] = filepath.Join(confDir, searchPath)
+				Conf.TTPSearchPaths[idx] = filepath.Join(confDir, searchPath)
 			}
 		}
 	}

@@ -118,7 +118,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 
 	// search for the referenced TTP in the configured search paths
 	// and the current directory
-	augmentedSearchPaths := append([]string{"."}, execCtx.SubTTPSearchPaths...)
+	augmentedSearchPaths := append([]string{"."}, execCtx.TTPSearchPaths...)
 	var fullPath string
 	for _, searchPath := range augmentedSearchPaths {
 		fullPath = filepath.Join(searchPath, s.TtpFile)
