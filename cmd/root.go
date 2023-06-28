@@ -172,7 +172,7 @@ func initConfig() {
 	}
 
 	// You should be able to write repo-relative paths
-	// in sub_ttp_search_paths and have them expanded here
+	// in ttp_search_paths and have them expanded here
 	confAbsPath, err := filepath.Abs(viper.ConfigFileUsed())
 	cobra.CheckErr(err)
 	confDir := filepath.Dir(confAbsPath)
