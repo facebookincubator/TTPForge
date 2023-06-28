@@ -62,7 +62,6 @@ repos:
         args: [-over=15]
       - id: golangci-lint
         args: [--timeout=5m]
-      - id: go-critic
       - id: go-build
       - id: go-mod-tidy
 
@@ -85,3 +84,10 @@ repos:
         language: script
         entry: .hooks/go-vet.sh
         files: '\.go$'
+
+      - id: gocritic
+        name: gocritic
+        language: script
+        files: '\.go$'
+        entry: .hooks/go-critic.sh
+        args: ["check"]
