@@ -16,7 +16,7 @@ targets and mediums.
 - [Getting Started](#getting-started)
 - [Using the TTPForge Dev Container](docs/container.md)
 - [Developer Environment Setup](docs/dev.md)
-- [Writing Tests](docs/testing.md)
+- [Code Standards](docs/code-standards.md)
 - [Creating a new release](docs/release.md)
 - [TTPForge Building Blocks](docs/building-blocks.md)
 
@@ -35,8 +35,12 @@ targets and mediums.
    tar -xvf *tar.gz
    ```
 
-1. Run the Hello World example:
+1. Run a basic example:
 
    ```bash
-   ./ttpforge -c config.yaml run ttps/privilege-escalation/credential-theft/hello-world/ttp.yaml
+   ./ttpforge -c config.yaml \
+     -l ttpforge.log \
+     run ttps/examples/variadic-params/variadicParameterExample.yaml \                                                                                
+     --arg user=bob \
+     --arg password=fakepassword123
    ```
