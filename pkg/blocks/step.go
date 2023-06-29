@@ -33,7 +33,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Constants representing supported executor types.
+// Constants for specifying the types of executors supported.
 const (
 	ExecutorPython     = "python3"
 	ExecutorBash       = "bash"
@@ -44,10 +44,10 @@ const (
 	ExecutorCmd        = "cmd.exe"
 )
 
-// StepType represents the type of a TTP (Tactics, Techniques, and Procedures) step.
+// StepType denotes the type of a step in a TTP (Tactics, Techniques, and Procedures).
 type StepType string
 
-// Constants representing supported step types.
+// Constants for defining the types of steps available.
 const (
 	StepUnset   = "unsetStep"
 	StepFile    = "fileStep"
@@ -57,47 +57,54 @@ const (
 	StepEdit    = "editStep"
 )
 
-// Act represents a single action within a TTP (Tactics, Techniques, and Procedures) step. It contains information
-// about the condition that must be met for the action to execute, the environment variables that should be set,
-// the name of the action, the working directory, the step type, and the success status of the action.
-// It also includes a map of step references and a map of output values.
+// Act represents an abstract behavior that is executed in a sequence.
+//
+// **Attributes:**
+//
+// Name: The unique name of the Act.
+// Type: The type of the Act (e.g., Command, File, or Setup).
+// Condition: The condition that needs to be satisfied for the Act to execute.
+// Success: Indicates whether the execution of the Act was successful.
+// Output: The output of the Act's execution.
+// StepRef: Reference to other steps in the sequence.
+// Environment: Environment variables used during the Act's execution.
+// Cleanup: The cleanup actions that need to be performed after the Act's execution.
 type Act struct {
 	Condition   string            `yaml:"if,omitempty"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Name        string            `yaml:"name"`
 	WorkDir     string            `yaml:"-"`
 	Type        StepType          `yaml:"-"`
-	success     bool
-	stepRef     map[string]Step
-	output      map[string]any
+	Success     bool
+	StepRef     map[string]Step
+	Output      map[string]any
 }
 
-// NewAct is a constructor for the Act struct.
+// NewAct acts as a constructor for the Act struct.
 func NewAct() *Act {
 	return &Act{
-		output: make(map[string]interface{}),
+		Output: make(map[string]interface{}),
 	}
 }
 
-// CleanupAct is required for anything that requires a cleanup step.
+// CleanupAct interface is implemented by anything that requires a cleanup step.
 type CleanupAct interface {
 	Cleanup(execCtx TTPExecutionContext) error
 	CleanupName() string
-	Setup(env map[string]string, outputRef map[string]Step)
+	Setup(env map[string]string, OutputRef map[string]Step)
 	SetDir(dir string)
 	IsNil() bool
 	Success() bool
 	Validate(execCtx TTPExecutionContext) error
 }
 
-// Step is an interface that represents a TTP step. Types that implement this interface must
-// provide methods for setting up the environment and output references, setting the working
-// directory, getting the cleanup actions, executing the step, checking if the step is empty,
-// explaining validation errors, validating the step, fetching arguments, getting output,
-// searching output, setting output success status, checking success status, returning the
-// step name, and getting the step type.
+// Step interface represents a TTP step. Implementations of this interface should
+// provide methods for environment setup, working directory setting, cleanup actions,
+// step execution, emptiness check, validation error explanation, validation, arguments fetching,
+// Output fetching, Output searching, Output Success status setting, Success status checking,
+// step name returning, and step type returning.
 type Step interface {
-	Setup(env map[string]string, outputRef map[string]Step)
+	Setup(env map[string]string, OutputRef map[string]Step)
 	SetDir(dir string)
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
@@ -109,7 +116,7 @@ type Step interface {
 	FetchArgs(args []string) []string
 	GetOutput() map[string]any
 	SearchOutput(arg string) string
-	SetOutputSuccess(output *bytes.Buffer, exit int)
+	SetOutputSuccess(Output *bytes.Buffer, exit int)
 	Success() bool
 	StepName() string
 	GetType() StepType
@@ -124,7 +131,7 @@ func (a *Act) SetDir(dir string) {
 	a.WorkDir = dir
 }
 
-// IsNil checks if the Act is considered nil (i.e., it has no name). It returns true if the Act has no name, false otherwise.
+// IsNil checks whether the Act is nil (i.e., it does not have a name).
 //
 // Returns:
 //
@@ -138,9 +145,10 @@ func (a *Act) IsNil() bool {
 	}
 }
 
-// ExplainInvalid returns an error explaining why the Act is invalid. If the Act is valid, it returns nil.
+// ExplainInvalid checks if an Act is invalid and returns an error explaining
+// why. If the Act is valid, it returns nil.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error explaining why the Act is invalid, or nil if the Act is valid.
 func (a *Act) ExplainInvalid() error {
@@ -152,9 +160,10 @@ func (a *Act) ExplainInvalid() error {
 	}
 }
 
-// Cleanup is a placeholder function for the base Act. Subtypes can override this method to implement their own cleanup logic.
+// Cleanup is a placeholder function for the base Act. Subtypes can override
+// this method to implement their own cleanup logic.
 //
-// Returns:
+// **Returns:**
 //
 // error: Always returns nil for the base Act.
 func (a *Act) Cleanup(inputs map[string]string) error {
@@ -162,36 +171,28 @@ func (a *Act) Cleanup(inputs map[string]string) error {
 	return nil
 }
 
-// StepName returns the name of the Act.
+// StepName retrieves the name of the Act.
 //
-// Returns:
+// **Returns:**
 //
 // string: The name of the Act.
 func (a *Act) StepName() string {
 	return a.Name
 }
 
-// GetOutput returns the output map of the Act.
+// GetOutput retrieves the Output map of the Act.
 //
-// Returns:
+// **Returns:**
 //
-// map[string]any: The output map of the Act.
+// map[string]any: The Output map of the Act.
 func (a *Act) GetOutput() map[string]any {
-	return a.output
+	return a.Output
 }
 
-// Success returns the success status of the Act.
+// Validate checks the Act for any validation errors, such as the presence of
+// spaces in the name. It returns an error if any validation errors are found.
 //
-// Returns:
-//
-// bool: The success status of the Act.
-func (a *Act) Success() bool {
-	return a.success
-}
-
-// Validate checks the Act for any validation errors, such as the presence of spaces in the name. It returns an error if any validation errors are found.
-//
-// Returns:
+// **Returns:**
 //
 // error: An error if any validation errors are found, or nil if the Act is valid.
 func (a *Act) Validate() error {
@@ -203,18 +204,19 @@ func (a *Act) Validate() error {
 	return nil
 }
 
-// FetchArgs processes a slice of arguments and returns a new slice with the output values of referenced steps.
+// FetchArgs processes a slice of arguments and returns a new slice with the
+// Output values of referenced steps.
 //
-// Parameters:
+// **Parameters:**
 //
 // args: A slice of strings representing the arguments to be processed.
 //
-// Returns:
+// **Returns:**
 //
-// []string: A slice of strings containing the processed output values of referenced steps.
+// []string: A slice of strings containing the processed Output values of referenced steps.
 func (a *Act) FetchArgs(args []string) []string {
 	logging.Logger.Sugar().Debug("Fetching args data")
-	logging.Logger.Sugar().Debug(a.output)
+	logging.Logger.Sugar().Debug(a.Output)
 	var inputs []string
 	for _, arg := range args {
 		inputs = append(inputs, a.SearchOutput(arg))
@@ -224,19 +226,17 @@ func (a *Act) FetchArgs(args []string) []string {
 	return inputs
 }
 
-// Setup initializes the Act with the given environment and output reference maps.
+// Setup initializes the Act with the given environment and Output reference maps.
 //
-// Parameters:
+// **Parameters:**
 //
-// env: A map of environment variables, where the keys are variable names and the values are variable values.
-// outputRef: A map of output references, where the keys are step names and the values are Step instances.
-//
-// Returns:
-//
-// map[string]: Step instances.
-func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
-	a.stepRef = outputRef
-	a.output = make(map[string]any)
+// env: A map of environment variables, where the keys are variable names and
+// the values are variable values.
+// OutputRef: A map of Output references, where the keys are step names and
+// the values are Step instances.
+func (a *Act) Setup(env map[string]string, OutputRef map[string]Step) {
+	a.StepRef = OutputRef
+	a.Output = make(map[string]any)
 
 	stepEnv := env
 	logging.Logger.Sugar().Debugw("supplied environment", "env", a.Environment)
@@ -248,17 +248,17 @@ func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
 	a.Environment = stepEnv
 }
 
-// SearchOutput searches for the output value of a step by parsing the provided argument. The argument should be in the
-// format "steps.step_name.output". It returns the value as a string, converting the value to a string representation if
-// necessary. If the argument is not in the correct format, or the step is not found, the original argument is returned.
+// SearchOutput searches for the Output value of a step by parsing the provided
+// argument. The argument should be in the format "steps.step_name.Output".
 //
-// Parameters:
+// **Parameters:**
 //
-// arg: A string representing the argument in the format "steps.step_name.output".
+// arg: A string representing the argument in the format "steps.step_name.Output".
 //
-// Returns:
+// **Returns:**
 //
-// string: The output value of the step as a string, or the original argument if the step is not found or the argument is in an incorrect format.
+// string: The Output value of the step as a string, or the original argument
+// if the step is not found or the argument is in an incorrect format.
 func (a *Act) SearchOutput(arg string) string {
 	logging.Logger.Sugar().Debugw("fetch arg", "arg", arg)
 	val, err := a.search(arg)
@@ -285,7 +285,7 @@ func (a *Act) SearchOutput(arg string) string {
 
 func (a *Act) search(arg string) (any, error) {
 	if !strings.HasPrefix(arg, "steps.") {
-		return nil, errors.New("name is not of format steps.step_name.output")
+		return nil, errors.New("name is not of format steps.step_name.Output")
 	}
 
 	steps := strings.SplitN(arg, "steps.", 2)
@@ -296,26 +296,26 @@ func (a *Act) search(arg string) (any, error) {
 	}
 
 	stepName := splitNames[0]
-	outputKeys := splitNames[1:]
+	OutputKeys := splitNames[1:]
 
-	step, ok := a.stepRef[stepName]
+	step, ok := a.StepRef[stepName]
 	if !ok {
 		return nil, errors.New("failed to locate step in args")
 	}
 
-	return getOutputValue(step.GetOutput(), outputKeys)
+	return getOutputValue(step.Output, OutputKeys)
 }
 
-func getOutputValue(output map[string]interface{}, keys []string) (any, error) {
+func getOutputValue(Output map[string]interface{}, keys []string) (any, error) {
 	if len(keys) == 0 {
-		return nil, errors.New("no output keys provided")
+		return nil, errors.New("no Output keys provided")
 	}
 
-	value := output
+	value := Output
 	for i, key := range keys {
 		v, ok := value[key]
 		if !ok {
-			return nil, fmt.Errorf("failed to locate output key: %s", strings.Join(keys[:i+1], "."))
+			return nil, fmt.Errorf("failed to locate Output key: %s", strings.Join(keys[:i+1], "."))
 		}
 
 		if i == len(keys)-1 {
@@ -324,11 +324,11 @@ func getOutputValue(output map[string]interface{}, keys []string) (any, error) {
 
 		value, ok = v.(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("output key %s is not a nested structure", strings.Join(keys[:i+1], "."))
+			return nil, fmt.Errorf("error: Output key %s is not a nested structure", strings.Join(keys[:i+1], "."))
 		}
 	}
 
-	return nil, errors.New("unexpected error while retrieving output value")
+	return nil, errors.New("unexpected error while retrieving Output value")
 }
 
 // CheckCondition checks the condition specified for an Act and returns true if it matches the current OS, false otherwise.
@@ -362,34 +362,34 @@ func (a *Act) CheckCondition() (bool, error) {
 	return false, nil
 }
 
-// SetOutputSuccess sets the output of an Act to a given buffer and sets the success flag to true or false depending on the exit code.
-// If the output can be unmarshalled into a JSON structure, it is stored as a string in the Act's output map.
+// SetOutputSuccess sets the Output of an Act to a given buffer and sets the Success flag to true or false depending on the exit code.
+// If the Output can be unmarshalled into a JSON structure, it is stored as a string in the Act's Output map.
 //
 // Parameters:
 //
-// output: A pointer to a bytes.Buffer containing the output to set as the Act's output.
+// Output: A pointer to a bytes.Buffer containing the Output to set as the Act's Output.
 // exit: An integer representing the exit code of the Act.
 //
 // Returns:
 //
 // None.
-func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
-	a.success = true
+func (a *Act) SetOutputSuccess(Output *bytes.Buffer, exit int) {
+	a.Success = true
 	if exit != 0 {
-		a.success = false
+		a.Success = false
 	}
 
-	outStr := strings.TrimSpace(output.String())
+	outStr := strings.TrimSpace(Output.String())
 	var jsonOutput map[string]any
-	if err := json.Unmarshal(output.Bytes(), &jsonOutput); err != nil {
-		logging.Logger.Sugar().Debugw("failed to marshal output into JSON structure", zap.Error(err))
-		logging.Logger.Sugar().Infow("treating output as single string", "output", outStr)
-		a.output["output"] = outStr
+	if err := json.Unmarshal(Output.Bytes(), &jsonOutput); err != nil {
+		logging.Logger.Sugar().Debugw("failed to marshal Output into JSON structure", zap.Error(err))
+		logging.Logger.Sugar().Infow("treating Output as single string", "Output", outStr)
+		a.Output["Output"] = outStr
 		return
 	}
 
-	logging.Logger.Sugar().Debugw("unmarshalled output to JSON", "json", jsonOutput)
-	a.output = jsonOutput
+	logging.Logger.Sugar().Debugw("unmarshalled Output to JSON", "json", jsonOutput)
+	a.Output = jsonOutput
 }
 
 // MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
