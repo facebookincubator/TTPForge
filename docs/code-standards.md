@@ -63,29 +63,29 @@ In a nutshell, TTPForge adheres to the following testing standards:
 1. All exported functions should be paired with a corresponding test.
 
 1. Any new functionality must be accompanied by integration tests to ensure
-compatibility with existing logic and future code.
+   compatibility with existing logic and future code.
 
 1. If tests interact with the filesystem, they should execute within a temporary
-directory specific to that test. Refer to `pkg/files/file_test.go` for examples.
+   directory specific to that test. Refer to `pkg/files/file_test.go` for examples.
 
 1. Test packages should be separate from the package under test to prevent
-test code from being included in the compiled binary. E.g., tests for
-`pkg/foo` should be `in pkg/foo_test`.
+   test code from being included in the compiled binary. E.g., tests for
+   `pkg/foo` should be `in pkg/foo_test`.
 
 ### Unit Testing
 
 When crafting unit tests for the TTPForge, please heed the following criteria:
 
-1. **Functionality:** Unit tests should be focused on a single function or method, isolating 
+1. **Functionality:** Unit tests should be focused on a single function or method, isolating
    it from dependencies wherever possible.
 
-1. **Inputs and Outputs:** Specify the function's required input types and 
+1. **Inputs and Outputs:** Specify the function's required input types and
    expected output types.
 
-1. **Edge Cases:** Provide handling strategies for edge cases, including null 
+1. **Edge Cases:** Provide handling strategies for edge cases, including null
    inputs, empty strings, extreme values, etc.
 
-1. **Mocking:** Mock dependencies if the function under test relies on 
+1. **Mocking:** Mock dependencies if the function under test relies on
    other services or functions.
 
 1. **Error Handling:** Elucidate strategies for testing error handling within the function.
@@ -94,14 +94,14 @@ When crafting unit tests for the TTPForge, please heed the following criteria:
 
 When formulating integration tests for TTPForge, keep the following points in mind:
 
-1. **Components:** Identify the components being tested together. This could be a combination 
+1. **Components:** Identify the components being tested together. This could be a combination
    of functions, methods, or even modules or services.
 
-1. **Data Flow:** Describe how data flows between the components and what the expected outcomes are. 
+1. **Data Flow:** Describe how data flows between the components and what the expected outcomes are.
 
 1. **Setup and Tear Down:** Provide instructions for the setup and tear down of the test environment.
 
-1. **Mocking:** Explain when and how to mock dependencies. Unlike unit tests, integration tests 
+1. **Mocking:** Explain when and how to mock dependencies. Unlike unit tests, integration tests
    may demand more actual services and fewer mocks.
 
 1. **Error Handling:** Explain how to test for errors at the integration level.
@@ -109,12 +109,12 @@ When formulating integration tests for TTPForge, keep the following points in mi
 
 ### Example Tests
 
-When creating your tests, it's beneficial to provide examples of how to utilize your code. 
+When creating your tests, it's beneficial to provide examples of how to utilize your code.
 This can be achieved by constructing a test prefixed with "Example".
 
 In the following example, we demonstrate how to use a function called `FixCodeBlocks`:
 
-```go
+````go
 package docs_test
 
 import (
@@ -137,7 +137,8 @@ Options for the execution of Google Chrome.
 browser, err := cdpchrome.Init(true, true)
 
 if err != nil {
-    log.Fatalf("failed to initialize a chrome browser: %v", err)
+    fmt.Printf("failed to initialize a chrome browser: %v", err)
+    return
 }
 ` + "```"
  language := "go"
@@ -145,29 +146,35 @@ if err != nil {
  // Create a temporary file
  tmpfile, err := os.CreateTemp("", "example.*.md")
  if err != nil {
-  log.Fatalf("failed to create temp file: %v", err)
+    fmt.Printf("failed to create temp file: %v", err)
+    return
  }
+ 
  defer os.Remove(tmpfile.Name()) // clean up
 
  // Write the input to the temp file
  if _, err := tmpfile.Write([]byte(input)); err != nil {
-  log.Fatalf("failed to write to temp file: %v", err)
+   fmt.Printf("failed to write to temp file: %v", err)
+   return
  }
+
  if err := tmpfile.Close(); err != nil {
-  log.Fatalf("failed to close temp file: %v", err)
+   fmt.Printf("failed to close temp file: %v", err)
+   return
  }
 
  // Run the function
  file := fileutils.RealFile(tmpfile.Name())
- err = docs.FixCodeBlocks(file, language)
- if err != nil {
-  log.Fatalf("failed to fix code blocks: %v", err)
+ if err := docs.FixCodeBlocks(file, language); err != nil {
+   fmt.Printf("failed to fix code blocks: %v", err)
+   return
  }
 
  // Read the modified content
  content, err := os.ReadFile(tmpfile.Name())
  if err != nil {
-  log.Fatalf("failed to read file: %v", err)
+   fmt.Printf("failed to read file: %v", err)
+   return
  }
 
  // Print the result
@@ -186,23 +193,23 @@ if err != nil {
  // }
  // ```
 }
-```
+````
 
-Note: The use of the "Example" prefix in these tests indicates that their 
-primary purpose is to serve as executable documentation for your code. They 
-are designed to provide developers with clear, practical examples of how to 
-use your functions. When these Example tests are run, the actual output from 
-the function is compared with the expected output, as specified in the `// Output:` 
-comment. This comparison ensures that your examples stay accurate and up-to-date 
-as your API evolves over time, preventing documentation from becoming obsolete or 
-misleading. Remember, Example tests complement, but do not replace, traditional 
+Note: The use of the "Example" prefix in these tests indicates that their
+primary purpose is to serve as executable documentation for your code. They
+are designed to provide developers with clear, practical examples of how to
+use your functions. When these Example tests are run, the actual output from
+the function is compared with the expected output, as specified in the `// Output:`
+comment. This comparison ensures that your examples stay accurate and up-to-date
+as your API evolves over time, preventing documentation from becoming obsolete or
+misleading. Remember, Example tests complement, but do not replace, traditional
 unit and integration tests.
 
 **Resource:** <https://go.dev/blog/examples>
 
 ### Test Architecture
 
-Tests should reside in a separate package from the one containing the code under test. 
+Tests should reside in a separate package from the one containing the code under test.
 We advocate for this convention due to several reasons:
 
 **Encapsulation and separation of concerns:**
@@ -211,12 +218,12 @@ We advocate for this convention due to several reasons:
 
 **Testing exported functionality:**
 
-- External test packages promote testing of only the exported functionality, 
+- External test packages promote testing of only the exported functionality,
   mirroring the package consumers' perspective. This emphasizes the public API's behavior.
 
 **Avoiding test-only dependencies:**
 
-- External test packages eliminate test-only dependencies from the compiled binary, 
+- External test packages eliminate test-only dependencies from the compiled binary,
   reducing its size and warding off accidental usage in production code.
 
 **Resources:**
@@ -226,19 +233,19 @@ We advocate for this convention due to several reasons:
 
 ### Test Maintenance
 
-Test maintenance is pivotal. If library code is updated in a way that modifies 
+Test maintenance is pivotal. If library code is updated in a way that modifies
 functionality (add, update, remove, etc.), the corresponding tests should also be updated.
 
-For instance, if an exported function is updated to support `github.com/spf13/afero`, 
+For instance, if an exported function is updated to support `github.com/spf13/afero`,
 its associated tests should also be updated to ensure they still function correctly.
 
 ---
 
 ## Documentation
 
-Automated package documentation is an essential part of our work. It benefits us in 
-terms of reducing manual effort and standardizing documentation. That's why we utilize 
-the following templates. They're designed to support autogen package docs, enabling 
+Automated package documentation is an essential part of our work. It benefits us in
+terms of reducing manual effort and standardizing documentation. That's why we utilize
+the following templates. They're designed to support autogen package docs, enabling
 us to parse this format and create READMEs for each package automatically.
 
 ### Documenting Exported Functions
