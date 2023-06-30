@@ -29,6 +29,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/l50/goutils/v2/docs"
 	fileutils "github.com/l50/goutils/v2/file"
+	"github.com/spf13/afero"
 )
 
 func TestExamples(t *testing.T) {
@@ -40,7 +41,7 @@ func TestExamples(t *testing.T) {
 }
 
 func ExampleCreateDirIfNotExists(t *testing.T) {
-	fsys := fileutils.MockFs{}
+	fsys := afero.NewOsFs()
 	dirPath := "path/to/directory"
 
 	if err := files.CreateDirIfNotExists(fsys, dirPath); err != nil {
@@ -50,7 +51,7 @@ func ExampleCreateDirIfNotExists(t *testing.T) {
 }
 
 func ExamplePathExistsInInventory(t *testing.T) {
-	fsys := fileutils.MockFs{} // Replace with your mocked filesystem implementation
+	fsys := afero.NewOsFs()
 	relFilePath := "templates/exampleTTP.yaml.tmpl"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 
@@ -68,7 +69,7 @@ func ExamplePathExistsInInventory(t *testing.T) {
 }
 
 func ExampleTemplateExists(t *testing.T) {
-	fsys := fileutils.MockFs{}
+	fsys := afero.NewOsFs()
 	templatePath := "bash"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 
@@ -88,7 +89,7 @@ func ExampleTemplateExists(t *testing.T) {
 func ExampleTTPExists(t *testing.T) {
 	ttpName := "exampleTTP"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
-	fsys := fileutils.MockFs{}
+	fsys := afero.NewOsFs()
 
 	exists, err := files.TTPExists(fsys, ttpName, inventoryPaths)
 	if err != nil {
@@ -103,9 +104,9 @@ func ExampleTTPExists(t *testing.T) {
 }
 
 func ExampleMkdirAllFS(t *testing.T) {
-	fsys := fileutils.MockFs{} // Replace with your mocked filesystem implementation
+	fsys := afero.NewOsFs()
 	dirPath := "path/to/directory"
-	if err := file.MkdirAllFS(fsys, dirPath, 0755); err != nil {
+	if err := files.MkdirAllFS(fsys, dirPath, 0755); err != nil {
 		fmt.Printf("failed to create directory: %v", err)
 		return
 	}

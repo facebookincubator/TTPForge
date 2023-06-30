@@ -91,7 +91,7 @@ func NewAct() *Act {
 type CleanupAct interface {
 	Cleanup(execCtx TTPExecutionContext) error
 	CleanupName() string
-	Setup(env map[string]string, OutputRef map[string]Step)
+	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	IsNil() bool
 	Success() bool
@@ -104,7 +104,7 @@ type CleanupAct interface {
 // Output fetching, Output searching, Output Success status setting, Success status checking,
 // step name returning, and step type returning.
 type Step interface {
-	Setup(env map[string]string, OutputRef map[string]Step)
+	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
@@ -232,10 +232,10 @@ func (a *Act) FetchArgs(args []string) []string {
 //
 // env: A map of environment variables, where the keys are variable names and
 // the values are variable values.
-// OutputRef: A map of Output references, where the keys are step names and
+// outputRef: A map of Output references, where the keys are step names and
 // the values are Step instances.
-func (a *Act) Setup(env map[string]string, OutputRef map[string]Step) {
-	a.stepRef = OutputRef
+func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
+	a.stepRef = outputRef
 	a.output = make(map[string]any)
 
 	stepEnv := env
