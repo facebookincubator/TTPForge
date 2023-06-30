@@ -53,6 +53,18 @@ func NewFileStep() *FileStep {
 	}
 }
 
+// NewFileStepWrapper is a constructor that creates and returns a new instance of a FileStep.
+// It serves as a wrapper for the NewFileStep function to ensure the returned instance
+// matches the Step interface. This is necessary to use the constructor in contexts where a
+// function returning a Step is required.
+//
+// **Returns:**
+//
+// Step: A FileStep instance cast to the Step interface.
+func NewFileStepWrapper() Step {
+	return NewFileStep()
+}
+
 // UnmarshalYAML decodes a YAML node into a FileStep instance. It uses the provided
 // struct as a template for the YAML data, and initializes the FileStep instance with the
 // decoded values.

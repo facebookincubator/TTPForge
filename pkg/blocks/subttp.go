@@ -47,6 +47,18 @@ func NewSubTTPStep() *SubTTPStep {
 	return &SubTTPStep{}
 }
 
+// NewSubTTPStepWrapper is a constructor that creates and returns a new instance of a SubTTPStep.
+// It serves as a wrapper for the NewSubTTPStep function to ensure the returned instance
+// matches the Step interface. This is necessary to use the constructor in contexts where a
+// function returning a Step is required.
+//
+// **Returns:**
+//
+// Step: A SubTTPStep instance cast to the Step interface.
+func NewSubTTPStepWrapper() Step {
+	return NewSubTTPStep()
+}
+
 // GetCleanup returns a slice of CleanupAct associated with the SubTTPStep.
 func (s *SubTTPStep) GetCleanup() []CleanupAct {
 	return s.CleanupSteps

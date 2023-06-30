@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/cmd"
-	"github.com/otiai10/copy"
+	"github.com/l50/goutils/v2/sys"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 
@@ -103,7 +103,7 @@ func setupTestEnvironment(t *testing.T) (string, string) {
 
 	templatesDir := getTemplatesDir(t)
 
-	if err := copy.Copy(templatesDir, filepath.Join(testDir, "templates")); err != nil {
+	if err := sys.Cp(templatesDir, filepath.Join(testDir, "templates")); err != nil {
 		t.Fatalf("failed to copy templates dir: %v", err)
 	}
 

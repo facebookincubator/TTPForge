@@ -25,6 +25,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -33,40 +34,84 @@ func init() {
 	logging.ToggleDebug()
 }
 
-// TestAmbiguousStepType verifies that we error
-// out appropriately when an ambiguously-typed
-// step is provided. Should probably live in step_test.go
-// eventually but for current code structure
-// it is better to have it live here.
-func TestAmbiguousStepType(t *testing.T) {
-	testCases := []struct {
-		name    string
-		content string
+func TestMarshalYAML(t *testing.T) {
+	tests := []struct {
+		name           string
+		content        string
+		expectedOutput blocks.TTP
+		expectErr      bool
 	}{
 		{
-			name: "Ambiguous Inline+File Step",
-			content: `name: test
-description: this is a test
+			name: "Successful Marshal",
+			content: `---
+name: paramtest
+description: Test variadiac parameter handling
 steps:
-  - name: ambiguous
-    inline: foo
-    file: bar`,
-		},
-		{
-			name: "Ambiguous Edit+SubTTP Step",
-			content: `name: test
-description: this is a test
-steps:
-  - name: ambiguous
-    edit_file: hello
-    ttp: world`,
+  - name: "paramtest"
+    inline: |
+      set -e
+
+      user="$(echo {{user}} | tr -d '\n\t\r')"
+      if [[ "{{user}}" == *'{{'* ]]; then
+          user=""
+      fi
+
+      password="$(echo {{password}} | tr -d '\n\t\r')"
+      if [[ "{{password}}" == *'{{'* ]]; then
+          password=""
+      fi
+
+      if [[ (-z "$user") || (-z "$password") ]]; then
+          echo "Error: Both user and password must have a value."
+          exit 1
+      fi
+
+      go run variadicParameterExample.go \
+        --user $user \
+        --password $password`,
+			expectedOutput: blocks.TTP{
+				Name: "paramtest",
+			},
+			expectErr: false,
 		},
 	}
-	for _, tc := range testCases {
+
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			assert.Error(t, err, "steps with ambiguous types should yield an error when parsed")
+			// Unmarshal the YAML string to a TTP instance
+			ttp := blocks.TTP{}
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			if err != nil {
+				t.Errorf("Failed to unmarshal YAML: %v", err)
+				return
+			}
+
+			// Test the MarshalYAML function
+			outputIface, err := ttp.MarshalYAML()
+			if (err != nil) != tc.expectErr {
+				t.Errorf("MarshalYAML() error = %v, expectErr %v", err, tc.expectErr)
+				return
+			}
+
+			// Assert output to string
+			output, ok := outputIface.(string)
+			if !ok {
+				t.Errorf("Failed to assert output to string")
+				return
+			}
+
+			// Unmarshal the output back to a struct
+			outStruct := blocks.TTP{}
+			err = yaml.Unmarshal([]byte(output), &outStruct)
+			if err != nil {
+				t.Errorf("Failed to unmarshal output: %v", err)
+				return
+			}
+
+			// Compare the relevant fields
+			if outStruct.Name != tc.expectedOutput.Name {
+				t.Errorf("MarshalYAML() got = %v, want %v", outStruct.Name, tc.expectedOutput.Name)
+			}
 		})
 	}
 }
@@ -75,7 +120,7 @@ func TestUnmarshalSimpleCleanupLarge(t *testing.T) {
 	testCases := []struct {
 		name      string
 		content   string
-		wantError bool
+		expectErr bool
 	}{
 		{
 			name: "Simple cleanup large",
@@ -104,7 +149,7 @@ steps:
       inline: |
         ls -la
   `,
-			wantError: false,
+			expectErr: false,
 		},
 	}
 
@@ -112,7 +157,7 @@ steps:
 		t.Run(tc.name, func(t *testing.T) {
 			var ttps blocks.TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
+			if tc.expectErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -125,7 +170,7 @@ func TestUnmarshalScenario(t *testing.T) {
 	testCases := []struct {
 		name      string
 		content   string
-		wantError bool
+		expectErr bool
 	}{
 		{
 			name: "Hello World scenario",
@@ -145,7 +190,7 @@ steps:
         inline: |
           ./ttps/privilege-escalation/credential-theft/hello-world/hello-world.sh
 `,
-			wantError: false,
+			expectErr: false,
 		},
 	}
 
@@ -153,7 +198,50 @@ steps:
 		t.Run(tc.name, func(t *testing.T) {
 			var ttps blocks.TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
+			if tc.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestTTP_ValidateSteps(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		expectErr bool
+	}{
+		{
+			name: "Valid steps",
+			content: `
+name: test
+description: this is a test
+steps:
+  - name: step1
+    inline: |
+      echo "step1"
+  - name: step2
+    inline: |
+      echo "step2"
+`,
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			if tc.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
+			if tc.expectErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -166,7 +254,7 @@ func TestTTP_RunSteps(t *testing.T) {
 	testCases := []struct {
 		name      string
 		content   string
-		wantError bool
+		expectErr bool
 	}{
 		{
 			name: "Empty steps",
@@ -175,7 +263,7 @@ name: test
 description: this is a test
 steps: []
 `,
-			wantError: false,
+			expectErr: false,
 		},
 		{
 			name: "Valid steps with cleanup",
@@ -198,7 +286,7 @@ steps:
       inline: |
         echo "cleanup2"
 `,
-			wantError: false,
+			expectErr: false,
 		},
 	}
 
@@ -209,7 +297,7 @@ steps:
 			assert.NoError(t, err)
 
 			err = ttp.RunSteps(blocks.TTPExecutionContext{})
-			if tc.wantError {
+			if tc.expectErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -218,45 +306,106 @@ steps:
 	}
 }
 
-func TestTTP_ValidateSteps(t *testing.T) {
+func TestTTP_Cleanup(t *testing.T) {
 	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
+		name           string
+		execCtx        blocks.TTPExecutionContext
+		availableSteps map[string]blocks.Step
+		cleanupSteps   []blocks.CleanupAct
+		expectErr      bool
 	}{
 		{
-			name: "Valid steps",
-			content: `
-name: test
-description: this is a test
-steps:
-  - name: step1
-    inline: |
-      echo "step1"
-  - name: step2
-    inline: |
-      echo "step2"
-`,
-			wantError: false,
+			name:           "No cleanup steps",
+			execCtx:        blocks.TTPExecutionContext{},
+			availableSteps: map[string]blocks.Step{},
+			cleanupSteps:   []blocks.CleanupAct{},
+			expectErr:      false,
+		},
+		{
+			name:           "One cleanup step",
+			execCtx:        blocks.TTPExecutionContext{},
+			availableSteps: map[string]blocks.Step{},
+			cleanupSteps:   []blocks.CleanupAct{},
+			expectErr:      false,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttp)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			// act := &blocks.Act{}
+			// cleanupAct, err := act.MakeCleanupStep(&node)
 
-			err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
-			if tc.wantError {
+			ttp := blocks.TTP{}
+			err := ttp.Cleanup(tc.execCtx, tc.availableSteps, tc.cleanupSteps)
+
+			if tc.expectErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestTTP_Failed(t *testing.T) {
+	testCases := []struct {
+		name      string
+		execCtx   blocks.TTPExecutionContext
+		yamlData  string
+		expectErr bool
+	}{
+		{
+			name:    "BasicStep",
+			execCtx: blocks.TTPExecutionContext{},
+			yamlData: `
+name: "cleanup-test"
+inline: "echo 'cleanup'"
+`,
+			expectErr: false,
+		},
+		{
+			name:    "InvalidStep",
+			execCtx: blocks.TTPExecutionContext{},
+			yamlData: `
+iaminvalid: "ohno!"
+`,
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			act := &blocks.Act{}
+			// var node yaml.Node
+			var step blocks.BasicStep
+			require.NoError(t, yaml.Unmarshal([]byte(tc.yamlData), &step))
+
+			var execCtx blocks.TTPExecutionContext
+			err := step.Validate(execCtx)
+			require.NoError(t, err)
+
+			err = step.Execute(execCtx)
+			require.NoError(t, err)
+
+			act.Failed(execCtx)
+			failedSteps := step.Failed(execCtx)
+			if tc.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			// act.MakeCleanupStep(node)
+
+			// var step blocks.BasicStep
+			// err := yaml.Unmarshal([]byte(tc.yamlData), &step)
+			// require.NoError(t, err)
+
+			// testFs := afero.NewMemMapFs()
+			// err = afero.WriteFile(testFs, fmt.Sprintf("%s.txt", tc.name), []byte(tc.yamlData), 0644)
+			// require.NoError(t, err)
+
+			// var execCtx blocks.TTPExecutionContext
+
 		})
 	}
 }

@@ -54,6 +54,18 @@ func NewBasicStep() *BasicStep {
 	}
 }
 
+// NewBasicStepWrapper is a constructor that creates and returns a new instance of a BasicStep.
+// It serves as a wrapper for the NewBasicStep function to ensure the returned instance
+// matches the Step interface. This is necessary to use the constructor in contexts where a
+// function returning a Step is required.
+//
+// **Returns:**
+//
+// Step: A BasicStep instance cast to the Step interface.
+func NewBasicStepWrapper() Step {
+	return NewBasicStep()
+}
+
 // UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
 func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	type BasicStepTmpl struct {

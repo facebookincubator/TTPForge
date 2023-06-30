@@ -79,8 +79,7 @@ func TestSetOutputSuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			act := blocks.NewAct() // Assuming there is a constructor for Act
-
+			act := blocks.NewAct()
 			outputBuffer := bytes.NewBufferString(tc.output)
 			act.SetOutputSuccess(outputBuffer, tc.exit)
 
@@ -152,6 +151,39 @@ invalid_key: "invalid_value"
 					t.Fatalf("Unknown expected type: %s", test.expectedType)
 				}
 			}
+		})
+	}
+}
+
+func TestAmbiguousStepType(t *testing.T) {
+	testCases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name: "Ambiguous Inline+File Step",
+			content: `name: test
+description: this is a test
+steps:
+  - name: ambiguous
+    inline: foo
+    file: bar`,
+		},
+		{
+			name: "Ambiguous Edit+SubTTP Step",
+			content: `name: test
+description: this is a test
+steps:
+  - name: ambiguous
+    edit_file: hello
+    ttp: world`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttps blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			assert.Error(t, err, "steps with ambiguous types should yield an error when parsed")
 		})
 	}
 }

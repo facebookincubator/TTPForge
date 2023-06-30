@@ -53,6 +53,18 @@ func NewEditStep() *EditStep {
 	}
 }
 
+// NewEditStepWrapper is a constructor that creates and returns a new instance of an EditStep.
+// It serves as a wrapper for the NewEditStep function to ensure the returned instance
+// matches the Step interface. This is necessary to use the constructor in contexts where a
+// function returning a Step is required.
+//
+// **Returns:**
+//
+// Step: An EditStep instance cast to the Step interface.
+func NewEditStepWrapper() Step {
+	return NewEditStep()
+}
+
 // GetCleanup returns the cleanup steps for a EditStep.
 // Currently this is always empty because we use backup
 // files instead for this type of step

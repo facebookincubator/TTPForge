@@ -187,12 +187,12 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	testCases := []struct {
-		name     string
-		setFlags func(*cobra.Command)
-		user     string
-		password string
-		expected string
-		err      bool
+		name      string
+		setFlags  func(*cobra.Command)
+		user      string
+		password  string
+		expected  string
+		expectErr bool
 	}{
 		{
 			name: "Should successfully run command with correct arguments",
@@ -200,17 +200,17 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 				_ = newRunTTPCmd.Flags().Set("config", testConfigYAMLPath)
 				_ = newRunTTPCmd.Flags().Set("no-cleanup", "true")
 			},
-			user:     "testUser",
-			password: "testPassword",
-			expected: "User input: testUser\nPassword input: testPassword\n",
-			err:      false,
+			user:      "testUser",
+			password:  "testPassword",
+			expected:  "User input: testUser\nPassword input: testPassword\n",
+			expectErr: false,
 		},
 		{
-			name:     "Should fail to run command without arguments",
-			setFlags: func(newRunTTPCmd *cobra.Command) {},
-			user:     "",
-			password: "",
-			err:      true,
+			name:      "Should fail to run command without arguments",
+			setFlags:  func(newRunTTPCmd *cobra.Command) {},
+			user:      "",
+			password:  "",
+			expectErr: true,
 		},
 	}
 
@@ -244,7 +244,7 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 			})
 
 			// Error assertion
-			if tc.err {
+			if tc.expectErr {
 				assert.NotEqual(t, tc.expected, output)
 			} else {
 				assert.Equal(t, tc.expected, output, "The output of the executed TTP script does not match the expected output")
