@@ -14,6 +14,7 @@
 - [Documentation](#documentation)
   - [Documenting Exported Functions](#documenting-exported-functions)
   - [Documenting Exported Structs](#documenting-exported-structs)
+  - [Documenting Exported Interfaces](#documenting-exported-interfaces)
 
 ---
 
@@ -278,5 +279,26 @@ type LogInfo struct {
   File     afero.File
   FileName string
   Path     string
+}
+```
+
+### Documenting Exported Interfaces
+
+```go
+// File is an interface representing a system file.
+//
+// **Methods:**
+//
+// Open: Opens the file, returns a io.ReadCloser and an error.
+// Write: Writes contents to the file, returns an error.
+// RemoveAll: Removes a file or directory at the specified path, returns an error.
+// Stat: Retrieves the FileInfo for the specified file or directory, returns an os.FileInfo and an error.
+// Remove: Removes the specified file or directory, returns an error.
+type File interface {
+  Open() (io.ReadCloser, error)
+  Write(contents []byte, perm os.FileMode) error
+  RemoveAll() error
+  Stat() (os.FileInfo, error)
+  Remove() error
 }
 ```
