@@ -61,29 +61,29 @@ const (
 //
 // **Attributes:**
 //
-// Name: The unique name of the Act.
-// Type: The type of the Act (e.g., Command, File, or Setup).
 // Condition: The condition that needs to be satisfied for the Act to execute.
-// Success: Indicates whether the execution of the Act was successful.
-// Output: The output of the Act's execution.
-// StepRef: Reference to other steps in the sequence.
 // Environment: Environment variables used during the Act's execution.
-// Cleanup: The cleanup actions that need to be performed after the Act's execution.
+// Name: The unique name of the Act.
+// WorkDir: The working directory of the Act.
+// Type: The type of the Act (e.g., Command, File, or Setup).
+// success: Indicates whether the execution of the Act was successful.
+// stepRef: Reference to other steps in the sequence.
+// output: The output of the Act's execution.
 type Act struct {
 	Condition   string            `yaml:"if,omitempty"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Name        string            `yaml:"name"`
 	WorkDir     string            `yaml:"-"`
 	Type        StepType          `yaml:"-"`
-	Success     bool
-	StepRef     map[string]Step
-	Output      map[string]any
+	success     bool
+	stepRef     map[string]Step
+	output      map[string]any
 }
 
 // NewAct acts as a constructor for the Act struct.
 func NewAct() *Act {
 	return &Act{
-		Output: make(map[string]interface{}),
+		output: make(map[string]interface{}),
 	}
 }
 
@@ -186,7 +186,7 @@ func (a *Act) StepName() string {
 //
 // map[string]any: The Output map of the Act.
 func (a *Act) GetOutput() map[string]any {
-	return a.Output
+	return a.output
 }
 
 // Validate checks the Act for any validation errors, such as the presence of
@@ -216,7 +216,7 @@ func (a *Act) Validate() error {
 // []string: A slice of strings containing the processed Output values of referenced steps.
 func (a *Act) FetchArgs(args []string) []string {
 	logging.Logger.Sugar().Debug("Fetching args data")
-	logging.Logger.Sugar().Debug(a.Output)
+	logging.Logger.Sugar().Debug(a.output)
 	var inputs []string
 	for _, arg := range args {
 		inputs = append(inputs, a.SearchOutput(arg))
@@ -235,8 +235,8 @@ func (a *Act) FetchArgs(args []string) []string {
 // OutputRef: A map of Output references, where the keys are step names and
 // the values are Step instances.
 func (a *Act) Setup(env map[string]string, OutputRef map[string]Step) {
-	a.StepRef = OutputRef
-	a.Output = make(map[string]any)
+	a.stepRef = OutputRef
+	a.output = make(map[string]any)
 
 	stepEnv := env
 	logging.Logger.Sugar().Debugw("supplied environment", "env", a.Environment)
@@ -296,14 +296,14 @@ func (a *Act) search(arg string) (any, error) {
 	}
 
 	stepName := splitNames[0]
-	OutputKeys := splitNames[1:]
+	outputKeys := splitNames[1:]
 
-	step, ok := a.StepRef[stepName]
+	step, ok := a.stepRef[stepName]
 	if !ok {
 		return nil, errors.New("failed to locate step in args")
 	}
 
-	return getOutputValue(step.Output, OutputKeys)
+	return getOutputValue(step.GetOutput(), outputKeys)
 }
 
 func getOutputValue(Output map[string]interface{}, keys []string) (any, error) {
@@ -369,27 +369,23 @@ func (a *Act) CheckCondition() (bool, error) {
 //
 // Output: A pointer to a bytes.Buffer containing the Output to set as the Act's Output.
 // exit: An integer representing the exit code of the Act.
-//
-// Returns:
-//
-// None.
-func (a *Act) SetOutputSuccess(Output *bytes.Buffer, exit int) {
-	a.Success = true
+func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
+	a.success = true
 	if exit != 0 {
-		a.Success = false
+		a.success = false
 	}
 
-	outStr := strings.TrimSpace(Output.String())
+	outStr := strings.TrimSpace(output.String())
 	var jsonOutput map[string]any
-	if err := json.Unmarshal(Output.Bytes(), &jsonOutput); err != nil {
-		logging.Logger.Sugar().Debugw("failed to marshal Output into JSON structure", zap.Error(err))
-		logging.Logger.Sugar().Infow("treating Output as single string", "Output", outStr)
-		a.Output["Output"] = outStr
+	if err := json.Unmarshal(output.Bytes(), &jsonOutput); err != nil {
+		logging.Logger.Sugar().Debugw("failed to marshal output into JSON structure", zap.Error(err))
+		logging.Logger.Sugar().Infow("treating output as single string", "output", outStr)
+		a.output["output"] = outStr
 		return
 	}
 
-	logging.Logger.Sugar().Debugw("unmarshalled Output to JSON", "json", jsonOutput)
-	a.Output = jsonOutput
+	logging.Logger.Sugar().Debugw("unmarshalled output to JSON", "json", jsonOutput)
+	a.output = jsonOutput
 }
 
 // MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
