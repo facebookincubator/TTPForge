@@ -66,7 +66,7 @@ In a nutshell, TTPForge adheres to the following testing standards:
    compatibility with existing logic and future code.
 
 1. If tests interact with the filesystem, they should execute within a temporary
-   directory specific to that test. Refer to `pkg/files/file_test.go` for examples.
+   directory specific to that test. Refer to `pkg/file/file_test.go` for examples.
 
 1. Test packages should be separate from the package under test to prevent
    test code from being included in the compiled binary. E.g., tests for
@@ -149,7 +149,7 @@ if err != nil {
     fmt.Printf("failed to create temp file: %v", err)
     return
  }
- 
+
  defer os.Remove(tmpfile.Name()) // clean up
 
  // Write the input to the temp file
