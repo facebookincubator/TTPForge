@@ -50,7 +50,8 @@ import (
 // err := CreateDirIfNotExists(fsys, dirPath)
 //
 //	if err != nil {
-//	    log.Fatalf("failed to create directory: %v", err)
+//	  fmt.Printf("failed to create directory: %v", err)
+//		 return
 //	}
 func CreateDirIfNotExists(fsys afero.Fs, path string) error {
 	_, err := fsys.Stat(path)
@@ -96,15 +97,15 @@ func CreateDirIfNotExists(fsys afero.Fs, path string) error {
 // inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 // exists, err := PathExistsInInventory(fsys, relFilePath, inventoryPaths)
 //
-// if err != nil {
-// log.Fatalf("failed to check file existence: %v", err)
-// }
+//	if err != nil {
+//	  fmt.Printf("failed to check file existence: %v", err)
+//	  return
+//	}
 //
 // if exists {
-// log.Printf("File %s found in the inventory directories\n", relFilePath)
+// fmt.Printf("File %s found in the inventory directories\n", relFilePath)
 // } else {
-//
-// log.Printf("File %s not found in the inventory directories\n", relFilePath)
+// fmt.Printf("File %s not found in the inventory directories\n", relFilePath)
 // }
 func PathExistsInInventory(fsys afero.Fs, relPath string, inventoryPaths []string) (bool, error) {
 	for _, inventoryPath := range inventoryPaths {
@@ -152,13 +153,13 @@ func PathExistsInInventory(fsys afero.Fs, relPath string, inventoryPaths []strin
 // fullPath, err := TemplateExists(fsys, templatePath, inventoryPaths)
 //
 //	if err != nil {
-//	    log.Fatalf("failed to check template existence: %v", err)
+//	  fmt.Printf("failed to check template existence: %v", err)
+//	  return
 //	}
 //
 //	if fullPath != "" {
 //	    log.Printf("Template %s found in the parent directory of the inventory directories\n", templatePath)
 //	} else {
-//
 //	    log.Printf("Template %s not found in the parent directory of the inventory directories\n", templatePath)
 //	}
 func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []string) (string, error) {
@@ -208,7 +209,8 @@ func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []stri
 // exists, err := TTPExists(fsys, ttpName, inventoryPaths)
 //
 // if err != nil {
-// log.Fatalf("failed to check TTP existence: %v", err)
+// fmt.Printf("failed to check TTP existence: %v", err)
+// return
 // }
 //
 // if exists {
@@ -243,9 +245,10 @@ func TTPExists(fsys afero.Fs, ttpName string, inventoryPaths []string) (bool, er
 // dirPath := "path/to/directory"
 // err := MkdirAllFS(fsys, dirPath, 0755)
 //
-// if err != nil {
-// log.Fatalf("failed to create directory: %v", err)
-// }
+//	if err != nil {
+//	  fmt.Printf("failed to create directory: %v", err)
+//	  return
+//	}
 func MkdirAllFS(fsys afero.Fs, path string, perm os.FileMode) error {
 	return fsys.MkdirAll(path, perm)
 }

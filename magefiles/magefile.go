@@ -23,7 +23,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -66,7 +65,7 @@ func InstallDeps() error {
 func FindExportedFuncsWithoutTests(pkg string) ([]string, error) {
 	funcs, err := mageutils.FindExportedFuncsWithoutTests(os.Args[1])
 	if err != nil {
-		log.Fatalf("failed to find exported functions without tests: %v", err)
+		return funcs, err
 	}
 
 	for _, funcName := range funcs {

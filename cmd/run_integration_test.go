@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -169,7 +168,8 @@ func captureOutput(f func()) string {
 	go func() {
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, r); err != nil {
-			log.Fatalf("failed to copy buffer: %v", err)
+			fmt.Printf("failed to copy buffer: %v", err)
+			return
 		}
 		outC <- buf.String()
 	}()

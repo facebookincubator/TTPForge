@@ -26,9 +26,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/file"
+	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/l50/goutils/v2/docs"
-	"github.com/l50/goutils/v2/fileutils"
+	fileutils "github.com/l50/goutils/v2/file"
 )
 
 func TestExamples(t *testing.T) {
@@ -43,7 +43,7 @@ func ExampleCreateDirIfNotExists(t *testing.T) {
 	fsys := fileutils.MockFs{}
 	dirPath := "path/to/directory"
 
-	if err := file.CreateDirIfNotExists(fsys, dirPath); err != nil {
+	if err := files.CreateDirIfNotExists(fsys, dirPath); err != nil {
 		fmt.Printf("failed to create directory: %v", err)
 		return
 	}
@@ -54,7 +54,7 @@ func ExamplePathExistsInInventory(t *testing.T) {
 	relFilePath := "templates/exampleTTP.yaml.tmpl"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 
-	exists, err := file.PathExistsInInventory(fsys, relFilePath, inventoryPaths)
+	exists, err := files.PathExistsInInventory(fsys, relFilePath, inventoryPaths)
 	if err != nil {
 		fmt.Printf("failed to check file existence: %v", err)
 		return
@@ -72,7 +72,7 @@ func ExampleTemplateExists(t *testing.T) {
 	templatePath := "bash"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 
-	fullPath, err := file.TemplateExists(fsys, templatePath, inventoryPaths)
+	fullPath, err := files.TemplateExists(fsys, templatePath, inventoryPaths)
 	if err != nil {
 		fmt.Printf("failed to check template existence: %v", err)
 		return
@@ -90,9 +90,9 @@ func ExampleTTPExists(t *testing.T) {
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 	fsys := fileutils.MockFs{}
 
-	exists, err := docs.TTPExists(fsys, ttpName, inventoryPaths)
+	exists, err := files.TTPExists(fsys, ttpName, inventoryPaths)
 	if err != nil {
-		log.Fatalf("failed to check TTP existence: %v", err)
+		fmt.Printf("failed to check TTP existence: %v", err)
 	}
 
 	if exists {
@@ -121,7 +121,7 @@ Options for the execution of Google Chrome.
 browser, err := cdpchrome.Init(true, true)
 
 if err != nil {
-    log.Fatalf("failed to initialize a chrome browser: %v", err)
+    fmt.Printf("failed to initialize a chrome browser: %v", err)
 }
 ` + "```"
 	language := "go"
@@ -129,29 +129,29 @@ if err != nil {
 	// Create a temporary file
 	tmpfile, err := os.CreateTemp("", "example.*.md")
 	if err != nil {
-		log.Fatalf("failed to create temp file: %v", err)
+		fmt.Printf("failed to create temp file: %v", err)
 	}
 	defer os.Remove(tmpfile.Name()) // clean up
 
 	// Write the input to the temp file
 	if _, err := tmpfile.Write([]byte(input)); err != nil {
-		log.Fatalf("failed to write to temp file: %v", err)
+		fmt.Printf("failed to write to temp file: %v", err)
 	}
 	if err := tmpfile.Close(); err != nil {
-		log.Fatalf("failed to close temp file: %v", err)
+		fmt.Printf("failed to close temp file: %v", err)
 	}
 
 	// Run the function
 	file := fileutils.RealFile(tmpfile.Name())
 	err = docs.FixCodeBlocks(file, language)
 	if err != nil {
-		log.Fatalf("failed to fix code blocks: %v", err)
+		fmt.Printf("failed to fix code blocks: %v", err)
 	}
 
 	// Read the modified content
 	content, err := os.ReadFile(tmpfile.Name())
 	if err != nil {
-		log.Fatalf("failed to read file: %v", err)
+		fmt.Printf("failed to read file: %v", err)
 	}
 
 	// Print the result
@@ -166,7 +166,7 @@ if err != nil {
 	// browser, err := cdpchrome.Init(true, true)
 	//
 	// if err != nil {
-	//     log.Fatalf("failed to initialize a chrome browser: %v", err)
+	//     fmt.Printf("failed to initialize a chrome browser: %v", err)
 	// }
 	// ```
 }
