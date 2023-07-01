@@ -185,16 +185,6 @@ func (t *TTP) handleInvalidStepError(stepIdx int, err error) error {
 	return fmt.Errorf("error at step %d: %w", stepIdx, err)
 }
 
-// Failed returns a slice of strings containing the names of failed steps in the TTP.
-func (t *TTP) Failed() (failed []string) {
-	for _, s := range t.Steps {
-		if !s.Success() {
-			failed = append(failed, s.StepName())
-		}
-	}
-	return failed
-}
-
 // fetchEnv retrieves the environment variables and populates the TTP's Environment map.
 func (t *TTP) fetchEnv() {
 	if t.Environment == nil {

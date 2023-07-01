@@ -25,7 +25,6 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -343,69 +342,6 @@ func TestTTP_Cleanup(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-		})
-	}
-}
-
-func TestTTP_Failed(t *testing.T) {
-	testCases := []struct {
-		name      string
-		execCtx   blocks.TTPExecutionContext
-		yamlData  string
-		expectErr bool
-	}{
-		{
-			name:    "BasicStep",
-			execCtx: blocks.TTPExecutionContext{},
-			yamlData: `
-name: "cleanup-test"
-inline: "echo 'cleanup'"
-`,
-			expectErr: false,
-		},
-		{
-			name:    "InvalidStep",
-			execCtx: blocks.TTPExecutionContext{},
-			yamlData: `
-iaminvalid: "ohno!"
-`,
-			expectErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			act := &blocks.Act{}
-			// var node yaml.Node
-			var step blocks.BasicStep
-			require.NoError(t, yaml.Unmarshal([]byte(tc.yamlData), &step))
-
-			var execCtx blocks.TTPExecutionContext
-			err := step.Validate(execCtx)
-			require.NoError(t, err)
-
-			err = step.Execute(execCtx)
-			require.NoError(t, err)
-
-			act.Failed(execCtx)
-			failedSteps := step.Failed(execCtx)
-			if tc.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-			// act.MakeCleanupStep(node)
-
-			// var step blocks.BasicStep
-			// err := yaml.Unmarshal([]byte(tc.yamlData), &step)
-			// require.NoError(t, err)
-
-			// testFs := afero.NewMemMapFs()
-			// err = afero.WriteFile(testFs, fmt.Sprintf("%s.txt", tc.name), []byte(tc.yamlData), 0644)
-			// require.NoError(t, err)
-
-			// var execCtx blocks.TTPExecutionContext
-
 		})
 	}
 }
