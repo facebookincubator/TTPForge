@@ -331,9 +331,6 @@ func TestTTP_Cleanup(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// act := &blocks.Act{}
-			// cleanupAct, err := act.MakeCleanupStep(&node)
-
 			ttp := blocks.TTP{}
 			err := ttp.Cleanup(tc.execCtx, tc.availableSteps, tc.cleanupSteps)
 

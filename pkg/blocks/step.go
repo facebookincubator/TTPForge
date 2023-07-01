@@ -215,13 +215,13 @@ func (a *Act) Validate() error {
 func (a *Act) FetchArgs(args []string) []string {
 	logging.Logger.Sugar().Debug("Fetching args data")
 	logging.Logger.Sugar().Debug(a.output)
-	var inputs []string
+	var processedInputs []string
 	for _, arg := range args {
-		inputs = append(inputs, a.SearchOutput(arg))
+		processedInputs = append(processedInputs, a.SearchOutput(arg))
 	}
-	logging.Logger.Sugar().Debugw("full list of inputs", "inputs", inputs)
+	logging.Logger.Sugar().Debugw("full list of inputs", "inputs", processedInputs)
 
-	return inputs
+	return processedInputs
 }
 
 // Setup initializes the Act with the given environment and output reference maps.

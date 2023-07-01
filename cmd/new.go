@@ -100,12 +100,6 @@ func runNewTTPBuilderCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Check if --args are provided and --ttp-type is not set to 'file'
-	if len(newTTPInput.Args) > 0 && newTTPInput.TTPType != "file" {
-		err := fmt.Errorf("--args can only be provided if --ttp-type is set to 'file'")
-		return err
-	}
-
 	inventoryPaths := viper.GetStringSlice("inventory")
 
 	templatePath := filepath.Join("templates", newTTPInput.Template)
