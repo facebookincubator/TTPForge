@@ -165,11 +165,10 @@ func captureOutput(f func()) string {
 
 	outC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely
-	go func() {
+	go func(t *testing.T) {
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, r); err != nil {
-			fmt.Printf("failed to copy buffer: %v", err)
-			return
+			t.Fatalf("failed to copy buffer: %v", err)
 		}
 		outC <- buf.String()
 	}()
