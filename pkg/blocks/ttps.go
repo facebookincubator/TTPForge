@@ -147,42 +147,60 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func (t *TTP) decodeSteps(steps []yaml.Node) error {
-	// Define an ordered list of step type constructors.
-	stepTypeConstructors := []func() Step{
-		NewBasicStepWrapper,
-		NewFileStepWrapper,
-		NewSubTTPStepWrapper,
-		NewEditStepWrapper,
-	}
-
 	for stepIdx, stepNode := range steps {
-		var step Step
-		var err error
-
-		// Try to decode the step node into each step type in turn.
-		for _, constructor := range stepTypeConstructors {
-			step = constructor()        // Create a new instance of the current step type.
-			err = stepNode.Decode(step) // Try to decode the step node into this step type.
-
-			if err == nil && !step.IsNil() {
-				// Decoding succeeded and the step is not nil.
-				logging.Logger.Sugar().Debugw("decoded step", "step", step)
-				t.Steps = append(t.Steps, step)
-				break // No need to try more step types.
+		decoded := false
+		// these candidate steps are pointers, so this line
+		// MUST be inside the outer step loop or horrible things will happen
+		// #justpointerthings
+		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep()}
+		for _, stepType := range stepTypes {
+			err := stepNode.Decode(stepType)
+			if err == nil && !stepType.IsNil() {
+				// Must catch bad steps with ambiguous types, such as:
+				// - name: hello
+				//   file: bar
+				//   ttp: foo
+				//
+				// we can't use KnownFields to solve this without a massive
+				// refactor due to https://github.com/go-yaml/yaml/issues/460
+				if decoded {
+					return fmt.Errorf("step #%v has ambiguous type", stepIdx+1)
+				}
+				logging.Logger.Sugar().Debugw("decoded step", "step", stepType)
+				t.Steps = append(t.Steps, stepType)
+				decoded = true
+				break // Break the loop once a valid stepType is found
+			} else if err != nil {
+				return fmt.Errorf("error decoding step #%v: %v", stepIdx+1, err)
 			}
 		}
 
-		if err != nil || step.IsNil() {
-			// If we get here, decoding failed for all step types.
-			return t.handleInvalidStepError(stepIdx, err)
+		if !decoded {
+			return t.handleInvalidStepError(stepNode)
 		}
 	}
 
 	return nil
 }
 
-func (t *TTP) handleInvalidStepError(stepIdx int, err error) error {
-	return fmt.Errorf("error at step %d: %w", stepIdx, err)
+func (t *TTP) handleInvalidStepError(stepNode yaml.Node) error {
+	act := Act{}
+	err := stepNode.Decode(&act)
+
+	if act.Name != "" && err != nil {
+		return fmt.Errorf("invalid step found, missing parameters for step types")
+	}
+	return fmt.Errorf("invalid step found with no name, missing parameters for step types")
+}
+
+// Failed returns a slice of strings containing the names of failed steps in the TTP.
+func (t *TTP) Failed() (failed []string) {
+	for _, s := range t.Steps {
+		if !s.Success() {
+			failed = append(failed, s.StepName())
+		}
+	}
+	return failed
 }
 
 // fetchEnv retrieves the environment variables and populates the TTP's Environment map.
