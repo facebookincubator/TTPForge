@@ -24,7 +24,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/l50/goutils/v2/docs"
@@ -32,15 +31,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-func TestExamples(t *testing.T) {
-	t.Run("ExampleCreateDirIfNotExists", ExampleCreateDirIfNotExists)
-	t.Run("ExamplePathExistsInInventory", ExamplePathExistsInInventory)
-	t.Run("ExampleTemplateExists", ExampleTemplateExists)
-	t.Run("ExampleTTPExists", ExampleTTPExists)
-	t.Run("ExampleMkdirAllFS", ExampleMkdirAllFS)
-}
-
-func ExampleCreateDirIfNotExists(t *testing.T) {
+func ExampleCreateDirIfNotExists() {
 	fsys := afero.NewOsFs()
 	dirPath := "path/to/directory"
 
@@ -50,7 +41,7 @@ func ExampleCreateDirIfNotExists(t *testing.T) {
 	}
 }
 
-func ExamplePathExistsInInventory(t *testing.T) {
+func ExamplePathExistsInInventory() {
 	fsys := afero.NewOsFs()
 	relFilePath := "templates/exampleTTP.yaml.tmpl"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
@@ -68,7 +59,7 @@ func ExamplePathExistsInInventory(t *testing.T) {
 	}
 }
 
-func ExampleTemplateExists(t *testing.T) {
+func ExampleTemplateExists() {
 	fsys := afero.NewOsFs()
 	templatePath := "bash"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
@@ -86,7 +77,7 @@ func ExampleTemplateExists(t *testing.T) {
 	}
 }
 
-func ExampleTTPExists(t *testing.T) {
+func ExampleTTPExists() {
 	ttpName := "exampleTTP"
 	inventoryPaths := []string{"path/to/inventory1", "path/to/inventory2"}
 	fsys := afero.NewOsFs()
@@ -103,7 +94,7 @@ func ExampleTTPExists(t *testing.T) {
 	}
 }
 
-func ExampleMkdirAllFS(t *testing.T) {
+func ExampleMkdirAllFS() {
 	fsys := afero.NewOsFs()
 	dirPath := "path/to/directory"
 	if err := files.MkdirAllFS(fsys, dirPath, 0755); err != nil {
@@ -112,7 +103,7 @@ func ExampleMkdirAllFS(t *testing.T) {
 	}
 }
 
-func ExampleFixCodeBlocks(t *testing.T) {
+func ExampleFixCodeBlocks() {
 	input := `Driver represents an interface to Google Chrome using go.
 
 It contains a context.Context associated with this Driver and
