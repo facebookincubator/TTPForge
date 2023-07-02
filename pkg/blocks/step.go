@@ -403,17 +403,6 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 //
 // CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
 // error: An error if the node contains invalid parameters.
-// MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
-// If the node contains a BasicStep or FileStep, the corresponding CleanupAct is created and returned.
-//
-// Parameters:
-//
-// node: A pointer to a yaml.Node containing the parameters to create the CleanupAct.
-//
-// Returns:
-//
-// CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
-// error: An error if the node contains invalid parameters.
 func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 	if node.IsZero() {
 		return nil, nil
