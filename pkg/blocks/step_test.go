@@ -200,7 +200,7 @@ steps:
 			content: `name: test
 description: this is a test
 steps:
-	- name: ambiguous
+  - name: ambiguous
 	inline: foo
 	file: bar`,
 			expectErr: true,
@@ -211,8 +211,8 @@ steps:
 description: this is a test
 steps:
   - name: ambiguous
-    edit_file: hello
-    ttp: world`,
+	edit: foo
+	ttp: bar`,
 			expectErr: true,
 		},
 	}

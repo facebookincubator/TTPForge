@@ -171,7 +171,7 @@ func (t *TTP) decodeSteps(steps []yaml.Node) error {
 				decoded = true
 				break // Break the loop once a valid stepType is found
 			} else if err != nil {
-				return fmt.Errorf("error decoding step #%v: %v", stepIdx+1, err)
+				logging.Logger.Sugar().Warnw("error decoding step #%v: %v", "step", stepIdx+1, err)
 			}
 		}
 

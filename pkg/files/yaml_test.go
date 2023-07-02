@@ -62,7 +62,7 @@ steps:
 echo "you said: $1"
 `
 
-	tests := []struct {
+	testCases := []struct {
 		name        string
 		testFile    string
 		stepOutputs []string
@@ -78,7 +78,7 @@ echo "you said: $1"
 		},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			testDir, err := os.MkdirTemp("", "e2e-tests")
 			assert.NoError(t, err, "failed to create temporary directory")
