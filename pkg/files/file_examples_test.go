@@ -27,7 +27,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/l50/goutils/v2/docs"
-	fileutils "github.com/l50/goutils/v2/file"
+	fileutils "github.com/l50/goutils/v2/file/fileutils"
 	"github.com/spf13/afero"
 )
 

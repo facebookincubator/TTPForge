@@ -92,8 +92,9 @@ func GeneratePackageDocs() error {
 		Name:  "ttpforge",
 	}
 
+	excludedPkgs := []string{"main"}
 	template := filepath.Join(repoRoot, "magefiles", "tmpl", "README.md.tmpl")
-	if err := docs.CreatePackageDocs(fs, repo, template); err != nil {
+	if err := docs.CreatePackageDocs(fs, repo, template, excludedPkgs...); err != nil {
 		return fmt.Errorf("failed to create package docs: %v", err)
 	}
 
