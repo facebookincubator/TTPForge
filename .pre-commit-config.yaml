@@ -92,8 +92,9 @@ repos:
         entry: .hooks/go-critic.sh
         args: ["check"]
 
-      - id: generate-docs
-        name: Update package docs
-        language: script
-        entry: .hooks/generate-docs.sh
-        files: '\.go$'
+        # - id: generate-docs
+        #   name: Update package docs
+        #   language: script
+        #   entry: .hooks/generate-docs.sh
+        #   files: '\.go$'
+        #   stages: [commit]

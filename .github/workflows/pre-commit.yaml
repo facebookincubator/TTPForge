@@ -43,7 +43,11 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add go.mod go.sum magefiles/go.mod magefiles/go.sum
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update go.mod and go.sum"
+          git diff --quiet && git diff --staged --quiet || \
+            git commit -m "Update go.mod and go.sum"
+
+      - name: Make sure docs have been generated prior to push
+        run: bash .hooks/generate-docs.sh
 
       - name: Install pre-commit dependencies
         run: mage installDeps
