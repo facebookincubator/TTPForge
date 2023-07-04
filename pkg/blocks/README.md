@@ -126,6 +126,17 @@ Returns:
 
 CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
 error: An error if the node contains invalid parameters.
+MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
+If the node contains a BasicStep or FileStep, the corresponding CleanupAct is created and returned.
+
+Parameters:
+
+node: A pointer to a yaml.Node containing the parameters to create the CleanupAct.
+
+Returns:
+
+CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
+error: An error if the node contains invalid parameters.
 
 ---
 
@@ -247,15 +258,7 @@ error: An error if any validation errors are found, or nil if the Act is valid.
 Cleanup(TTPExecutionContext) error
 ```
 
-Cleanup executes the CleanupAct associated with this BasicStep.
-
-**Parameters:**
-
-execCtx: The execution context for the TTP.
-
-**Returns:**
-
-error: An error if any issue occurs while executing the CleanupAct.
+Cleanup is an implementation of the CleanupAct interface's Cleanup method.
 
 ---
 
@@ -265,12 +268,7 @@ error: An error if any issue occurs while executing the CleanupAct.
 CleanupName() string
 ```
 
-CleanupName returns the name of the cleanup step associated with this
-BasicStep.
-
-**Returns:**
-
-string: The name of the cleanup step.
+CleanupName returns the name of the cleanup step.
 
 ---
 
@@ -280,17 +278,7 @@ string: The name of the cleanup step.
 Execute(TTPExecutionContext) error
 ```
 
-Execute runs this BasicStep and returns an error if any issue occurs. It
-sets up a context with a timeout, then if an inline command is provided,
-executes it.
-
-**Parameters:**
-
-execCtx: The execution context for the TTP.
-
-**Returns:**
-
-error: An error if any issue occurs during execution.
+Execute runs the BasicStep and returns an error if any occur.
 
 ---
 
@@ -300,13 +288,7 @@ error: An error if any issue occurs during execution.
 ExplainInvalid() error
 ```
 
-ExplainInvalid returns an error with an explanation of why this
-BasicStep is invalid. The error explains that the 'inline' field is
-empty.
-
-**Returns:**
-
-error: An error explaining that the 'inline' field is empty.
+ExplainInvalid returns an error with an explanation of why a BasicStep is invalid.
 
 ---
 
@@ -318,11 +300,6 @@ GetCleanup() []CleanupAct
 
 GetCleanup returns the cleanup steps for a BasicStep.
 
-**Returns:**
-
-[]CleanupAct: A slice of CleanupAct, which is a cleanup step for this
-BasicStep.
-
 ---
 
 ### BasicStep.GetType()
@@ -331,11 +308,7 @@ BasicStep.
 GetType() StepType
 ```
 
-GetType returns the step type for this BasicStep.
-
-**Returns:**
-
-StepType: The type of this step.
+GetType returns the step type for a BasicStep.
 
 ---
 
@@ -345,11 +318,7 @@ StepType: The type of this step.
 IsNil() bool
 ```
 
-IsNil checks if this BasicStep is considered empty or uninitialized.
-
-**Returns:**
-
-bool: True if this BasicStep is empty or uninitialized, false otherwise.
+IsNil checks if a BasicStep is considered empty or uninitialized.
 
 ---
 
@@ -359,23 +328,7 @@ bool: True if this BasicStep is empty or uninitialized, false otherwise.
 UnmarshalYAML(*yaml.Node) error
 ```
 
-UnmarshalYAML is a custom unmarshaler for BasicStep to handle decoding
-from YAML.
-
-This function first decodes the provided yaml.Node into a temporary
-structure. Then, it copies the relevant data to the receiver BasicStep,
-and checks if the step is not empty. If the step includes a cleanup step
-and is not of type StepCleanup, it tries to create a CleanupStep from
-the corresponding yaml.Node.
-
-**Parameters:**
-
-node: The yaml.Node to decode.
-
-**Returns:**
-
-error: An error if decoding, checking the step, or creating a
-CleanupStep fails.
+UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
 
 ---
 
@@ -385,19 +338,7 @@ CleanupStep fails.
 Validate(TTPExecutionContext) error
 ```
 
-Validate validates this BasicStep, checking for the necessary attributes
-and dependencies. It checks that the Act and inline command are valid,
-the executor is either provided or defaults to "bash", the executor is
-present in the system path, and if a CleanupStep is provided, it is
-valid.
-
-**Parameters:**
-
-execCtx: The execution context for the TTP.
-
-**Returns:**
-
-error: An error if any issue occurs during validation.
+Validate validates the BasicStep, checking for the necessary attributes and dependencies.
 
 ---
 
@@ -725,12 +666,7 @@ NewAct is a constructor for the Act struct.
 NewBasicStep() *BasicStep
 ```
 
-NewBasicStep creates a new BasicStep instance, initializing an Act
-struct within it.
-
-**Returns:**
-
-*BasicStep: A pointer to a new BasicStep instance.
+NewBasicStep creates a new BasicStep instance with an initialized Act struct.
 
 ---
 
@@ -849,17 +785,25 @@ If any of these conditions are not met, an error is returned.
 Cleanup(TTPExecutionContext, map[string]Step, []CleanupAct) error
 ```
 
-Cleanup executes all cleanup steps in the TTP.
+Cleanup executes all of the cleanup steps in the given TTP.
 
 Parameters:
 
-execCtx: The execution context for the TTP.
-availableSteps: A map of available steps.
-cleanupSteps: A list of cleanup actions.
+t: The TTP to execute the cleanup steps for.
 
 Returns:
 
 error: An error if any of the cleanup steps fail to execute.
+
+---
+
+### TTP.Failed()
+
+```go
+Failed() []string
+```
+
+Failed returns a slice of strings containing the names of failed steps in the TTP.
 
 ---
 
@@ -869,8 +813,7 @@ error: An error if any of the cleanup steps fail to execute.
 MarshalYAML() interface{}, error
 ```
 
-MarshalYAML is a custom marshalling implementation for the TTP structure.
-It encodes a TTP object into a formatted
+MarshalYAML is a custom marshalling implementation for the TTP structure. It encodes a TTP object into a formatted
 YAML string, handling the indentation and structure of the output YAML.
 
 Returns:
@@ -887,11 +830,11 @@ error: An error if the encoding process fails.
 RunSteps(TTPExecutionContext) error
 ```
 
-RunSteps executes all steps in the TTP.
+RunSteps executes all of the steps in the given TTP.
 
 Parameters:
 
-execCtx: The execution context for the TTP.
+t: The TTP to execute the steps for.
 
 Returns:
 
@@ -924,13 +867,9 @@ error: An error if the decoding process fails or if the TTP structure contains i
 ValidateSteps(TTPExecutionContext) error
 ```
 
-ValidateSteps iterates through the TTP steps and validates each.
-The working directory for each step is set before calling its
-Validate method.
-
-**Parameters:**
-
-execCtx: The execution context for the TTP.
+ValidateSteps iterates through each step in the TTP and validates it. It sets the working directory
+for each step before calling its Validate method. If any step fails validation, the method returns
+an error. If all steps are successfully validated, the method returns nil.
 
 Returns:
 

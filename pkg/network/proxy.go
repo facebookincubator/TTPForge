@@ -21,115 +21,61 @@ package network
 
 import "os"
 
-// EnableHTTPSProxy sets the environment variables "https_proxy" and "http_proxy" to the provided proxy string.
+// EnableHTTPSProxy sets the environment variables "https_proxy"
+// and "http_proxy" to the provided proxy string.
 // This enables an HTTPS proxy for network operations in the current process.
 //
-// Parameters:
+// **Parameters:**
 //
 // proxy: A string representing the URL of the proxy server to be used for HTTPS connections.
-//
-// Returns:
-//
-// # None
-//
-// Example:
-//
-// proxy := "http://proxy.example.com:8080"
-// EnableHTTPSProxy(proxy)
 func EnableHTTPSProxy(proxy string) {
 	os.Setenv("https_proxy", proxy)
 	os.Setenv("http_proxy", proxy)
 }
 
-// DisableHTTPSProxy unsets the "https_proxy" and "http_proxy" environment variables.
-// This disables the HTTPS proxy for network operations in the current process.
+// DisableHTTPSProxy unsets the "https_proxy" and "http_proxy"
+// environment variables. This disables the HTTPS proxy for network
+// operations in the current process.
 //
-// Parameters:
+// **Parameters:**
 //
 // proxy: A string representing the URL of the proxy server to be used for HTTPS connections.
-//
-// Returns:
-//
-// # None
-//
-// Example:
-//
-// proxy := "http://proxy.example.com:8080"
-// EnableHTTPSProxy(proxy)
 func DisableHTTPSProxy() {
 	os.Unsetenv("https_proxy")
 }
 
-// EnableNoProxy sets the "no_proxy" environment variable to the provided domains string.
-// This excludes the specified domains from being proxied for network operations in the current process.
+// EnableNoProxy sets the "no_proxy" environment variable to
+// the provided domains string. This excludes the specified domains
+// from being proxied for network operations in the current process.
 //
-// Parameters:
+// **Parameters:**
 //
-// domains: A string representing a comma-separated list of domain names to be excluded from proxying.
-//
-// Returns:
-//
-// # None
-//
-// Example:
-//
-// domains := "example.com,example.org"
-// EnableNoProxy(domains)
+// domains: A string representing a comma-separated list of domain names
+// to be excluded from proxying.
 func EnableNoProxy(domains string) {
 	os.Setenv("no_proxy", domains)
 }
 
 // DisableNoProxy unsets the "no_proxy" environment variable.
-// This clears the list of domains excluded from being proxied for network operations in the current process.
-//
-// Parameters:
-//
-// # None
-//
-// Returns:
-//
-// # None
-//
-// Example:
-//
-// DisableNoProxy()
+// This clears the list of domains excluded from being
+// proxied for network operations in the current process.
 func DisableNoProxy() {
 	os.Unsetenv("no_proxy")
 }
 
-// EnableHTTPProxy sets the "http_proxy" environment variable to the provided proxy string.
-// This enables an HTTP proxy for network operations in the current process.
+// EnableHTTPProxy sets the "http_proxy" environment variable
+// to the provided proxy string. This enables an HTTP proxy
+// for network operations in the current process.
 //
-// Parameters:
+// **Parameters:**
 //
 // proxy: A string representing the URL of the proxy server to be used for HTTP connections.
-//
-// Returns:
-//
-// # None
-//
-// Example:
-//
-// proxy := "http://proxy.example.com:8080"
-// EnableHTTPProxy(proxy)
 func EnableHTTPProxy(proxy string) {
 	os.Setenv("http_proxy", proxy)
 }
 
 // DisableHTTPProxy unsets the "http_proxy" environment variable.
 // This disables the HTTP proxy for network operations in the current process.
-//
-// Parameters:
-//
-// # None
-//
-// Returns:
-//
-// # None
-//
-// Example:
-//
-// DisableHTTPProxy()
 func DisableHTTPProxy() {
 	os.Unsetenv("http_proxy")
 }

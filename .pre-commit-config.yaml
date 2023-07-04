@@ -22,7 +22,7 @@ repos:
     rev: v3.0.0-alpha.9-for-vscode
     hooks:
       - id: prettier
-        files: \.(json|md|yaml|yml)$
+        files: \.(json|yaml|yml)$
         exclude: docs/container.md
 
   - repo: https://github.com/koalaman/shellcheck-precommit
