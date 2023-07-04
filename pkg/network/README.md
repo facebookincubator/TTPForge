@@ -38,7 +38,7 @@ DisableHTTPSProxy unsets the "https_proxy" and "http_proxy"
 environment variables. This disables the HTTPS proxy for network
 operations in the current process.
 
-Parameters:
+**Parameters:**
 
 proxy: A string representing the URL of the proxy server to be used for HTTPS connections.
 
@@ -66,7 +66,7 @@ EnableHTTPProxy sets the "http_proxy" environment variable
 to the provided proxy string. This enables an HTTP proxy
 for network operations in the current process.
 
-Parameters:
+**Parameters:**
 
 proxy: A string representing the URL of the proxy server to be used for HTTP connections.
 
@@ -82,7 +82,7 @@ EnableHTTPSProxy sets the environment variables "https_proxy"
 and "http_proxy" to the provided proxy string.
 This enables an HTTPS proxy for network operations in the current process.
 
-Parameters:
+**Parameters:**
 
 proxy: A string representing the URL of the proxy server to be used for HTTPS connections.
 
@@ -98,7 +98,7 @@ EnableNoProxy sets the "no_proxy" environment variable to
 the provided domains string. This excludes the specified domains
 from being proxied for network operations in the current process.
 
-Parameters:
+**Parameters:**
 
 domains: A string representing a comma-separated list of domain names
 to be excluded from proxying.
