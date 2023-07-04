@@ -28,34 +28,6 @@ command and sets flags appropriately.
 
 ---
 
-### InitYAML(*embed.FS)
-
-```go
-InitYAML(*embed.FS)
-```
-
-InitYAML initializes YAML files and generates corresponding Cobra commands based on the embedded
-file system. The function walks through the directories and files in the embedded file system,
-creates Cobra commands for each directory and TTP action, and adds them to the parent commands
-accordingly.
-
-Example usage:
-
-embeddings, _ := embed.NewFS()
-InitYAML(&embeddings)
-
-Parameters:
-
-embeddings: A pointer to an embed.FS object, representing the embedded file system containing
-the YAML files.
-
-Side Effects:
-
-The function updates global variables and adds generated Cobra commands to the appropriate
-parent commands based on the structure of the embedded file system.
-
----
-
 ### NewTTPBuilderCmd()
 
 ```go
@@ -93,7 +65,7 @@ to provide better control over the formatting of the output YAML file.
 Params:
   - filepath: The path of the file where the configuration data will be saved.
 
-Returns:
+**Returns:**
   - error: An error object if any issues occur during the marshaling or file
     writing process, otherwise nil.
 
