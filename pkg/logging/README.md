@@ -1,6 +1,6 @@
-# TTPForge/{{.PackageName}}
+# TTPForge/logging
 
-The `{{.PackageName}}` package is a part of the TTPForge.
+The `logging` package is a part of the TTPForge.
 
 ---
 
@@ -16,23 +16,34 @@ The `{{.PackageName}}` package is a part of the TTPForge.
 ---
 
 ## Functions
-{{range .Functions}}
-### {{if .StructName}}{{.StructName}}{{end}}{{.Name}}{{if .Params}}({{.Params}}){{end}}
+
+### InitLog(bool, string, bool, bool)
 
 ```go
-{{.Signature}}
+InitLog(bool, string, bool, bool) error
 ```
 
-{{.Description}}
+InitLog initializes the TTPForge's log file.
+
 ---
-{{end}}
+
+### ToggleDebug()
+
+```go
+ToggleDebug()
+```
+
+ToggleDebug is used to trigger debug logs.
+
+---
+
 ## Installation
 
-To use the TTPForge/{{.PackageName}} package, you first need to install it.
+To use the TTPForge/logging package, you first need to install it.
 Follow the steps below to install via go get.
 
 ```bash
-go get {{.GoGetPath}}
+go get github.com/ttpforge/facebookincubator/logging
 ```
 
 ---
@@ -43,7 +54,7 @@ After installation, you can import the package in your Go project
 using the following import statement:
 
 ```go
-import "{{.GoGetPath}}"
+import "github.com/ttpforge/facebookincubator/logging"
 ```
 
 ---
@@ -51,7 +62,7 @@ import "{{.GoGetPath}}"
 ## Tests
 
 To ensure the package is working correctly, run the following
-command to execute the tests for `TTPForge/{{.PackageName}}`:
+command to execute the tests for `TTPForge/logging`:
 
 ```bash
 go test -v

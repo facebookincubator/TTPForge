@@ -17,7 +17,7 @@ The `cmd` package is a part of the TTPForge.
 
 ## Functions
 
-### Execute
+### Execute()
 
 ```go
 Execute()
@@ -28,7 +28,7 @@ command and sets flags appropriately.
 
 ---
 
-### NewTTPBuilderCmd
+### NewTTPBuilderCmd()
 
 ```go
 NewTTPBuilderCmd() *cobra.Command
@@ -39,7 +39,7 @@ provided input to customize it.
 
 ---
 
-### RunTTPCmd
+### RunTTPCmd()
 
 ```go
 RunTTPCmd() *cobra.Command
@@ -49,7 +49,7 @@ RunTTPCmd runs an input TTP.
 
 ---
 
-### WriteConfigToFile
+### WriteConfigToFile(string)
 
 ```go
 WriteConfigToFile(string) error

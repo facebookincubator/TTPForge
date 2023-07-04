@@ -1,6 +1,6 @@
-# TTPForge/{{.PackageName}}
+# TTPForge/runner
 
-The `{{.PackageName}}` package is a part of the TTPForge.
+The `runner` package is a part of the TTPForge.
 
 ---
 
@@ -16,23 +16,27 @@ The `{{.PackageName}}` package is a part of the TTPForge.
 ---
 
 ## Functions
-{{range .Functions}}
-### {{if .StructName}}{{.StructName}}{{end}}{{.Name}}{{if .Params}}({{.Params}}){{end}}
+
+### Execute()
 
 ```go
-{{.Signature}}
+Execute() error
 ```
 
-{{.Description}}
+Execute runs a given TTP
+
+this is an empty stub right now to silence "no non-test Go files" complains
+from the go-build pre-commit hook, but will be populated shortly
+
 ---
-{{end}}
+
 ## Installation
 
-To use the TTPForge/{{.PackageName}} package, you first need to install it.
+To use the TTPForge/runner package, you first need to install it.
 Follow the steps below to install via go get.
 
 ```bash
-go get {{.GoGetPath}}
+go get github.com/ttpforge/facebookincubator/runner
 ```
 
 ---
@@ -43,7 +47,7 @@ After installation, you can import the package in your Go project
 using the following import statement:
 
 ```go
-import "{{.GoGetPath}}"
+import "github.com/ttpforge/facebookincubator/runner"
 ```
 
 ---
@@ -51,7 +55,7 @@ import "{{.GoGetPath}}"
 ## Tests
 
 To ensure the package is working correctly, run the following
-command to execute the tests for `TTPForge/{{.PackageName}}`:
+command to execute the tests for `TTPForge/runner`:
 
 ```bash
 go test -v
