@@ -23,12 +23,16 @@ The `blocks` package is a part of the TTPForge.
 CheckCondition() bool, error
 ```
 
-CheckCondition checks the condition specified for an Act and returns true if it matches the current OS, false otherwise.
-If the condition is "always", the function returns true. If an error occurs while checking the condition, it is returned.
+CheckCondition checks the condition specified for an Act and returns true
+if it matches the current OS, false otherwise. If the condition is "always",
+the function returns true.
+If an error occurs while checking the condition, it is returned.
 
-Returns:
+**Returns:**
 
-bool: true if the condition matches the current OS or the condition is "always", false otherwise.
+bool: true if the condition matches the current OS or the
+condition is "always", false otherwise.
+
 error: An error if an error occurs while checking the condition.
 
 ---
@@ -42,7 +46,7 @@ Cleanup(map[string]string) error
 Cleanup is a placeholder function for the base Act. Subtypes can override
 this method to implement their own cleanup logic.
 
-Returns:
+**Returns:**
 
 error: Always returns nil for the base Act.
 
@@ -56,9 +60,10 @@ ExplainInvalid() error
 
 ExplainInvalid returns an error explaining why the Act is invalid.
 
-Returns:
+**Returns:**
 
-error: An error explaining why the Act is invalid, or nil if the Act is valid.
+error: An error explaining why the Act is invalid, or nil
+if the Act is valid.
 
 ---
 
@@ -71,13 +76,14 @@ FetchArgs([]string) []string
 FetchArgs processes a slice of arguments and returns a new slice with the
 output values of referenced steps.
 
-Parameters:
+**Parameters:**
 
 args: A slice of strings representing the arguments to be processed.
 
-Returns:
+**Returns:**
 
-[]string: A slice of strings containing the processed output values of referenced steps.
+[]string: A slice of strings containing the processed output values
+of referenced steps.
 
 ---
 
@@ -89,7 +95,7 @@ GetOutput() map[string]any
 
 GetOutput returns the output map of the Act.
 
-Returns:
+**Returns:**
 
 map[string]any: The output map of the Act.
 
@@ -103,7 +109,7 @@ IsNil() bool
 
 IsNil checks whether the Act is nil (i.e., it does not have a name).
 
-Returns:
+**Returns:**
 
 bool: True if the Act has no name, false otherwise.
 
@@ -115,27 +121,19 @@ bool: True if the Act has no name, false otherwise.
 MakeCleanupStep(*yaml.Node) CleanupAct, error
 ```
 
-MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
-If the node contains a BasicStep or FileStep, the corresponding CleanupAct is created and returned.
+MakeCleanupStep creates a CleanupAct based on the given yaml.Node.
+If the node is empty or invalid, it returns nil. If the node contains a
+BasicStep or FileStep, the corresponding CleanupAct is created and returned.
 
-Parameters:
+**Parameters:**
 
-node: A pointer to a yaml.Node containing the parameters to create the CleanupAct.
+node: A pointer to a yaml.Node containing the parameters to
+create the CleanupAct.
 
-Returns:
-
-CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
-error: An error if the node contains invalid parameters.
-MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
-If the node contains a BasicStep or FileStep, the corresponding CleanupAct is created and returned.
-
-Parameters:
-
-node: A pointer to a yaml.Node containing the parameters to create the CleanupAct.
-
-Returns:
+**Returns:**
 
 CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
+
 error: An error if the node contains invalid parameters.
 
 ---
@@ -149,11 +147,12 @@ SearchOutput(string) string
 SearchOutput searches for the Output value of a step by parsing the provided
 argument.
 
-Parameters:
+**Parameters:**
 
-arg: A string representing the argument in the format "steps.step_name.output".
+arg: A string representing the argument in the format
+"steps.step_name.output".
 
-Returns:
+**Returns:**
 
 string: The Output value of the step as a string, or the original argument
 if the step is not found or the argument is in an incorrect format.
@@ -168,9 +167,10 @@ SetDir(string)
 
 SetDir sets the working directory for the Act.
 
-Parameters:
+**Parameters:**
 
-dir: A string representing the directory path to be set as the working directory.
+dir: A string representing the directory path to be set
+as the working directory.
 
 ---
 
@@ -180,12 +180,16 @@ dir: A string representing the directory path to be set as the working directory
 SetOutputSuccess(*bytes.Buffer, int)
 ```
 
-SetOutputSuccess sets the output of an Act to a given buffer and sets the success flag to true or false depending on the exit code.
-If the output can be unmarshalled into a JSON structure, it is stored as a string in the Act's output map.
+SetOutputSuccess sets the output of an Act to a given buffer and sets the
+success flag to true or false depending on the exit code.If the output can
+be unmarshalled into a JSON structure, it is stored as a string in the
+Act's output map.
 
-Parameters:
+**Parameters:**
 
-output: A pointer to a bytes.Buffer containing the output to set as the Act's output.
+output: A pointer to a bytes.Buffer containing the output to
+set as the Act's output.
+
 exit: An integer representing the exit code of the Act.
 
 ---
@@ -196,14 +200,17 @@ exit: An integer representing the exit code of the Act.
 Setup(map[string]string, map[string]Step)
 ```
 
-Setup initializes the Act with the given environment and output reference maps.
+Setup initializes the Act with the given environment and output
+reference maps.
 
-Parameters:
+**Parameters:**
 
-env: A map of environment variables, where the keys are variable names and the values are variable values.
-outputRef: A map of output references, where the keys are step names and the values are Step instances.
+env: A map of environment variables, where the keys are
+variable names and the values are variable values.
+outputRef: A map of output references, where the keys are step names
+and the values are Step instances.
 
-Returns:
+**Returns:**
 
 map[string]: Step instances.
 
@@ -217,7 +224,7 @@ StepName() string
 
 StepName returns the name of the Act.
 
-Returns:
+**Returns:**
 
 string: The name of the Act.
 
@@ -231,7 +238,7 @@ Success() bool
 
 Success returns the success status of the Act.
 
-Returns:
+**Returns:**
 
 bool: The success status of the Act.
 
@@ -244,11 +251,12 @@ Validate() error
 ```
 
 Validate checks the Act for any validation errors, such as the presence of
-spaces in the name. It returns an error if any validation errors are found.
+spaces in the name.
 
-Returns:
+**Returns:**
 
-error: An error if any validation errors are found, or nil if the Act is valid.
+error: An error if any validation errors are found, or nil if
+the Act is valid.
 
 ---
 
@@ -350,12 +358,13 @@ Contains(string, map[string]any) bool
 
 Contains checks if a key exists in a map.
 
-Parameters:
+**Parameters:**
 
 key: A string representing the key to search for.
+
 search: A map of keys and values.
 
-Returns:
+**Returns:**
 
 bool: A boolean value indicating if the key was found in the map.
 
@@ -429,17 +438,21 @@ Validate validates the EditStep, checking for the necessary attributes and depen
 FetchAbs(string, string) string, error
 ```
 
-FetchAbs returns the absolute path of a file given its path and the working directory. It handles cases where the path starts with "~/",
-is an absolute path, or is a relative path from the working directory. It logs any errors and returns them.
+FetchAbs returns the absolute path of a file given its path and the
+working directory. It handles cases where the path starts with "~/",
+is an absolute path, or is a relative path from the working directory.
+It logs any errors and returns them.
 
-Parameters:
+**Parameters:**
 
 path: A string representing the path to the file.
+
 workdir: A string representing the working directory.
 
-Returns:
+**Returns:**
 
 fullpath: A string representing the absolute path to the file.
+
 error: An error if the path cannot be resolved to an absolute path.
 
 ---
@@ -450,15 +463,17 @@ error: An error if the path cannot be resolved to an absolute path.
 FetchEnv(map[string]string) []string
 ```
 
-FetchEnv converts an environment variable map into a slice of strings that can be used as an argument when running a command.
+FetchEnv converts an environment variable map into a slice of strings that
+can be used as an argument when running a command.
 
-Parameters:
+**Parameters:**
 
 environ: A map of environment variable names to values.
 
-Returns:
+**Returns:**
 
-[]string: A slice of strings representing the environment variables and their values.
+[]string: A slice of strings representing the environment variables
+and their values.
 
 ---
 
@@ -469,7 +484,8 @@ Cleanup(TTPExecutionContext) error
 ```
 
 Cleanup is a method to establish a link with the Cleanup interface.
-Assumes that the type is the cleanup step and is invoked by f.CleanupStep.Cleanup.
+Assumes that the type is the cleanup step and is invoked by
+f.CleanupStep.Cleanup.
 
 ---
 
@@ -499,9 +515,10 @@ Execute runs the FileStep and returns an error if any occur.
 ExplainInvalid() error
 ```
 
-ExplainInvalid returns an error message explaining why the FileStep is invalid.
+ExplainInvalid returns an error message explaining why the FileStep
+is invalid.
 
-Returns:
+**Returns:**
 
 error: An error message explaining why the FileStep is invalid.
 
@@ -543,15 +560,15 @@ IsNil checks if the FileStep is nil or empty and returns a boolean value.
 UnmarshalYAML(*yaml.Node) error
 ```
 
-UnmarshalYAML decodes a YAML node into a FileStep instance. It uses the provided
-struct as a template for the YAML data, and initializes the FileStep instance with the
-decoded values.
+UnmarshalYAML decodes a YAML node into a FileStep instance. It uses
+the provided struct as a template for the YAML data, and initializes the
+FileStep instance with the decoded values.
 
-Parameters:
+**Parameters:**
 
 node: A pointer to a yaml.Node representing the YAML data to decode.
 
-Returns:
+**Returns:**
 
 error: An error if there is a problem decoding the YAML data.
 
@@ -567,12 +584,15 @@ Validate validates the FileStep. It checks that the
 Act field is valid, and that either FilePath is set with
 a valid file path, or InlineLogic is set with valid code.
 
-If FilePath is set, it ensures that the file exists and retrieves its absolute path.
+If FilePath is set, it ensures that the file exists and retrieves
+its absolute path.
 
-If Executor is not set, it infers the executor based on the file extension. It then checks that the executor is in the system path,
-and if CleanupStep is not nil, it validates the cleanup step as well. It logs any errors and returns them.
+If Executor is not set, it infers the executor based on the file extension.
+It then checks that the executor is in the system path, and if CleanupStep
+is not nil, it validates the cleanup step as well.
+It logs any errors and returns them.
 
-Returns:
+**Returns:**
 
 error: An error if any validation checks fail.
 
@@ -584,19 +604,25 @@ error: An error if any validation checks fail.
 FindFilePath(string, string, fs.StatFS) string, error
 ```
 
-FindFilePath checks if a file exists given its path, the working directory, and an optional fs.StatFS. It handles cases where the path starts with "../",
-"~/", or is a relative path. It also checks a list of paths in InventoryPath for the file. It logs any errors and returns them.
+FindFilePath checks if a file exists given its path, the working directory,
+and an optional fs.StatFS. It handles cases where the path starts with "../",
+"~/", or is a relative path. It also checks a list of paths in InventoryPath
+for the file. It logs any errors and returns them.
 
-Parameters:
+**Parameters:**
 
 path: A string representing the path to the file.
+
 workdir: A string representing the working directory.
+
 system: An optional fs.StatFS that can be used to check if the file exists.
 
-Returns:
+**Returns:**
 
-* A string representing the path to the file, or an empty string if the file does not exist.
-* An error if the file cannot be found or if other errors occur.
+string: A string representing the path to the file, or an empty string
+if the file does not exist.
+
+error: An error if the file cannot be found or if other errors occur.
 
 ---
 
@@ -606,7 +632,8 @@ Returns:
 InferExecutor(string) string
 ```
 
-InferExecutor infers the executor based on the file extension and returns it as a string.
+InferExecutor infers the executor based on the file extension and
+returns it as a string.
 
 ---
 
@@ -618,13 +645,14 @@ JSONString(any) string, error
 
 JSONString returns a string representation of an object in JSON format.
 
-Parameters:
+**Parameters:**
 
 in: An object of any type.
 
-Returns:
+**Returns:**
 
 string: A string representing the object in JSON format.
+
 error: An error if the object cannot be encoded as JSON.
 
 ---
@@ -638,12 +666,12 @@ LoadTTP(string, fs.StatFS) *TTP, error
 LoadTTP reads a TTP file and creates a TTP instance based on its contents.
 If the file is empty or contains invalid data, it returns an error.
 
-Parameters:
+**Parameters:**
 
 ttpFilePath: the absolute or relative path to the TTP file.
 system: An optional fs.StatFS from which to load the TTP
 
-Returns:
+**Returns:**
 
 ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 err: An error if the file contains invalid data or cannot be read.
@@ -770,11 +798,12 @@ a YAML node into a SubTTPStep instance.
 Validate(TTPExecutionContext) error
 ```
 
-Validate checks the validity of the SubTTPStep by ensuring the following conditions are met:
-1. The associated Act is valid.
-2. The TTP file associated with the SubTTPStep can be successfully unmarshalled.
-3. The TTP file path is not empty.
-4. The steps within the TTP file do not contain any nested SubTTPSteps.
+Validate checks the validity of the SubTTPStep by ensuring
+the following conditions are met:
+The associated Act is valid.
+The TTP file associated with the SubTTPStep can be successfully unmarshalled.
+The TTP file path is not empty.
+The steps within the TTP file do not contain any nested SubTTPSteps.
 If any of these conditions are not met, an error is returned.
 
 ---
@@ -787,11 +816,11 @@ Cleanup(TTPExecutionContext, map[string]Step, []CleanupAct) error
 
 Cleanup executes all of the cleanup steps in the given TTP.
 
-Parameters:
+**Parameters:**
 
 t: The TTP to execute the cleanup steps for.
 
-Returns:
+**Returns:**
 
 error: An error if any of the cleanup steps fail to execute.
 
@@ -803,7 +832,8 @@ error: An error if any of the cleanup steps fail to execute.
 Failed() []string
 ```
 
-Failed returns a slice of strings containing the names of failed steps in the TTP.
+Failed returns a slice of strings containing the names of failed
+steps in the TTP.
 
 ---
 
@@ -813,10 +843,11 @@ Failed returns a slice of strings containing the names of failed steps in the TT
 MarshalYAML() interface{}, error
 ```
 
-MarshalYAML is a custom marshalling implementation for the TTP structure. It encodes a TTP object into a formatted
-YAML string, handling the indentation and structure of the output YAML.
+MarshalYAML is a custom marshalling implementation for the TTP structure.
+It encodes a TTP object into a formatted YAML string, handling the
+indentation and structure of the output YAML.
 
-Returns:
+**Returns:**
 
 interface{}: The formatted YAML string representing the TTP object.
 
@@ -832,11 +863,11 @@ RunSteps(TTPExecutionContext) error
 
 RunSteps executes all of the steps in the given TTP.
 
-Parameters:
+**Parameters:**
 
 t: The TTP to execute the steps for.
 
-Returns:
+**Returns:**
 
 error: An error if any of the steps fail to execute.
 
@@ -848,14 +879,16 @@ error: An error if any of the steps fail to execute.
 UnmarshalYAML(*yaml.Node) error
 ```
 
-UnmarshalYAML is a custom unmarshalling implementation for the TTP structure. It decodes a YAML Node into a TTP object,
-handling the decoding and validation of the individual steps within the TTP.
+UnmarshalYAML is a custom unmarshalling implementation for the TTP structure.
+It decodes a YAML Node into a TTP object, handling the decoding and
+validation of the individual steps within the TTP.
 
-Parameters:
+**Parameters:**
 
-node: A pointer to a yaml.Node that represents the TTP structure to be unmarshalled.
+node: A pointer to a yaml.Node that represents the TTP structure
+to be unmarshalled.
 
-Returns:
+**Returns:**
 
 error: An error if the decoding process fails or if the TTP structure contains invalid steps.
 
@@ -867,11 +900,12 @@ error: An error if the decoding process fails or if the TTP structure contains i
 ValidateSteps(TTPExecutionContext) error
 ```
 
-ValidateSteps iterates through each step in the TTP and validates it. It sets the working directory
-for each step before calling its Validate method. If any step fails validation, the method returns
-an error. If all steps are successfully validated, the method returns nil.
+ValidateSteps iterates through each step in the TTP and validates it.
+It sets the working directory for each step before calling its Validate
+method. If any step fails validation, the method returns an error.
+If all steps are successfully validated, the method returns nil.
 
-Returns:
+**Returns:**
 
 error: An error if any step validation fails, otherwise nil.
 

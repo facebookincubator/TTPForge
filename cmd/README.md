@@ -55,19 +55,22 @@ RunTTPCmd runs an input TTP.
 WriteConfigToFile(string) error
 ```
 
-WriteConfigToFile writes the configuration data to a YAML file at the specified
-filepath. It uses the yaml.Marshal function to convert the configuration struct
-into YAML format, and then writes the resulting bytes to the file.
+WriteConfigToFile writes the configuration data to a YAML file at
+the specified filepath. It uses the yaml.Marshal function to convert
+the configuration struct into YAML format, and then writes the
+resulting bytes to the file.
 
 This function is a custom alternative to Viper's built-in WriteConfig method
 to provide better control over the formatting of the output YAML file.
 
-Params:
-  - filepath: The path of the file where the configuration data will be saved.
+**Parameters:**
+filepath: The path of the file where the configuration
+data will be saved.
 
 **Returns:**
-  - error: An error object if any issues occur during the marshaling or file
-    writing process, otherwise nil.
+
+error: An error if any issues occur during the marshaling or file
+writing process, otherwise nil.
 
 ---
 

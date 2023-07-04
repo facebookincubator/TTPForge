@@ -32,7 +32,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-// CreateDirIfNotExists checks if a directory exists at the 
+// CreateDirIfNotExists checks if a directory exists at the
 // given path and creates it if it does not exist.
 // It returns an error if the directory could not be created.
 //
@@ -40,7 +40,7 @@ import (
 //
 // fsys: An afero.Fs object representing the file system to operate on.
 //
-// path: A string representing the path to the directory to check and 
+// path: A string representing the path to the directory to check and
 // create if necessary.
 //
 // **Returns:**
@@ -69,14 +69,14 @@ func CreateDirIfNotExists(fsys afero.Fs, path string) error {
 	return nil
 }
 
-// ExpandHomeDir expands the tilde character in a path to the user's home 
-// directory. The function takes a string representing a path and checks if the 
-// first character is a tilde (~). If it is, the function replaces the tilde 
-// with the user's home directory. The path is returned unchanged if it does 
+// ExpandHomeDir expands the tilde character in a path to the user's home
+// directory. The function takes a string representing a path and checks if the
+// first character is a tilde (~). If it is, the function replaces the tilde
+// with the user's home directory. The path is returned unchanged if it does
 // not start with a tilde or if there's an error retrieving the user's home
 // directory.
 //
-// Borrowed from 
+// Borrowed from
 // [here](https://github.com/l50/goutils/blob/e91b7c4e18e23c53e35d04fa7961a5a14ca8ef39/fileutils.go#L283-L318)
 //
 // **Parameters:**
@@ -85,8 +85,8 @@ func CreateDirIfNotExists(fsys afero.Fs, path string) error {
 //
 // **Returns:**
 //
-// string: The expanded path with the tilde replaced by the user's home 
-// directory, or the original path if it does not start with a tilde or 
+// string: The expanded path with the tilde replaced by the user's home
+// directory, or the original path if it does not start with a tilde or
 // there's an error retrieving the user's home directory.
 func ExpandHomeDir(path string) string {
 	path = strings.TrimSpace(path)
@@ -102,25 +102,25 @@ func ExpandHomeDir(path string) string {
 	return filepath.Join(homeDir, path[1:])
 }
 
-// PathExistsInInventory checks if a relative file path exists in any of the 
+// PathExistsInInventory checks if a relative file path exists in any of the
 // inventory directories specified in the inventoryPaths parameter. The function
 // uses afero.Fs to operate on a filesystem.
 //
 // **Parameters:**
 //
 // fsys: An afero.Fs object representing the filesystem to search.
-// 
-// relPath: A string representing the relative path of the file to search 
+//
+// relPath: A string representing the relative path of the file to search
 // for in the inventory directories.
 //
-// inventoryPaths: A []string containing the inventory directory paths 
+// inventoryPaths: A []string containing the inventory directory paths
 // to search.
 //
 // **Returns:**
 //
-// bool: A boolean value indicating whether the file exists in any of the 
+// bool: A boolean value indicating whether the file exists in any of the
 // inventory directories (true) or not (false).
-// 
+//
 // error: An error if there is an issue checking the file's existence.
 func PathExistsInInventory(fsys afero.Fs, relPath string, inventoryPaths []string) (bool, error) {
 	for _, inventoryPath := range inventoryPaths {
@@ -137,26 +137,26 @@ func PathExistsInInventory(fsys afero.Fs, relPath string, inventoryPaths []strin
 	return false, nil
 }
 
-// TemplateExists checks if a template file exists in a 'templates' folder 
-//located in the parent directory of any of the inventory directories specified 
-// in the inventoryPaths parameter. If the template file is found, it returns 
+// TemplateExists checks if a template file exists in a 'templates' folder
+// located in the parent directory of any of the inventory directories specified
+// in the inventoryPaths parameter. If the template file is found, it returns
 // the full path to the template file, otherwise, it returns an empty string.
 //
 // **Parameters:**
 //
 // fsys: An afero.Fs object representing the file system to operate on.
-// 
-// templatePath: A string representing the path of the template file to search 
-// for in the 'templates' folder of the parent directory of each inventory 
+//
+// templatePath: A string representing the path of the template file to search
+// for in the 'templates' folder of the parent directory of each inventory
 // directory.
 //
-// inventoryPaths: A []string containing the inventory directory 
+// inventoryPaths: A []string containing the inventory directory
 // paths to search.
 //
 // **Returns:**
 //
-// fullPath: A string containing the full path to the template file if it 
-// exists in the 'templates' folder of the parent directory of any of the 
+// fullPath: A string containing the full path to the template file if it
+// exists in the 'templates' folder of the parent directory of any of the
 // inventory directories, or an empty string if not found.
 //
 // error: An error if there is an issue checking the template file's existence.
@@ -183,22 +183,22 @@ func TemplateExists(fsys afero.Fs, relTemplatePath string, inventoryPaths []stri
 	return "", nil
 }
 
-// TTPExists checks if a TTP file exists in any of the inventory directories 
-// specified in the inventoryPaths parameter. 
+// TTPExists checks if a TTP file exists in any of the inventory directories
+// specified in the inventoryPaths parameter.
 //
 // **Parameters:**
 //
 // fsys: An afero.Fs representing the file system to operate on.
 //
-// ttpName: A string representing the name of the TTP file to search for 
+// ttpName: A string representing the name of the TTP file to search for
 // in the inventory directories.
 //
-// inventoryPaths: A []string containing the inventory directory paths 
+// inventoryPaths: A []string containing the inventory directory paths
 // to search.
 //
 // **Returns:**
 //
-// bool: A boolean value indicating whether the TTP file exists in any of 
+// bool: A boolean value indicating whether the TTP file exists in any of
 // the inventory directories (true) or not (false).
 //
 // error: An error if there is an issue checking the TTP file's existence.
@@ -207,9 +207,9 @@ func TTPExists(fsys afero.Fs, ttpName string, inventoryPaths []string) (bool, er
 	return PathExistsInInventory(fsys, ttpPath, inventoryPaths)
 }
 
-// MkdirAllFS is a filesystem-agnostic version of os.MkdirAll. 
-// It creates a directory named path, along with any necessary parents, and 
-// returns nil, or else returns an error. The permission bits perm are used 
+// MkdirAllFS is a filesystem-agnostic version of os.MkdirAll.
+// It creates a directory named path, along with any necessary parents, and
+// returns nil, or else returns an error. The permission bits perm are used
 // for all directories that MkdirAll creates.
 //
 // If path is already a directory, MkdirAll does nothing and returns nil.
@@ -217,11 +217,11 @@ func TTPExists(fsys afero.Fs, ttpName string, inventoryPaths []string) (bool, er
 // **Parameters:**
 //
 // fsys: An afero.Fs object representing the file system to operate on.
-// 
-// path: A string representing the path to the directory to create, including 
+//
+// path: A string representing the path to the directory to create, including
 // any necessary parent directories.
-// 
-// perm: An os.FileMode representing the permission bits for the created 
+//
+// perm: An os.FileMode representing the permission bits for the created
 // directories.
 //
 // **Returns:**

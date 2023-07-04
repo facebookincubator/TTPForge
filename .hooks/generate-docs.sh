@@ -8,26 +8,16 @@
 # traversing the file tree and creating a new README.md file in each
 # directory containing a Go package. If the command fails, the commit
 # is stopped and an error message is shown.
-set -e
+set -ex
 
-# Define the URL of bashutils.sh
-bashutils_url="https://raw.githubusercontent.com/l50/dotfiles/main/bashutils"
+# Change to the repository root
+cd "$(git rev-parse --show-toplevel)"
 
-# Define the local path of bashutils.sh
-bashutils_path="/tmp/bashutils"
+# Determine the location of the mage binary
+mage_bin=$(go env GOPATH)/bin/mage
 
-# Check if bashutils.sh exists locally
-if [[ ! -f "${bashutils_path}" ]]; then
-    # bashutils.sh doesn't exist locally, so download it
-    mkdir -p "${HOME}/.dotfiles"
-    curl -s "${bashutils_url}" -o "${bashutils_path}"
-fi
-
-# Source bashutils
-# shellcheck source=/dev/null
-source "${bashutils_path}"
-
-if command -v mage &> /dev/null; then
+# Check if mage is installed
+if [[ -x "${mage_bin}" ]]; then
     echo "mage is installed"
 else
     echo -e "mage is not installed\n"
@@ -36,10 +26,10 @@ else
     exit 1
 fi
 
-repo_root
+# repo_root
 
 # Run the mage generatepackagedocs command
-$(which mage) generatepackagedocs
+"${mage_bin}" generatepackagedocs
 
 # Catch the exit code of the last command
 exit_status=$?
