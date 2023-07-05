@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/fatih/color v1.15.0
-	github.com/l50/goutils/v2 v2.0.7
+	github.com/l50/goutils/v2 v2.0.8
 	github.com/magefile/mage v1.15.0
 )
 
