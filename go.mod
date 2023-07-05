@@ -3,7 +3,7 @@ module github.com/facebookincubator/ttpforge
 go 1.20
 
 require (
-	github.com/l50/goutils/v2 v2.0.3
+	github.com/l50/goutils/v2 v2.0.7
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/otiai10/copy v1.12.0
 	github.com/spf13/afero v1.9.5
@@ -46,7 +46,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
