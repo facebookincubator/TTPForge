@@ -156,8 +156,7 @@ verbose: false
 	return testDir, testConfigYAMLPath
 }
 
-// Function to capture command output.
-func captureOutput(f func()) string {
+func captureOutput(f func()) (string, error) {
 	old := os.Stdout // keep backup of the real stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
@@ -165,21 +164,31 @@ func captureOutput(f func()) string {
 	f()
 
 	outC := make(chan string)
+	errC := make(chan error) // error channel
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, r); err != nil {
-			log.Fatalf("failed to copy buffer: %v", err)
+			log.Printf("failed to copy buffer: %v", err)
+			errC <- err // send error back to the main Goroutine
+		} else {
+			outC <- buf.String()
 		}
-		outC <- buf.String()
+		close(outC)
+		close(errC)
 	}()
 
 	// back to normal state
 	w.Close()
 	os.Stdout = old // restoring the real stdout
 	out := <-outC
+	err := <-errC
 
-	return out
+	if err != nil {
+		return "", fmt.Errorf("an error occurred in the goroutine: %w", err)
+	}
+
+	return out, nil
 }
 
 func TestRunCommandVariadicArgs(t *testing.T) {
@@ -237,11 +246,14 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 			}
 
 			// Capture command output and error
-			output := captureOutput(func() {
+			output, err := captureOutput(func() {
 				if err := newRunTTPCmd.Execute(); err != nil {
 					fmt.Println(err)
 				}
 			})
+
+			// Run error assertion
+			assert.NoError(t, err)
 
 			// Error assertion
 			if tc.err {

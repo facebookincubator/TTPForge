@@ -1,14 +1,14 @@
 #!/bin/bash
 
-set -x
+set -e
 
 TESTS_TO_RUN=$1
 RETURN_CODE=0
 
 if [[ -z "${TESTS_TO_RUN}" ]]; then
     echo "No tests input"
-    echo "Example - Run all tests: bash go-unit-tests.sh all"
-    echo "Example - Run all tests and generate coverage report: bash go-unit-tests.sh coverage"
+    echo "Example - Run all tests: bash run-go-tests.sh all"
+    echo "Example - Run all tests and generate coverage report: bash run-go-tests.sh coverage"
     exit 1
 fi
 

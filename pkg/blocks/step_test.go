@@ -79,7 +79,7 @@ func TestSetOutputSuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			act := blocks.NewAct() // Assuming there is a constructor for Act
+			act := blocks.NewAct()
 
 			outputBuffer := bytes.NewBufferString(tc.output)
 			act.SetOutputSuccess(outputBuffer, tc.exit)

@@ -53,15 +53,15 @@ func NewFileStep() *FileStep {
 	}
 }
 
-// UnmarshalYAML decodes a YAML node into a FileStep instance. It uses the provided
-// struct as a template for the YAML data, and initializes the FileStep instance with the
-// decoded values.
+// UnmarshalYAML decodes a YAML node into a FileStep instance. It uses
+// the provided struct as a template for the YAML data, and initializes the
+// FileStep instance with the decoded values.
 //
-// Parameters:
+// **Parameters:**
 //
 // node: A pointer to a yaml.Node representing the YAML data to decode.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error if there is a problem decoding the YAML data.
 func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
@@ -116,7 +116,8 @@ func (f *FileStep) GetType() StepType {
 }
 
 // Cleanup is a method to establish a link with the Cleanup interface.
-// Assumes that the type is the cleanup step and is invoked by f.CleanupStep.Cleanup.
+// Assumes that the type is the cleanup step and is invoked by
+// f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup(execCtx TTPExecutionContext) error {
 	return f.Execute(execCtx)
 }
@@ -134,9 +135,10 @@ func (f *FileStep) CleanupName() string {
 	return f.Name
 }
 
-// ExplainInvalid returns an error message explaining why the FileStep is invalid.
+// ExplainInvalid returns an error message explaining why the FileStep
+// is invalid.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error message explaining why the FileStep is invalid.
 func (f *FileStep) ExplainInvalid() error {
@@ -182,7 +184,8 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (err error) {
 	return nil
 }
 
-// fileExec executes the FileStep with the specified executor and arguments, and returns an error if any occur.
+// fileExec executes the FileStep with the specified executor and arguments,
+// and returns an error if any occur.
 func (f *FileStep) fileExec() error {
 	var cmd *exec.Cmd
 	if f.Executor == ExecutorBinary {
@@ -217,12 +220,15 @@ func (f *FileStep) fileExec() error {
 // Act field is valid, and that either FilePath is set with
 // a valid file path, or InlineLogic is set with valid code.
 //
-// If FilePath is set, it ensures that the file exists and retrieves its absolute path.
+// If FilePath is set, it ensures that the file exists and retrieves
+// its absolute path.
 //
-// If Executor is not set, it infers the executor based on the file extension. It then checks that the executor is in the system path,
-// and if CleanupStep is not nil, it validates the cleanup step as well. It logs any errors and returns them.
+// If Executor is not set, it infers the executor based on the file extension.
+// It then checks that the executor is in the system path, and if CleanupStep
+// is not nil, it validates the cleanup step as well.
+// It logs any errors and returns them.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error if any validation checks fail.
 func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
@@ -277,7 +283,8 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-// InferExecutor infers the executor based on the file extension and returns it as a string.
+// InferExecutor infers the executor based on the file extension and
+// returns it as a string.
 func InferExecutor(filePath string) string {
 	ext := filepath.Ext(filePath)
 	logging.Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)

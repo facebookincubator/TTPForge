@@ -22,7 +22,7 @@ repos:
     rev: v3.0.0-alpha.9-for-vscode
     hooks:
       - id: prettier
-        files: \.(json|md|yaml|yml)$
+        files: \.(json|yaml|yml)$
         exclude: docs/container.md
 
   - repo: https://github.com/koalaman/shellcheck-precommit
@@ -91,3 +91,10 @@ repos:
         files: '\.go$'
         entry: .hooks/go-critic.sh
         args: ["check"]
+
+        # - id: generate-docs
+        #   name: Update package docs
+        #   language: script
+        #   entry: .hooks/generate-docs.sh
+        #   files: '\.go$'
+        #   stages: [commit]

@@ -28,6 +28,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/l50/goutils/v2/sys"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -120,7 +121,7 @@ func runNewTTPBuilderCmd(cmd *cobra.Command, args []string) error {
 
 	// Iterate through inventory paths and find the first matching template
 	for _, invPath := range inventoryPaths {
-		invPath = files.ExpandHomeDir(invPath)
+		invPath = sys.ExpandHomeDir(invPath)
 		tmplPath, err := files.TemplateExists(fsys, ttpTemplatePath, []string{invPath})
 		if err != nil {
 			return err

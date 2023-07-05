@@ -31,12 +31,12 @@ import (
 // LoadTTP reads a TTP file and creates a TTP instance based on its contents.
 // If the file is empty or contains invalid data, it returns an error.
 //
-// Parameters:
+// **Parameters:**
 //
 // ttpFilePath: the absolute or relative path to the TTP file.
 // system: An optional fs.StatFS from which to load the TTP
 //
-// Returns:
+// **Returns:**
 //
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.

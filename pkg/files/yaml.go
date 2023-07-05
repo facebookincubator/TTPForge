@@ -32,31 +32,23 @@ import (
 	"go.uber.org/zap"
 )
 
-// ExecuteYAML is the top-level function for executing a TTP defined in a YAML file. It is exported for testing purposes,
+// ExecuteYAML is the top-level function for executing a TTP defined
+// in a YAML file. It is exported for testing purposes,
 // and the returned TTP is required for assertion checks in tests.
 //
-// Parameters:
+// **Parameters:**
 //
-// yamlFile: A string representing the path to the YAML file containing the TTP definition.
-// inventoryPaths: A slice of strings representing the inventory paths to search for the TTP.
+// yamlFile: A string representing the path to the YAML file containing
+// the TTP definition.
+// inventoryPaths: A slice of strings representing the inventory paths
+// to search for the TTP.
 //
-// Returns:
+// **Returns:**
 //
-// *blocks.TTP: A pointer to a TTP struct containing the executed TTP and its related information.
+// *blocks.TTP: A pointer to a TTP struct containing the executed TTP
+// and its related information.
+//
 // error: An error if the TTP execution fails or if the TTP file cannot be found.
-//
-// Example:
-//
-// yamlFilePath := "/path/to/your/ttp.yaml"
-// inventoryPaths := []string{"/path/to/your/inventory"}
-//
-// ttp, err := ExecuteYAML(yamlFilePath, inventoryPaths)
-//
-// if err != nil {
-// log.Fatalf("failed to execute TTP: %v", err)
-// }
-//
-// log.Printf("TTP %s executed successfully\n", ttp.Name)
 func ExecuteYAML(yamlFile string, c blocks.TTPExecutionContext) (*blocks.TTP, error) {
 
 	// see if the relative path exists in current dir
