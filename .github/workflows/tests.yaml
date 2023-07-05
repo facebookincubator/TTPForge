@@ -24,7 +24,7 @@ jobs:
 
       - name: Generate the coverage output
         run: |
-          bash .hooks/go-unit-tests.sh coverage
+          bash .hooks/run-go-tests.sh coverage
 
       # - name: Send the coverage output
       #   uses: shogo82148/actions-goveralls@31ee804b8576ae49f6dc3caa22591bc5080e7920 # v1
