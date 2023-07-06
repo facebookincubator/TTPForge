@@ -268,7 +268,7 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 
 		if err := stepCopy.Execute(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
-			return nil, nil, err
+			return availableSteps, cleanup, err
 		}
 		// Enters in reverse order
 		availableSteps[stepCopy.StepName()] = stepCopy
@@ -309,7 +309,8 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 
 	availableSteps, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
-		return err
+		// we need to run cleanup so we don't return here
+		logging.Logger.Sugar().Errorf("[*] Error executing TTP: %v", err)
 	}
 
 	logging.Logger.Sugar().Info("[*] Completed TTP")
