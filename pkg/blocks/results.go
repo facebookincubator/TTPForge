@@ -42,12 +42,16 @@ type StepResultsRecord struct {
 	ByIndex []ExecutionResult
 }
 
-// TTPExecutionContext - pass this into RunSteps to control TTP execution
-type TTPExecutionContext struct {
+// TTPExecutionConfig - pass this into RunSteps to control TTP execution
+type TTPExecutionConfig struct {
 	CliInputs      []string
 	NoCleanup      bool
 	Args           map[string]string
 	TTPSearchPaths []string
+}
 
+// TTPExecutionContext - holds config and context for the currently executing TTP
+type TTPExecutionContext struct {
+	Cfg         TTPExecutionConfig
 	StepResults StepResultsRecord
 }

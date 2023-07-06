@@ -117,7 +117,7 @@ verbose: false
 			err = os.WriteFile(relScriptPath, []byte(testVariableExpansionSH), 0755)
 			assert.NoError(t, err, "failed to write the temporary shell script")
 
-			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionContext{})
+			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionConfig{})
 			assert.NoError(t, err, "execution of the testFile should not cause an error")
 			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 

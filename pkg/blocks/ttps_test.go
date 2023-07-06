@@ -208,7 +208,7 @@ steps:
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			assert.NoError(t, err)
 
-			err = ttp.RunSteps(blocks.TTPExecutionContext{})
+			err = ttp.RunSteps(blocks.TTPExecutionConfig{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {

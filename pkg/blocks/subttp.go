@@ -105,7 +105,9 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
 		subExecCtx := TTPExecutionContext{
-			Args: s.Args,
+			Cfg: TTPExecutionConfig{
+				Args: s.Args,
+			},
 		}
 		if _, err := stepCopy.Execute(subExecCtx); err != nil {
 			return nil, err
@@ -137,7 +139,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 
 	// search for the referenced TTP in the configured search paths
 	// and the current directory
-	augmentedSearchPaths := append([]string{"."}, execCtx.TTPSearchPaths...)
+	augmentedSearchPaths := append([]string{"."}, execCtx.Cfg.TTPSearchPaths...)
 	var fullPath string
 	for _, searchPath := range augmentedSearchPaths {
 		fullPath = filepath.Join(searchPath, s.TtpFile)

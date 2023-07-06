@@ -49,7 +49,7 @@ import (
 // and its related information.
 //
 // error: An error if the TTP execution fails or if the TTP file cannot be found.
-func ExecuteYAML(yamlFile string, c blocks.TTPExecutionContext) (*blocks.TTP, error) {
+func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, error) {
 
 	// see if the relative path exists in current dir
 	var absPathToTTP string

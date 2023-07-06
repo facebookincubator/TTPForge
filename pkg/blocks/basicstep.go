@@ -201,7 +201,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	result, err := b.executeBashStdin(ctx, execCtx.Args)
+	result, err := b.executeBashStdin(ctx, execCtx.Cfg.Args)
 	if err != nil {
 		logging.Logger.Sugar().Error(zap.Error(err))
 		return nil, err

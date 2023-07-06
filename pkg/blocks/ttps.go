@@ -279,7 +279,7 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 // **Returns:**
 //
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
+func (t *TTP) RunSteps(execCfg TTPExecutionConfig) error {
 	if err := t.setWorkingDirectory(); err != nil {
 		return err
 	}
@@ -287,6 +287,10 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 	if err := t.validateInputs(); err != nil {
 		logging.Logger.Sugar().Error("why is the err")
 		return err
+	}
+
+	execCtx := TTPExecutionContext{
+		Cfg: execCfg,
 	}
 
 	if err := t.ValidateSteps(execCtx); err != nil {
@@ -297,7 +301,7 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 
 	// TODO: move this to a better spot
 	// InputMap should go away entirely
-	execCtx.Args = t.InputMap
+	execCtx.Cfg.Args = t.InputMap
 
 	availableSteps, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
@@ -307,7 +311,7 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 
 	logging.Logger.Sugar().Info("[*] Completed TTP")
 
-	if !execCtx.NoCleanup {
+	if !execCtx.Cfg.NoCleanup {
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
 			if err := t.Cleanup(execCtx, availableSteps, cleanup); err != nil {

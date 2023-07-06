@@ -57,7 +57,9 @@ ttp: test.yaml`
 	require.NoError(t, err, "invalid sub ttp step format")
 
 	execCtx := blocks.TTPExecutionContext{
-		TTPSearchPaths: []string{"ttps"},
+		Cfg: blocks.TTPExecutionConfig{
+			TTPSearchPaths: []string{"ttps"},
+		},
 	}
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")

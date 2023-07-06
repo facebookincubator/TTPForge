@@ -33,7 +33,7 @@ func init() {
 
 // RunTTPCmd runs an input TTP.
 func RunTTPCmd() *cobra.Command {
-	ttpCfg := blocks.TTPExecutionContext{}
+	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the TTP found in the specified YAML file.",
