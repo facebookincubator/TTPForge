@@ -26,6 +26,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -90,4 +91,24 @@ steps:
 			}
 		})
 	}
+}
+
+func TestBasicStepExecute(t *testing.T) {
+
+	// prepare step
+	content := `name: test_basic_step
+inline: echo "basic test"`
+	var s blocks.BasicStep
+	execCtx := blocks.TTPExecutionContext{}
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+	// TODO: remove Setup() call after upcoming ExecutionContext refactor
+	s.Setup(nil, nil)
+
+	// execute and check result
+	result, err := s.Execute(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "basic test\n", result.Stdout)
 }

@@ -197,19 +197,22 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
-	if b.Inline != "" {
-		if err := b.executeBashStdin(ctx, execCtx.Args); err != nil {
-			logging.Logger.Sugar().Error(zap.Error(err))
-			return nil, err
-		}
+	if b.Inline == "" {
+		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	logging.Logger.Sugar().Info("========= Result ==========")
+	result, err := b.executeBashStdin(ctx, execCtx.Args)
+	if err != nil {
+		logging.Logger.Sugar().Error(zap.Error(err))
+		return nil, err
+	}
 
-	return &ExecutionResult{}, nil
+	logging.Logger.Sugar().Info("========= Done ==========")
+
+	return result, nil
 }
 
-func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]string) (err error) {
+func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]string) (*ExecutionResult, error) {
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()
 
@@ -217,12 +220,12 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]stri
 
 	cmd := b.prepareCommand(ctx, replaced)
 
-	err = b.runCommand(cmd)
+	result, err := b.runCommand(cmd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (b *BasicStep) replaceInput(inputs map[string]string) string {
@@ -248,7 +251,7 @@ func (b *BasicStep) prepareCommand(ctx context.Context, inline string) *exec.Cmd
 	return cmd
 }
 
-func (b *BasicStep) runCommand(cmd *exec.Cmd) error {
+func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
@@ -257,12 +260,15 @@ func (b *BasicStep) runCommand(cmd *exec.Cmd) error {
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
 		logging.Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
-		return err
+		return nil, err
 	}
 
 	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
 	b.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
 
-	return nil
+	result := ExecutionResult{}
+	result.Stdout = outStr
+	result.Stderr = errStr
+	return &result, nil
 }
