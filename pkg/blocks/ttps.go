@@ -264,8 +264,8 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []C
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			return stepResults, cleanup, err
 		}
-		stepResults.ByName[step.StepName()] = *execResult
-		stepResults.ByIndex = append(stepResults.ByIndex, *execResult)
+		stepResults.ByName[step.StepName()] = execResult
+		stepResults.ByIndex = append(stepResults.ByIndex, execResult)
 
 		// Enters in reverse order
 		cleanup = append(stepCopy.GetCleanup(), cleanup...)
@@ -318,7 +318,7 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	if !execCtx.Cfg.NoCleanup {
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
-			if err := t.executeCleanupSteps(execCtx, cleanup); err != nil {
+			if err := t.executeCleanupSteps(execCtx, cleanup, *stepResults); err != nil {
 				logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
 				return nil, err
 			}
@@ -331,16 +331,20 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	return stepResults, nil
 }
 
-func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct) error {
-	for _, step := range cleanupSteps {
+func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct, stepResults StepResultsRecord) error {
+	for cleanupIdx, step := range cleanupSteps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, nil)
 
-		if _, err := stepCopy.Cleanup(execCtx); err != nil {
+		cleanupResult, err := stepCopy.Cleanup(execCtx)
+		if err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}
+		// since ByIndex and ByName both contain pointers to
+		// the same underlying struct, this will update both
+		stepResults.ByIndex[len(cleanupSteps)-cleanupIdx-1].Cleanup = cleanupResult
 		logging.Logger.Sugar().Infof("[+] Finished running cleanup step: %s", step.CleanupName())
 	}
 	return nil

@@ -38,14 +38,14 @@ type ExecutionResult struct {
 // that be used to query the results of executing
 // individual TTP steps
 type StepResultsRecord struct {
-	ByName  map[string]ExecutionResult
-	ByIndex []ExecutionResult
+	ByName  map[string]*ExecutionResult
+	ByIndex []*ExecutionResult
 }
 
 func NewStepResultsRecord() *StepResultsRecord {
 	return &StepResultsRecord{
-		ByName:  map[string]ExecutionResult{},
-		ByIndex: []ExecutionResult{},
+		ByName:  map[string]*ExecutionResult{},
+		ByIndex: []*ExecutionResult{},
 	}
 }
 

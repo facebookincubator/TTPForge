@@ -289,4 +289,14 @@ steps:
 	require.Equal(t, 2, len(stepResults.ByName))
 	assert.Equal(t, "step1\n", stepResults.ByName["step1"].Stdout)
 	assert.Equal(t, "step2\n", stepResults.ByName["step2"].Stdout)
+
+	require.NotNil(t, stepResults.ByIndex[0].Cleanup)
+	require.NotNil(t, stepResults.ByName["step1"].Cleanup)
+	assert.Equal(t, "cleanup1\n", stepResults.ByIndex[0].Cleanup.Stdout)
+	assert.Equal(t, "cleanup1\n", stepResults.ByName["step1"].Cleanup.Stdout)
+
+	require.NotNil(t, stepResults.ByIndex[1].Cleanup)
+	require.NotNil(t, stepResults.ByName["step2"].Cleanup)
+	assert.Equal(t, "cleanup2\n", stepResults.ByIndex[1].Cleanup.Stdout)
+	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
 }
