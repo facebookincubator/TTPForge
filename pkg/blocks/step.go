@@ -44,10 +44,10 @@ const (
 	ExecutorCmd        = "cmd.exe"
 )
 
-// StepType represents the type of a TTP (Tactics, Techniques, and Procedures) step.
+// StepType denotes the type of a step in a TTP.
 type StepType string
 
-// Constants representing supported step types.
+// Constants for defining the types of steps available.
 const (
 	StepUnset   = "unsetStep"
 	StepFile    = "fileStep"
@@ -57,10 +57,17 @@ const (
 	StepEdit    = "editStep"
 )
 
-// Act represents a single action within a TTP (Tactics, Techniques, and Procedures) step. It contains information
-// about the condition that must be met for the action to execute, the environment variables that should be set,
-// the name of the action, the working directory, the step type, and the success status of the action.
-// It also includes a map of step references and a map of output values.
+// Act represents a single action within a TTP (Tactics, Techniques,
+// and Procedures) step.
+//
+// Condition: The condition that needs to be satisfied for the Act to execute.
+// Environment: Environment variables used during the Act's execution.
+// Name: The unique name of the Act.
+// WorkDir: The working directory of the Act.
+// Type: The type of the Act (e.g., Command, File, or Setup).
+// success: Indicates whether the execution of the Act was successful.
+// stepRef: Reference to other steps in the sequence.
+// output: The output of the Act's execution.
 type Act struct {
 	Condition   string            `yaml:"if,omitempty"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
@@ -79,7 +86,7 @@ func NewAct() *Act {
 	}
 }
 
-// CleanupAct is required for anything that requires a cleanup step.
+// CleanupAct interface is implemented by anything that requires a cleanup step.
 type CleanupAct interface {
 	Cleanup(execCtx TTPExecutionContext) error
 	CleanupName() string
@@ -90,12 +97,13 @@ type CleanupAct interface {
 	Validate(execCtx TTPExecutionContext) error
 }
 
-// Step is an interface that represents a TTP step. Types that implement this interface must
-// provide methods for setting up the environment and output references, setting the working
-// directory, getting the cleanup actions, executing the step, checking if the step is empty,
-// explaining validation errors, validating the step, fetching arguments, getting output,
-// searching output, setting output success status, checking success status, returning the
-// step name, and getting the step type.
+// Step is an interface that represents a TTP step. Types that implement
+// this interface must provide methods for setting up the environment and
+// output references, setting the working directory, getting the cleanup
+// actions, executing the step, checking if the step is empty, explaining
+// validation errors, validating the step, fetching arguments, getting output,
+// searching output, setting output success status, checking success status,
+// returning the step name, and getting the step type.
 type Step interface {
 	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
@@ -117,16 +125,17 @@ type Step interface {
 
 // SetDir sets the working directory for the Act.
 //
-// Parameters:
+// **Parameters:**
 //
-// dir: A string representing the directory path to be set as the working directory.
+// dir: A string representing the directory path to be set
+// as the working directory.
 func (a *Act) SetDir(dir string) {
 	a.WorkDir = dir
 }
 
-// IsNil checks if the Act is considered nil (i.e., it has no name). It returns true if the Act has no name, false otherwise.
+// IsNil checks whether the Act is nil (i.e., it does not have a name).
 //
-// Returns:
+// **Returns:**
 //
 // bool: True if the Act has no name, false otherwise.
 func (a *Act) IsNil() bool {
@@ -138,11 +147,12 @@ func (a *Act) IsNil() bool {
 	}
 }
 
-// ExplainInvalid returns an error explaining why the Act is invalid. If the Act is valid, it returns nil.
+// ExplainInvalid returns an error explaining why the Act is invalid.
 //
-// Returns:
+// **Returns:**
 //
-// error: An error explaining why the Act is invalid, or nil if the Act is valid.
+// error: An error explaining why the Act is invalid, or nil
+// if the Act is valid.
 func (a *Act) ExplainInvalid() error {
 	switch {
 	case a.Name == "":
@@ -152,9 +162,10 @@ func (a *Act) ExplainInvalid() error {
 	}
 }
 
-// Cleanup is a placeholder function for the base Act. Subtypes can override this method to implement their own cleanup logic.
+// Cleanup is a placeholder function for the base Act. Subtypes can override
+// this method to implement their own cleanup logic.
 //
-// Returns:
+// **Returns:**
 //
 // error: Always returns nil for the base Act.
 func (a *Act) Cleanup(inputs map[string]string) error {
@@ -164,7 +175,7 @@ func (a *Act) Cleanup(inputs map[string]string) error {
 
 // StepName returns the name of the Act.
 //
-// Returns:
+// **Returns:**
 //
 // string: The name of the Act.
 func (a *Act) StepName() string {
@@ -173,7 +184,7 @@ func (a *Act) StepName() string {
 
 // GetOutput returns the output map of the Act.
 //
-// Returns:
+// **Returns:**
 //
 // map[string]any: The output map of the Act.
 func (a *Act) GetOutput() map[string]any {
@@ -182,18 +193,20 @@ func (a *Act) GetOutput() map[string]any {
 
 // Success returns the success status of the Act.
 //
-// Returns:
+// **Returns:**
 //
 // bool: The success status of the Act.
 func (a *Act) Success() bool {
 	return a.success
 }
 
-// Validate checks the Act for any validation errors, such as the presence of spaces in the name. It returns an error if any validation errors are found.
+// Validate checks the Act for any validation errors, such as the presence of
+// spaces in the name.
 //
-// Returns:
+// **Returns:**
 //
-// error: An error if any validation errors are found, or nil if the Act is valid.
+// error: An error if any validation errors are found, or nil if
+// the Act is valid.
 func (a *Act) Validate() error {
 	// Make sure name is of format we can index
 	if strings.Contains(a.Name, " ") {
@@ -203,15 +216,17 @@ func (a *Act) Validate() error {
 	return nil
 }
 
-// FetchArgs processes a slice of arguments and returns a new slice with the output values of referenced steps.
+// FetchArgs processes a slice of arguments and returns a new slice with the
+// output values of referenced steps.
 //
-// Parameters:
+// **Parameters:**
 //
 // args: A slice of strings representing the arguments to be processed.
 //
-// Returns:
+// **Returns:**
 //
-// []string: A slice of strings containing the processed output values of referenced steps.
+// []string: A slice of strings containing the processed output values
+// of referenced steps.
 func (a *Act) FetchArgs(args []string) []string {
 	logging.Logger.Sugar().Debug("Fetching args data")
 	logging.Logger.Sugar().Debug(a.output)
@@ -224,14 +239,17 @@ func (a *Act) FetchArgs(args []string) []string {
 	return processedInputs
 }
 
-// Setup initializes the Act with the given environment and output reference maps.
+// Setup initializes the Act with the given environment and output
+// reference maps.
 //
-// Parameters:
+// **Parameters:**
 //
-// env: A map of environment variables, where the keys are variable names and the values are variable values.
-// outputRef: A map of output references, where the keys are step names and the values are Step instances.
+// env: A map of environment variables, where the keys are
+// variable names and the values are variable values.
+// outputRef: A map of output references, where the keys are step names
+// and the values are Step instances.
 //
-// Returns:
+// **Returns:**
 //
 // map[string]: Step instances.
 func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
@@ -240,7 +258,6 @@ func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
 
 	stepEnv := env
 	logging.Logger.Sugar().Debugw("supplied environment", "env", a.Environment)
-	// logging.Logger.Sugar().Debugw("supplied environment", "env", env)
 	for k, v := range a.Environment {
 		valLookup := a.SearchOutput(v)
 		stepEnv[k] = valLookup
@@ -248,17 +265,18 @@ func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
 	a.Environment = stepEnv
 }
 
-// SearchOutput searches for the output value of a step by parsing the provided argument. The argument should be in the
-// format "steps.step_name.output". It returns the value as a string, converting the value to a string representation if
-// necessary. If the argument is not in the correct format, or the step is not found, the original argument is returned.
+// SearchOutput searches for the Output value of a step by parsing the provided
+// argument.
 //
-// Parameters:
+// **Parameters:**
 //
-// arg: A string representing the argument in the format "steps.step_name.output".
+// arg: A string representing the argument in the format
+// "steps.step_name.output".
 //
-// Returns:
+// **Returns:**
 //
-// string: The output value of the step as a string, or the original argument if the step is not found or the argument is in an incorrect format.
+// string: The Output value of the step as a string, or the original argument
+// if the step is not found or the argument is in an incorrect format.
 func (a *Act) SearchOutput(arg string) string {
 	logging.Logger.Sugar().Debugw("fetch arg", "arg", arg)
 	val, err := a.search(arg)
@@ -331,12 +349,16 @@ func getOutputValue(output map[string]interface{}, keys []string) (any, error) {
 	return nil, errors.New("unexpected error while retrieving output value")
 }
 
-// CheckCondition checks the condition specified for an Act and returns true if it matches the current OS, false otherwise.
-// If the condition is "always", the function returns true. If an error occurs while checking the condition, it is returned.
+// CheckCondition checks the condition specified for an Act and returns true
+// if it matches the current OS, false otherwise. If the condition is "always",
+// the function returns true.
+// If an error occurs while checking the condition, it is returned.
 //
-// Returns:
+// **Returns:**
 //
-// bool: true if the condition matches the current OS or the condition is "always", false otherwise.
+// bool: true if the condition matches the current OS or the
+// condition is "always", false otherwise.
+//
 // error: An error if an error occurs while checking the condition.
 func (a *Act) CheckCondition() (bool, error) {
 	switch a.Condition {
@@ -362,17 +384,17 @@ func (a *Act) CheckCondition() (bool, error) {
 	return false, nil
 }
 
-// SetOutputSuccess sets the output of an Act to a given buffer and sets the success flag to true or false depending on the exit code.
-// If the output can be unmarshalled into a JSON structure, it is stored as a string in the Act's output map.
+// SetOutputSuccess sets the output of an Act to a given buffer and sets the
+// success flag to true or false depending on the exit code.If the output can
+// be unmarshalled into a JSON structure, it is stored as a string in the
+// Act's output map.
 //
-// Parameters:
+// **Parameters:**
 //
-// output: A pointer to a bytes.Buffer containing the output to set as the Act's output.
+// output: A pointer to a bytes.Buffer containing the output to
+// set as the Act's output.
+//
 // exit: An integer representing the exit code of the Act.
-//
-// Returns:
-//
-// None.
 func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 	a.success = true
 	if exit != 0 {
@@ -392,14 +414,16 @@ func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
 	a.output = jsonOutput
 }
 
-// MakeCleanupStep creates a CleanupAct based on the given yaml.Node. If the node is empty or invalid, it returns nil.
-// If the node contains a BasicStep or FileStep, the corresponding CleanupAct is created and returned.
+// MakeCleanupStep creates a CleanupAct based on the given yaml.Node.
+// If the node is empty or invalid, it returns nil. If the node contains a
+// BasicStep or FileStep, the corresponding CleanupAct is created and returned.
 //
-// Parameters:
+// **Parameters:**
 //
-// node: A pointer to a yaml.Node containing the parameters to create the CleanupAct.
+// node: A pointer to a yaml.Node containing the parameters to
+// create the CleanupAct.
 //
-// Returns:
+// **Returns:**
 //
 // CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
 // error: An error if the node contains invalid parameters.

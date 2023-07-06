@@ -39,7 +39,8 @@ type TTPExecutionContext struct {
 	TTPSearchPaths []string
 }
 
-// TTP represents the top-level structure for a TTP (Tactics, Techniques, and Procedures) object.
+// TTP represents the top-level structure for a TTP
+// (Tactics, Techniques, and Procedures) object.
 type TTP struct {
 	Name        string            `yaml:"name,omitempty"`
 	Description string            `yaml:"description"`
@@ -56,10 +57,11 @@ type TTP struct {
 	InputMap map[string]string `yaml:"-"`
 }
 
-// MarshalYAML is a custom marshalling implementation for the TTP structure. It encodes a TTP object into a formatted
-// YAML string, handling the indentation and structure of the output YAML.
+// MarshalYAML is a custom marshalling implementation for the TTP structure.
+// It encodes a TTP object into a formatted YAML string, handling the
+// indentation and structure of the output YAML.
 //
-// Returns:
+// **Returns:**
 //
 // interface{}: The formatted YAML string representing the TTP object.
 //
@@ -108,14 +110,16 @@ func reduceIndentation(b []byte, n int) []byte {
 	return bytes.Join(lines, []byte("\n"))
 }
 
-// UnmarshalYAML is a custom unmarshalling implementation for the TTP structure. It decodes a YAML Node into a TTP object,
-// handling the decoding and validation of the individual steps within the TTP.
+// UnmarshalYAML is a custom unmarshalling implementation for the TTP structure.
+// It decodes a YAML Node into a TTP object, handling the decoding and
+// validation of the individual steps within the TTP.
 //
-// Parameters:
+// **Parameters:**
 //
-// node: A pointer to a yaml.Node that represents the TTP structure to be unmarshalled.
+// node: A pointer to a yaml.Node that represents the TTP structure
+// to be unmarshalled.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error if the decoding process fails or if the TTP structure contains invalid steps.
 func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
@@ -193,7 +197,8 @@ func (t *TTP) handleInvalidStepError(stepNode yaml.Node) error {
 	return fmt.Errorf("invalid step found with no name, missing parameters for step types")
 }
 
-// Failed returns a slice of strings containing the names of failed steps in the TTP.
+// Failed returns a slice of strings containing the names of failed
+// steps in the TTP.
 func (t *TTP) Failed() (failed []string) {
 	for _, s := range t.Steps {
 		if !s.Success() {
@@ -203,7 +208,8 @@ func (t *TTP) Failed() (failed []string) {
 	return failed
 }
 
-// fetchEnv retrieves the environment variables and populates the TTP's Environment map.
+// fetchEnv retrieves the environment variables and populates the TTP's
+// Environment map.
 func (t *TTP) fetchEnv() {
 	if t.Environment == nil {
 		t.Environment = make(map[string]string)
@@ -229,11 +235,12 @@ func (t *TTP) setWorkingDirectory() error {
 	return nil
 }
 
-// ValidateSteps iterates through each step in the TTP and validates it. It sets the working directory
-// for each step before calling its Validate method. If any step fails validation, the method returns
-// an error. If all steps are successfully validated, the method returns nil.
+// ValidateSteps iterates through each step in the TTP and validates it.
+// It sets the working directory for each step before calling its Validate
+// method. If any step fails validation, the method returns an error.
+// If all steps are successfully validated, the method returns nil.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error if any step validation fails, otherwise nil.
 func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
@@ -276,11 +283,11 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 
 // RunSteps executes all of the steps in the given TTP.
 //
-// Parameters:
+// **Parameters:**
 //
 // t: The TTP to execute the steps for.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
@@ -343,11 +350,11 @@ func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, availableSteps ma
 
 // Cleanup executes all of the cleanup steps in the given TTP.
 //
-// Parameters:
+// **Parameters:**
 //
 // t: The TTP to execute the cleanup steps for.
 //
-// Returns:
+// **Returns:**
 //
 // error: An error if any of the cleanup steps fail to execute.
 func (t *TTP) Cleanup(execCtx TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
@@ -361,7 +368,8 @@ func (t *TTP) Cleanup(execCtx TTPExecutionContext, availableSteps map[string]Ste
 
 func (t *TTP) validateInputs() error {
 	for _, input := range t.Inputs {
-		// iterate through the list of supplied inputs and check that values supplied are correct types
+		// iterate through the list of supplied inputs and check that
+		// values supplied are correct types
 		val, ok := t.InputMap[input.Name]
 		if !ok {
 			val = input.Default

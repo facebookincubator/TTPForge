@@ -70,19 +70,22 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 	}
 )
 
-// WriteConfigToFile writes the configuration data to a YAML file at the specified
-// filepath. It uses the yaml.Marshal function to convert the configuration struct
-// into YAML format, and then writes the resulting bytes to the file.
+// WriteConfigToFile writes the configuration data to a YAML file at
+// the specified filepath. It uses the yaml.Marshal function to convert
+// the configuration struct into YAML format, and then writes the
+// resulting bytes to the file.
 //
 // This function is a custom alternative to Viper's built-in WriteConfig method
 // to provide better control over the formatting of the output YAML file.
 //
-// Params:
-//   - filepath: The path of the file where the configuration data will be saved.
+// **Parameters:**
+// filepath: The path of the file where the configuration
+// data will be saved.
 //
-// Returns:
-//   - error: An error object if any issues occur during the marshaling or file
-//     writing process, otherwise nil.
+// **Returns:**
+//
+// error: An error if any issues occur during the marshaling or file
+// writing process, otherwise nil.
 func WriteConfigToFile(filepath string) error {
 	yamlBytes, err := yaml.Marshal(Conf)
 	if err != nil {
@@ -102,15 +105,17 @@ func init() {
 	Logger = logging.Logger
 	cobra.OnInitialize(initConfig)
 
-	// These flags are set using Cobra only, so we populate the Conf.* variables directly
-	// reference the unset values in the struct Config above.
+	// These flags are set using Cobra only, so we populate
+	// the Conf.* variables directly reference the unset values
+	// in the struct Config above.
 	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "config.yaml", "Config file (default is config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&Conf.saveConfig, "save-config", "", "Writes values used in execution to the specified location")
 	rootCmd.PersistentFlags().BoolVar(&Conf.StackTrace, "stacktrace", false, "Show stacktrace when logging error")
 	rootCmd.PersistentFlags().StringArrayVar(&Conf.InventoryPath, "inventory", []string{"."}, "list of paths to search for ttps")
-	// Notice here that the values from the command line are not populated in this instance.
-	// This is because we are using viper in addition to cobra to manage these values -
-	// Cobra will look for these values on the command line. If the values are not present,
+	// Notice here that the values from the command line are not
+	// populated in this instance. This is because we are using viper in
+	// addition to cobra to manage these values - Cobra will look for these
+	// values on the command line. If the values are not present,
 	// then Viper uses values found in the config file (if present).
 	_ = rootCmd.PersistentFlags().Bool("nocolor", false, "disable colored output")
 	_ = rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose logging")
@@ -128,7 +133,8 @@ func init() {
 	cobra.CheckErr(err)
 
 	// Errors caught by this are not actioned upon.
-	// The decision making for that is documented here: https://github.com/facebookincubator/TTPForge/issues/55
+	// The decision making for that is documented
+	// [here](https://github.com/facebookincubator/TTPForge/issues/55)
 	if err := rootCmd.PersistentFlags().Parse(os.Args); err != nil {
 		logging.Logger.Sugar().Debugw("failed to parse os args", os.Args, err)
 	}
@@ -147,7 +153,8 @@ func initConfig() {
 		// Use config file from the flag.
 		viper.SetConfigFile(Conf.cfgFile)
 	} else {
-		// Search config in current directory with name ".cobra" (without extension).
+		// Search config in current directory with name
+		// ".cobra" (without extension).
 		viper.AddConfigPath(".")
 		// Look for config folder
 		homedir, err := os.UserHomeDir()

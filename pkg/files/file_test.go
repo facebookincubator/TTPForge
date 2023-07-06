@@ -124,55 +124,6 @@ func TestCreateDirIfNotExists(t *testing.T) {
 	defer os.RemoveAll("testDir")
 }
 
-// Borrowed from: https://github.com/l50/goutils/blob/e91b7c4e18e23c53e35d04fa7961a5a14ca8ef39/fileutils_test.go#L294-L340
-func TestExpandHomeDir(t *testing.T) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("failed to get user home directory: %v", err)
-	}
-
-	testCases := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "EmptyPath",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "NoTilde",
-			input:    "/path/without/tilde",
-			expected: "/path/without/tilde",
-		},
-		{
-			name:     "TildeOnly",
-			input:    "~",
-			expected: homeDir,
-		},
-		{
-			name:     "TildeWithSlash",
-			input:    "~/path/with/slash",
-			expected: filepath.Join(homeDir, "path/with/slash"),
-		},
-		{
-			name:     "TildeWithoutSlash",
-			input:    "~path/without/slash",
-			expected: filepath.Join(homeDir, "path/without/slash"),
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := files.ExpandHomeDir(tc.input)
-			if actual != tc.expected {
-				t.Errorf("test failed: ExpandHomeDir(%q) = %q; expected %q", tc.input, actual, tc.expected)
-			}
-		})
-	}
-}
-
 func TestTemplateExists(t *testing.T) {
 	testDir, err := os.MkdirTemp("", "inventory")
 	if err != nil {

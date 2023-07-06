@@ -26,9 +26,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
 	"github.com/l50/goutils/v2/dev/lint"
 	mageutils "github.com/l50/goutils/v2/dev/mage"
+	"github.com/l50/goutils/v2/docs"
+	"github.com/l50/goutils/v2/git"
+	"github.com/l50/goutils/v2/sys"
+	"github.com/spf13/afero"
 
 	// mage utility functions
 	"github.com/magefile/mage/mg"
@@ -58,22 +61,50 @@ func InstallDeps() error {
 	return nil
 }
 
-// InstallPreCommitHooks Installs pre-commit hooks locally
-func InstallPreCommitHooks() error {
-	mg.Deps(InstallDeps)
-
-	fmt.Println("Installing pre-commit hooks.")
-	if err := lint.InstallPCHooks(); err != nil {
-		return err
+// FindExportedFuncsWithoutTests finds exported functions without tests
+func FindExportedFuncsWithoutTests(pkg string) ([]string, error) {
+	funcs, err := mageutils.FindExportedFuncsWithoutTests(os.Args[1])
+	if err != nil {
+		return funcs, err
 	}
+
+	for _, funcName := range funcs {
+		fmt.Println(funcName)
+	}
+
+	return funcs, nil
+
+}
+
+// GeneratePackageDocs generates package documentation
+// for packages in the current directory and its subdirectories.
+func GeneratePackageDocs() error {
+	fs := afero.NewOsFs()
+
+	repoRoot, err := git.RepoRoot()
+	if err != nil {
+		return fmt.Errorf("failed to get repo root: %v", err)
+	}
+	sys.Cd(repoRoot)
+
+	repo := docs.Repo{
+		Owner: "facebookincubator",
+		Name:  "ttpforge",
+	}
+
+	excludedPkgs := []string{"main"}
+	template := filepath.Join(repoRoot, "magefiles", "tmpl", "README.md.tmpl")
+	if err := docs.CreatePackageDocs(fs, repo, template, excludedPkgs...); err != nil {
+		return fmt.Errorf("failed to create package docs: %v", err)
+	}
+
+	fmt.Println("Package docs created.")
 
 	return nil
 }
 
 // RunPreCommit runs all pre-commit hooks locally
 func RunPreCommit() error {
-	mg.Deps(InstallDeps)
-
 	fmt.Println("Updating pre-commit hooks.")
 	if err := lint.UpdatePCHooks(); err != nil {
 		return err
@@ -94,31 +125,11 @@ func RunPreCommit() error {
 
 // RunTests runs all of the unit tests
 func RunTests() error {
-	fmt.Println(color.YellowString("Running unit tests."))
-	if err := sh.RunV(filepath.Join(".hooks", "go-unit-tests.sh"), "all"); err != nil {
-		return fmt.Errorf(color.RedString("failed to run unit tests: %v", err))
-	}
+	mg.Deps(InstallDeps)
 
-	return nil
-}
-
-// UpdateMirror updates pkg.go.dev with the release associated with the input tag
-func UpdateMirror(tag string) error {
-	var err error
-	fmt.Println(color.YellowString("Updating pkg.go.dev with the new tag %s.", tag))
-
-	err = sh.RunV("curl", "--silent", fmt.Sprintf(
-		"https://sum.golang.org/lookup/github.com/facebookincubator/ttpforge@%s",
-		tag))
-	if err != nil {
-		return fmt.Errorf(color.RedString("failed to update proxy.golang.org: %w", err))
-	}
-
-	err = sh.RunV("curl", "--silent", fmt.Sprintf(
-		"https://proxy.golang.org/github.com/facebookincubator/ttpforge/@v/%s.info",
-		tag))
-	if err != nil {
-		return fmt.Errorf(color.RedString("failed to update pkg.go.dev: %w", err))
+	fmt.Println("Running unit tests.")
+	if err := sh.RunV(filepath.Join(".hooks", "run-go-tests.sh"), "all"); err != nil {
+		return fmt.Errorf("failed to run unit tests: %v", err)
 	}
 
 	return nil

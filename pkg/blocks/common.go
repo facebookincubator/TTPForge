@@ -33,17 +33,21 @@ import (
 	"go.uber.org/zap"
 )
 
-// FetchAbs returns the absolute path of a file given its path and the working directory. It handles cases where the path starts with "~/",
-// is an absolute path, or is a relative path from the working directory. It logs any errors and returns them.
+// FetchAbs returns the absolute path of a file given its path and the
+// working directory. It handles cases where the path starts with "~/",
+// is an absolute path, or is a relative path from the working directory.
+// It logs any errors and returns them.
 //
-// Parameters:
+// **Parameters:**
 //
 // path: A string representing the path to the file.
+//
 // workdir: A string representing the working directory.
 //
-// Returns:
+// **Returns:**
 //
 // fullpath: A string representing the absolute path to the file.
+//
 // error: An error if the path cannot be resolved to an absolute path.
 func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	if path == "" {
@@ -83,19 +87,25 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	return fullpath, nil
 }
 
-// FindFilePath checks if a file exists given its path, the working directory, and an optional fs.StatFS. It handles cases where the path starts with "../",
-// "~/", or is a relative path. It also checks a list of paths in InventoryPath for the file. It logs any errors and returns them.
+// FindFilePath checks if a file exists given its path, the working directory,
+// and an optional fs.StatFS. It handles cases where the path starts with "../",
+// "~/", or is a relative path. It also checks a list of paths in InventoryPath
+// for the file. It logs any errors and returns them.
 //
-// Parameters:
+// **Parameters:**
 //
 // path: A string representing the path to the file.
+//
 // workdir: A string representing the working directory.
+//
 // system: An optional fs.StatFS that can be used to check if the file exists.
 //
-// Returns:
+// **Returns:**
 //
-// * A string representing the path to the file, or an empty string if the file does not exist.
-// * An error if the file cannot be found or if other errors occur.
+// string: A string representing the path to the file, or an empty string
+// if the file does not exist.
+//
+// error: An error if the file cannot be found or if other errors occur.
 func FindFilePath(path string, workdir string, system fs.StatFS) (string, error) {
 	logging.Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
 
@@ -121,7 +131,8 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 			path = strings.Replace(path, "%USERPROFILE%", "~", 1)
 		}
 	} else {
-		// Convert path to lowercase for Windows, which employs case-insensitive file systems.
+		// Convert path to lowercase for Windows, which employs
+		// case-insensitive file systems.
 		if runtime.GOOS == "windows" {
 			path = strings.ToLower(path)
 		}
@@ -146,15 +157,17 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 	return "", err
 }
 
-// FetchEnv converts an environment variable map into a slice of strings that can be used as an argument when running a command.
+// FetchEnv converts an environment variable map into a slice of strings that
+// can be used as an argument when running a command.
 //
-// Parameters:
+// **Parameters:**
 //
 // environ: A map of environment variable names to values.
 //
-// Returns:
+// **Returns:**
 //
-// []string: A slice of strings representing the environment variables and their values.
+// []string: A slice of strings representing the environment variables
+// and their values.
 func FetchEnv(environ map[string]string) []string {
 	var envSlice []string
 
@@ -167,13 +180,14 @@ func FetchEnv(environ map[string]string) []string {
 
 // JSONString returns a string representation of an object in JSON format.
 //
-// Parameters:
+// **Parameters:**
 //
 // in: An object of any type.
 //
-// Returns:
+// **Returns:**
 //
 // string: A string representing the object in JSON format.
+//
 // error: An error if the object cannot be encoded as JSON.
 func JSONString(in any) (string, error) {
 	out, err := json.Marshal(in)
@@ -187,12 +201,13 @@ func JSONString(in any) (string, error) {
 
 // Contains checks if a key exists in a map.
 //
-// Parameters:
+// **Parameters:**
 //
 // key: A string representing the key to search for.
+//
 // search: A map of keys and values.
 //
-// Returns:
+// **Returns:**
 //
 // bool: A boolean value indicating if the key was found in the map.
 func Contains(key string, search map[string]any) bool {
