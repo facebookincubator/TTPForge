@@ -25,6 +25,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -259,4 +260,29 @@ steps:
 			}
 		})
 	}
+}
+
+func TestExecuteStepsBasic(t *testing.T) {
+	content := `name: test
+description: this is a test
+steps:
+    - name: step1
+      inline: echo "step1"
+    - name: step2
+      inline: echo "step2"`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{})
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(stepResults.ByIndex))
+	assert.Equal(t, "step1\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "step2\n", stepResults.ByIndex[1].Stdout)
+
+	require.Equal(t, 2, len(stepResults.ByName))
+	assert.Equal(t, "step1\n", stepResults.ByName["step1"].Stdout)
+	assert.Equal(t, "step2\n", stepResults.ByName["step2"].Stdout)
 }
