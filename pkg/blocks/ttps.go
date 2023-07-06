@@ -31,14 +31,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TTPExecutionContext - pass this into RunSteps to control TTP execution
-type TTPExecutionContext struct {
-	CliInputs      []string
-	NoCleanup      bool
-	Args           map[string]string
-	TTPSearchPaths []string
-}
-
 // TTP represents the top-level structure for a TTP
 // (Tactics, Techniques, and Procedures) object.
 type TTP struct {
@@ -266,7 +258,7 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if err := stepCopy.Execute(execCtx); err != nil {
+		if _, err := stepCopy.Execute(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			return availableSteps, cleanup, err
 		}

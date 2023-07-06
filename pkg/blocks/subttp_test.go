@@ -64,7 +64,7 @@ ttp: test.yaml`
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	err = step.Execute(execCtx)
+	_, err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
@@ -102,7 +102,7 @@ ttp: anotherTest.yaml`
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	err = step.Execute(execCtx)
+	_, err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor
@@ -144,7 +144,7 @@ args:
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	err := step.Execute(execCtx)
+	_, err := step.Execute(execCtx)
 	require.NoError(t, err)
 
 	// TODO: clean this up after output handling refactor

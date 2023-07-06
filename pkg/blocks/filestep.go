@@ -119,7 +119,8 @@ func (f *FileStep) GetType() StepType {
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup(execCtx TTPExecutionContext) error {
-	return f.Execute(execCtx)
+	_, err := f.Execute(execCtx)
+	return err
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -168,20 +169,20 @@ func (f *FileStep) IsNil() bool {
 }
 
 // Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(execCtx TTPExecutionContext) (err error) {
+func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.Logger.Sugar().Debugw("available data", "outputs", f.output)
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if f.FilePath != "" {
 		if err := f.fileExec(); err != nil {
 			logging.Logger.Sugar().Error(zap.Error(err))
-			return err
+			return nil, err
 		}
 	}
 
 	logging.Logger.Sugar().Info("========= Result ==========")
 
-	return nil
+	return &ExecutionResult{}, nil
 }
 
 // fileExec executes the FileStep with the specified executor and arguments,

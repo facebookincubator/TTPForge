@@ -95,7 +95,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
-func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
+func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
@@ -107,8 +107,8 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
 		subExecCtx := TTPExecutionContext{
 			Args: s.Args,
 		}
-		if err := stepCopy.Execute(subExecCtx); err != nil {
-			return err
+		if _, err := stepCopy.Execute(subExecCtx); err != nil {
+			return nil, err
 		}
 
 		output := stepCopy.GetOutput()
@@ -128,7 +128,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
 
 	logging.Logger.Sugar().Info("Finished execution of sub ttp file")
 
-	return nil
+	return &ExecutionResult{}, nil
 }
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance
