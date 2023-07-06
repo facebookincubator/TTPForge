@@ -268,8 +268,12 @@ description: this is a test
 steps:
     - name: step1
       inline: echo "step1"
+      cleanup:
+        inline: echo "cleanup1"
     - name: step2
-      inline: echo "step2"`
+      inline: echo "step2"
+      cleanup:
+        inline: echo "cleanup2"`
 
 	var ttp blocks.TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)

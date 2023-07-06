@@ -337,7 +337,7 @@ func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []Cl
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, nil)
 
-		if err := stepCopy.Cleanup(execCtx); err != nil {
+		if _, err := stepCopy.Cleanup(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}

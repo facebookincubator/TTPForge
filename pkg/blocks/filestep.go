@@ -118,9 +118,9 @@ func (f *FileStep) GetType() StepType {
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
-func (f *FileStep) Cleanup(execCtx TTPExecutionContext) error {
-	_, err := f.Execute(execCtx)
-	return err
+func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	result, err := f.Execute(execCtx)
+	return &result.ActResult, err
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.

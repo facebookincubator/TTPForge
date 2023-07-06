@@ -97,9 +97,9 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 }
 
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) error {
-	_, err := b.Execute(execCtx)
-	return err
+func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	result, err := b.Execute(execCtx)
+	return &result.ActResult, err
 }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
