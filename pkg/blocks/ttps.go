@@ -248,8 +248,9 @@ func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []CleanupAct, error) {
+func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []CleanupAct, error) {
 	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
+	stepResults := NewStepResultsRecord()
 	availableSteps := make(map[string]Step)
 	var cleanup []CleanupAct
 
@@ -258,16 +259,19 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 		stepCopy.Setup(t.Environment, availableSteps)
 
-		if _, err := stepCopy.Execute(execCtx); err != nil {
+		execResult, err := stepCopy.Execute(execCtx)
+		if err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
-			return availableSteps, cleanup, err
+			return stepResults, cleanup, err
 		}
+		stepResults.ByName[step.StepName()] = *execResult
+		stepResults.ByIndex = append(stepResults.ByIndex, *execResult)
+
 		// Enters in reverse order
-		availableSteps[stepCopy.StepName()] = stepCopy
 		cleanup = append(stepCopy.GetCleanup(), cleanup...)
 		logging.Logger.Sugar().Infof("[+] Finished running step: %s", step.StepName())
 	}
-	return availableSteps, cleanup, nil
+	return stepResults, cleanup, nil
 }
 
 // RunSteps executes all of the steps in the given TTP.
@@ -279,14 +283,14 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (map[string]Step, []Clea
 // **Returns:**
 //
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(execCfg TTPExecutionConfig) error {
+func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	if err := t.setWorkingDirectory(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.validateInputs(); err != nil {
 		logging.Logger.Sugar().Error("why is the err")
-		return err
+		return nil, err
 	}
 
 	execCtx := TTPExecutionContext{
@@ -294,7 +298,7 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) error {
 	}
 
 	if err := t.ValidateSteps(execCtx); err != nil {
-		return err
+		return nil, err
 	}
 
 	t.fetchEnv()
@@ -303,7 +307,7 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) error {
 	// InputMap should go away entirely
 	execCtx.Cfg.Args = t.InputMap
 
-	availableSteps, cleanup, err := t.executeSteps(execCtx)
+	stepResults, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
 		// we need to run cleanup so we don't return here
 		logging.Logger.Sugar().Errorf("[*] Error executing TTP: %v", err)
@@ -314,9 +318,9 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) error {
 	if !execCtx.Cfg.NoCleanup {
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
-			if err := t.Cleanup(execCtx, availableSteps, cleanup); err != nil {
+			if err := t.executeCleanupSteps(execCtx, cleanup); err != nil {
 				logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
-				return err
+				return nil, err
 			}
 			logging.Logger.Sugar().Info("[*] Finished Cleanup")
 		} else {
@@ -324,38 +328,20 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) error {
 		}
 	}
 
-	return nil
+	return stepResults, nil
 }
 
-func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
+func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct) error {
 	for _, step := range cleanupSteps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
-		stepCopy.Setup(t.Environment, availableSteps)
+		stepCopy.Setup(t.Environment, nil)
 
 		if err := stepCopy.Cleanup(execCtx); err != nil {
 			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}
 		logging.Logger.Sugar().Infof("[+] Finished running cleanup step: %s", step.CleanupName())
-	}
-	return nil
-}
-
-// Cleanup executes all of the cleanup steps in the given TTP.
-//
-// **Parameters:**
-//
-// t: The TTP to execute the cleanup steps for.
-//
-// **Returns:**
-//
-// error: An error if any of the cleanup steps fail to execute.
-func (t *TTP) Cleanup(execCtx TTPExecutionContext, availableSteps map[string]Step, cleanupSteps []CleanupAct) error {
-	err := t.executeCleanupSteps(execCtx, availableSteps, cleanupSteps)
-	if err != nil {
-		logging.Logger.Sugar().Errorw("error encountered in cleanup step loop: %v", err)
-		return err
 	}
 	return nil
 }

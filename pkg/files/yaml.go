@@ -80,7 +80,7 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, err
 		ttp.InputMap[keyVal[0]] = keyVal[1]
 	}
 
-	if err := ttp.RunSteps(c); err != nil {
+	if _, err := ttp.RunSteps(c); err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}

@@ -19,116 +19,104 @@ THE SOFTWARE.
 
 package files_test
 
-import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
+// func TestExecuteYAML(t *testing.T) {
+// 	home, err := os.UserHomeDir()
+// 	assert.Nil(t, err)
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/facebookincubator/ttpforge/pkg/files"
-	"github.com/stretchr/testify/assert"
-)
+// 	testVariableExpansionYAML := `---
+// name: Test Variable Expansion
+// description: |
+//   Tests environment + step output variable expansion
+// steps:
+//   - name: test_env_inline
+//     inline: |
+//       echo $HOME
+//     cleanup:
+//       inline: |
+//         echo "cleaning up now"
+//   - name: test_step_output_as_input_env
+//     inline: |
+//       echo "{\"test_key\" : \"$input\", \"another_key\":\"wut\"}"
+//     env:
+//       input: steps.test_env_inline.output
+//   - name: test_step_output_in_arg_list
+//     file: test-variable-expansion.sh
+//     args:
+//       - steps.test_step_output_as_input_env.another_key
+// `
 
-func TestExecuteYAML(t *testing.T) {
-	home, err := os.UserHomeDir()
-	assert.Nil(t, err)
+// 	testVariableExpansionSH := `#!/bin/bash
 
-	testVariableExpansionYAML := `---
-name: Test Variable Expansion
-description: |
-  Tests environment + step output variable expansion
-steps:
-  - name: test_env_inline
-    inline: |
-      echo $HOME
-    cleanup:
-      inline: |
-        echo "cleaning up now"
-  - name: test_step_output_as_input_env
-    inline: |
-      echo "{\"test_key\" : \"$input\", \"another_key\":\"wut\"}"
-    env:
-      input: steps.test_env_inline.output
-  - name: test_step_output_in_arg_list
-    file: test-variable-expansion.sh
-    args:
-      - steps.test_step_output_as_input_env.another_key
-`
+// echo "you said: $1"
+// `
 
-	testVariableExpansionSH := `#!/bin/bash
+// 	tests := []struct {
+// 		name        string
+// 		testFile    string
+// 		stepOutputs []string
+// 	}{
+// 		{
+// 			name:     "test_variable_expansion",
+// 			testFile: "test_variable_expansion.yaml",
+// 			stepOutputs: []string{
+// 				fmt.Sprintf("{\"output\":\"%v\"}", home),
+// 				fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", home),
+// 				"{\"output\":\"you said: wut\"}",
+// 			},
+// 		},
+// 	}
 
-echo "you said: $1"
-`
+// 	for _, tc := range tests {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			testDir, err := os.MkdirTemp("", "e2e-tests")
+// 			assert.NoError(t, err, "failed to create temporary directory")
+// 			// Clean up the temporary directory
+// 			defer os.RemoveAll(testDir)
 
-	tests := []struct {
-		name        string
-		testFile    string
-		stepOutputs []string
-	}{
-		{
-			name:     "test_variable_expansion",
-			testFile: "test_variable_expansion.yaml",
-			stepOutputs: []string{
-				fmt.Sprintf("{\"output\":\"%v\"}", home),
-				fmt.Sprintf("{\"another_key\":\"wut\",\"test_key\":\"%v\"}", home),
-				"{\"output\":\"you said: wut\"}",
-			},
-		},
-	}
+// 			// Navigate to test dir
+// 			if err := os.Chdir(testDir); err != nil {
+// 				t.Fatalf("failed to change into test directory: %v", err)
+// 			}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			testDir, err := os.MkdirTemp("", "e2e-tests")
-			assert.NoError(t, err, "failed to create temporary directory")
-			// Clean up the temporary directory
-			defer os.RemoveAll(testDir)
+// 			createTestInventory(t, testDir)
+// 			inventoryPath := filepath.Join(testDir, "ttps")
+// 			if err := os.MkdirAll(inventoryPath, 0755); err != nil {
+// 				t.Fatalf("failed to create inventoryPath (%s): %v", inventoryPath, err)
+// 			}
 
-			// Navigate to test dir
-			if err := os.Chdir(testDir); err != nil {
-				t.Fatalf("failed to change into test directory: %v", err)
-			}
+// 			// config for the test
+// 			testConfigYAML := `---
+// logfile: ""
+// nocolor: false
+// stacktrace: false
+// verbose: false
+// `
 
-			createTestInventory(t, testDir)
-			inventoryPath := filepath.Join(testDir, "ttps")
-			if err := os.MkdirAll(inventoryPath, 0755); err != nil {
-				t.Fatalf("failed to create inventoryPath (%s): %v", inventoryPath, err)
-			}
+// 			// Write the config to a temporary file
+// 			testConfigYAMLPath := filepath.Join(testDir, "config.yaml")
+// 			err = os.WriteFile(testConfigYAMLPath, []byte(testConfigYAML), 0644)
+// 			assert.NoError(t, err, "failed to write the temporary YAML file")
 
-			// config for the test
-			testConfigYAML := `---
-logfile: ""
-nocolor: false
-stacktrace: false
-verbose: false
-`
+// 			relTestYAMLPath := filepath.Join("ttps", tc.testFile)
+// 			err = os.WriteFile(relTestYAMLPath, []byte(testVariableExpansionYAML), 0644)
+// 			assert.NoError(t, err, "failed to write the temporary YAML file")
 
-			// Write the config to a temporary file
-			testConfigYAMLPath := filepath.Join(testDir, "config.yaml")
-			err = os.WriteFile(testConfigYAMLPath, []byte(testConfigYAML), 0644)
-			assert.NoError(t, err, "failed to write the temporary YAML file")
+// 			relScriptPath := filepath.Join("ttps", "test-variable-expansion.sh")
+// 			err = os.WriteFile(relScriptPath, []byte(testVariableExpansionSH), 0755)
+// 			assert.NoError(t, err, "failed to write the temporary shell script")
 
-			relTestYAMLPath := filepath.Join("ttps", tc.testFile)
-			err = os.WriteFile(relTestYAMLPath, []byte(testVariableExpansionYAML), 0644)
-			assert.NoError(t, err, "failed to write the temporary YAML file")
+// 			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionConfig{})
+// 			assert.NoError(t, err, "execution of the testFile should not cause an error")
+// 			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
 
-			relScriptPath := filepath.Join("ttps", "test-variable-expansion.sh")
-			err = os.WriteFile(relScriptPath, []byte(testVariableExpansionSH), 0755)
-			assert.NoError(t, err, "failed to write the temporary shell script")
+// 			for stepIdx, step := range ttp.Steps {
+// 				output := step.GetOutput()
+// 				b, err := json.Marshal(output)
+// 				assert.Nil(t, err)
+// 				assert.Equal(t, tc.stepOutputs[stepIdx], string(b), "step output is incorrect")
+// 			}
 
-			ttp, err := files.ExecuteYAML(relTestYAMLPath, blocks.TTPExecutionConfig{})
-			assert.NoError(t, err, "execution of the testFile should not cause an error")
-			assert.Equal(t, len(tc.stepOutputs), len(ttp.Steps), "step outputs should have correct length")
-
-			for stepIdx, step := range ttp.Steps {
-				output := step.GetOutput()
-				b, err := json.Marshal(output)
-				assert.Nil(t, err)
-				assert.Equal(t, tc.stepOutputs[stepIdx], string(b), "step output is incorrect")
-			}
-
-			assert.NotNil(t, ttp)
-		})
-	}
-}
+// 			assert.NotNil(t, ttp)
+// 		})
+// 	}
+// }

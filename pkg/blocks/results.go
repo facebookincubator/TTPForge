@@ -42,6 +42,13 @@ type StepResultsRecord struct {
 	ByIndex []ExecutionResult
 }
 
+func NewStepResultsRecord() *StepResultsRecord {
+	return &StepResultsRecord{
+		ByName:  map[string]ExecutionResult{},
+		ByIndex: []ExecutionResult{},
+	}
+}
+
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
 	CliInputs      []string
