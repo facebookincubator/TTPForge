@@ -44,6 +44,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
@@ -99,6 +100,8 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
+	var subStdouts []string
+	var subStderrs []string
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
 		stepCopy.Setup(s.Environment, availableSteps)
@@ -109,9 +112,13 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 				Args: s.Args,
 			},
 		}
-		if _, err := stepCopy.Execute(subExecCtx); err != nil {
+
+		result, err := stepCopy.Execute(subExecCtx)
+		if err != nil {
 			return nil, err
 		}
+		subStdouts = append(subStdouts, result.Stdout)
+		subStderrs = append(subStderrs, result.Stderr)
 
 		output := stepCopy.GetOutput()
 
@@ -130,7 +137,12 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 
 	logging.Logger.Sugar().Info("Finished execution of sub ttp file")
 
-	return &ExecutionResult{}, nil
+	return &ExecutionResult{
+		ActResult: ActResult{
+			Stdout: strings.Join(subStdouts, ""),
+			Stderr: strings.Join(subStderrs, ""),
+		},
+	}, nil
 }
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance
