@@ -212,8 +212,6 @@ func (f *FileStep) fileExec() error {
 	}
 	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
-	f.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
-
 	return nil
 }
 

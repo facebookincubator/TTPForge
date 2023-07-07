@@ -20,7 +20,6 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -93,7 +92,6 @@ type CleanupAct interface {
 	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	IsNil() bool
-	Success() bool
 	Validate(execCtx TTPExecutionContext) error
 }
 
@@ -117,8 +115,6 @@ type Step interface {
 	FetchArgs(args []string) []string
 	GetOutput() map[string]any
 	SearchOutput(arg string) string
-	SetOutputSuccess(output *bytes.Buffer, exit int)
-	Success() bool
 	StepName() string
 	GetType() StepType
 }
@@ -189,15 +185,6 @@ func (a *Act) StepName() string {
 // map[string]any: The output map of the Act.
 func (a *Act) GetOutput() map[string]any {
 	return a.output
-}
-
-// Success returns the success status of the Act.
-//
-// **Returns:**
-//
-// bool: The success status of the Act.
-func (a *Act) Success() bool {
-	return a.success
 }
 
 // Validate checks the Act for any validation errors, such as the presence of
@@ -382,36 +369,6 @@ func (a *Act) CheckCondition() (bool, error) {
 		return false, nil
 	}
 	return false, nil
-}
-
-// SetOutputSuccess sets the output of an Act to a given buffer and sets the
-// success flag to true or false depending on the exit code.If the output can
-// be unmarshalled into a JSON structure, it is stored as a string in the
-// Act's output map.
-//
-// **Parameters:**
-//
-// output: A pointer to a bytes.Buffer containing the output to
-// set as the Act's output.
-//
-// exit: An integer representing the exit code of the Act.
-func (a *Act) SetOutputSuccess(output *bytes.Buffer, exit int) {
-	a.success = true
-	if exit != 0 {
-		a.success = false
-	}
-
-	outStr := strings.TrimSpace(output.String())
-	var jsonOutput map[string]any
-	if err := json.Unmarshal(output.Bytes(), &jsonOutput); err != nil {
-		logging.Logger.Sugar().Debugw("failed to marshal output into JSON structure", zap.Error(err))
-		logging.Logger.Sugar().Infow("treating output as single string", "output", outStr)
-		a.output["output"] = outStr
-		return
-	}
-
-	logging.Logger.Sugar().Debugw("unmarshalled output to JSON", "json", jsonOutput)
-	a.output = jsonOutput
 }
 
 // MakeCleanupStep creates a CleanupAct based on the given yaml.Node.

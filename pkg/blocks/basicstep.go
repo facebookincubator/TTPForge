@@ -265,8 +265,6 @@ func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
 
 	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
-	b.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
-
 	result := ExecutionResult{}
 	result.Stdout = outStr
 	result.Stderr = errStr
