@@ -300,3 +300,50 @@ steps:
 	assert.Equal(t, "cleanup1\n", stepResults.ByName["step1"].Cleanup.Stdout)
 	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
 }
+
+func TestCleanupAfterStepFailure(t *testing.T) {
+	content := `name: test
+description: this is a test
+steps:
+    - name: step1
+      inline: echo "step1"
+      cleanup:
+        inline: echo "cleanup1"
+    - name: step2
+      inline: echo "step2"
+      cleanup:
+        inline: echo "cleanup2"
+    - name: step3
+      inline: THIS WILL FAIL ON PURPOSE
+      cleanup:
+        inline: echo "cleanup3"
+    - name: step4
+      inline: echo "step4"
+      cleanup:
+        inline: echo "cleanup4"`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{})
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(stepResults.ByIndex))
+	assert.Equal(t, "step1\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "step2\n", stepResults.ByIndex[1].Stdout)
+
+	require.Equal(t, 2, len(stepResults.ByName))
+	assert.Equal(t, "step1\n", stepResults.ByName["step1"].Stdout)
+	assert.Equal(t, "step2\n", stepResults.ByName["step2"].Stdout)
+
+	require.NotNil(t, stepResults.ByIndex[0].Cleanup)
+	require.NotNil(t, stepResults.ByIndex[1].Cleanup)
+	assert.Equal(t, "cleanup1\n", stepResults.ByIndex[0].Cleanup.Stdout)
+	assert.Equal(t, "cleanup2\n", stepResults.ByIndex[1].Cleanup.Stdout)
+
+	require.NotNil(t, stepResults.ByName["step1"].Cleanup)
+	require.NotNil(t, stepResults.ByName["step2"].Cleanup)
+	assert.Equal(t, "cleanup1\n", stepResults.ByName["step1"].Cleanup.Stdout)
+	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
+}
