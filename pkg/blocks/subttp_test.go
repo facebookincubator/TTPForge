@@ -65,8 +65,6 @@ ttp: test.yaml`
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	step.Setup(nil, nil)
 	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "sub_step_1_output\nsub_step_2_output\n", result.Stdout)
@@ -97,8 +95,6 @@ ttp: anotherTest.yaml`
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	step.Setup(nil, nil)
 	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "in_current_dir", result.Stdout)
@@ -133,8 +129,6 @@ args:
 		t.Error("TTP failed to validate", err)
 	}
 
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	step.Setup(nil, nil)
 	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "hello world", result.Stdout)
