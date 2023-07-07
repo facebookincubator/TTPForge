@@ -186,17 +186,6 @@ func (t *TTP) handleInvalidStepError(stepNode yaml.Node) error {
 	return fmt.Errorf("invalid step found with no name, missing parameters for step types")
 }
 
-// Failed returns a slice of strings containing the names of failed
-// steps in the TTP.
-func (t *TTP) Failed() (failed []string) {
-	for _, s := range t.Steps {
-		if !s.Success() {
-			failed = append(failed, s.StepName())
-		}
-	}
-	return failed
-}
-
 // fetchEnv retrieves the environment variables and populates the TTP's
 // Environment map.
 func (t *TTP) fetchEnv() {
