@@ -44,8 +44,12 @@ description: test sub ttp in search path
 steps:
   - name: sub_step_1
     inline: echo sub_step_1_output
+    cleanup:
+      inline: echo cleanup_sub_step_1
   - name: sub_step_2
-    inline: echo sub_step_2_output`),
+    inline: echo sub_step_2_output
+    cleanup:
+      inline: echo cleanup_sub_step_2`),
 			},
 		},
 	}
@@ -65,9 +69,17 @@ ttp: test.yaml`
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 
+	// execute the step
 	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "sub_step_1_output\nsub_step_2_output\n", result.Stdout)
+
+	// cleanup the step
+	cleanups := step.GetCleanup()
+	require.NotNil(t, cleanups)
+	cleanupResult, err := cleanups[0].Cleanup(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "cleanup_sub_step_2\ncleanup_sub_step_1\n", cleanupResult.Stdout)
 }
 
 func TestExecuteSubTtpCurrentDir(t *testing.T) {
