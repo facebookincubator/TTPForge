@@ -37,21 +37,6 @@ error: An error if an error occurs while checking the condition.
 
 ---
 
-### Act.Cleanup(map[string]string)
-
-```go
-Cleanup(map[string]string) error
-```
-
-Cleanup is a placeholder function for the base Act. Subtypes can override
-this method to implement their own cleanup logic.
-
-**Returns:**
-
-error: Always returns nil for the base Act.
-
----
-
 ### Act.ExplainInvalid()
 
 ```go
@@ -174,26 +159,6 @@ as the working directory.
 
 ---
 
-### Act.SetOutputSuccess(*bytes.Buffer, int)
-
-```go
-SetOutputSuccess(*bytes.Buffer, int)
-```
-
-SetOutputSuccess sets the output of an Act to a given buffer and sets the
-success flag to true or false depending on the exit code.If the output can
-be unmarshalled into a JSON structure, it is stored as a string in the
-Act's output map.
-
-**Parameters:**
-
-output: A pointer to a bytes.Buffer containing the output to
-set as the Act's output.
-
-exit: An integer representing the exit code of the Act.
-
----
-
 ### Act.Setup(map[string]string, map[string]Step)
 
 ```go
@@ -230,20 +195,6 @@ string: The name of the Act.
 
 ---
 
-### Act.Success()
-
-```go
-Success() bool
-```
-
-Success returns the success status of the Act.
-
-**Returns:**
-
-bool: The success status of the Act.
-
----
-
 ### Act.Validate()
 
 ```go
@@ -263,27 +214,17 @@ the Act is valid.
 ### BasicStep.Cleanup(TTPExecutionContext)
 
 ```go
-Cleanup(TTPExecutionContext) error
+Cleanup(TTPExecutionContext) *ActResult, error
 ```
 
 Cleanup is an implementation of the CleanupAct interface's Cleanup method.
 
 ---
 
-### BasicStep.CleanupName()
-
-```go
-CleanupName() string
-```
-
-CleanupName returns the name of the cleanup step.
-
----
-
 ### BasicStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) error
+Execute(TTPExecutionContext) *ExecutionResult, error
 ```
 
 Execute runs the BasicStep and returns an error if any occur.
@@ -370,20 +311,10 @@ bool: A boolean value indicating if the key was found in the map.
 
 ---
 
-### EditStep.CleanupName()
-
-```go
-CleanupName() string
-```
-
-CleanupName returns the name of the cleanup step.
-
----
-
 ### EditStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) error
+Execute(TTPExecutionContext) *ExecutionResult, error
 ```
 
 Execute runs the EditStep and returns an error if any occur.
@@ -480,7 +411,7 @@ and their values.
 ### FileStep.Cleanup(TTPExecutionContext)
 
 ```go
-Cleanup(TTPExecutionContext) error
+Cleanup(TTPExecutionContext) *ActResult, error
 ```
 
 Cleanup is a method to establish a link with the Cleanup interface.
@@ -489,20 +420,10 @@ f.CleanupStep.Cleanup.
 
 ---
 
-### FileStep.CleanupName()
-
-```go
-CleanupName() string
-```
-
-CleanupName returns the name of the cleanup action as a string.
-
----
-
 ### FileStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) error
+Execute(TTPExecutionContext) *ExecutionResult, error
 ```
 
 Execute runs the FileStep and returns an error if any occur.
@@ -718,6 +639,16 @@ NewFileStep creates a new FileStep instance and returns a pointer to it.
 
 ---
 
+### NewStepResultsRecord()
+
+```go
+NewStepResultsRecord() *StepResultsRecord
+```
+
+NewStepResultsRecord generates an appropriately initialized StepResultsRecord
+
+---
+
 ### NewSubTTPStep()
 
 ```go
@@ -728,10 +659,20 @@ NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
 
 ---
 
+### SubTTPStep.Cleanup(TTPExecutionContext)
+
+```go
+Cleanup(TTPExecutionContext) *ActResult, error
+```
+
+Cleanup runs the cleanup actions associated with all successful sub-steps
+
+---
+
 ### SubTTPStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) error
+Execute(TTPExecutionContext) *ExecutionResult, error
 ```
 
 Execute runs each step of the TTP file associated with the SubTTPStep
@@ -808,35 +749,6 @@ If any of these conditions are not met, an error is returned.
 
 ---
 
-### TTP.Cleanup(TTPExecutionContext, map[string]Step, []CleanupAct)
-
-```go
-Cleanup(TTPExecutionContext, map[string]Step, []CleanupAct) error
-```
-
-Cleanup executes all of the cleanup steps in the given TTP.
-
-**Parameters:**
-
-t: The TTP to execute the cleanup steps for.
-
-**Returns:**
-
-error: An error if any of the cleanup steps fail to execute.
-
----
-
-### TTP.Failed()
-
-```go
-Failed() []string
-```
-
-Failed returns a slice of strings containing the names of failed
-steps in the TTP.
-
----
-
 ### TTP.MarshalYAML()
 
 ```go
@@ -855,10 +767,10 @@ error: An error if the encoding process fails.
 
 ---
 
-### TTP.RunSteps(TTPExecutionContext)
+### TTP.RunSteps(TTPExecutionConfig)
 
 ```go
-RunSteps(TTPExecutionContext) error
+RunSteps(TTPExecutionConfig) *StepResultsRecord, error
 ```
 
 RunSteps executes all of the steps in the given TTP.
