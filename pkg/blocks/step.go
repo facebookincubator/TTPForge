@@ -73,7 +73,6 @@ type Act struct {
 	Name        string            `yaml:"name"`
 	WorkDir     string            `yaml:"-"`
 	Type        StepType          `yaml:"-"`
-	success     bool
 	stepRef     map[string]Step
 	output      map[string]any
 }
