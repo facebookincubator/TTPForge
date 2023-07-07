@@ -323,7 +323,6 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct, stepResults StepResultsRecord) error {
 	for cleanupIdx, step := range cleanupSteps {
 		stepCopy := step
-		logging.Logger.Sugar().Infof("[+] Running current cleanup step: %s", step.CleanupName())
 		stepCopy.Setup(t.Environment, nil)
 
 		cleanupResult, err := stepCopy.Cleanup(execCtx)
@@ -334,7 +333,6 @@ func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []Cl
 		// since ByIndex and ByName both contain pointers to
 		// the same underlying struct, this will update both
 		stepResults.ByIndex[len(cleanupSteps)-cleanupIdx-1].Cleanup = cleanupResult
-		logging.Logger.Sugar().Infof("[+] Finished running cleanup step: %s", step.CleanupName())
 	}
 	return nil
 }

@@ -131,11 +131,6 @@ func (f *FileStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
-// CleanupName returns the name of the cleanup action as a string.
-func (f *FileStep) CleanupName() string {
-	return f.Name
-}
-
 // ExplainInvalid returns an error message explaining why the FileStep
 // is invalid.
 //

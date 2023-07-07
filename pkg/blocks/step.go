@@ -87,7 +87,7 @@ func NewAct() *Act {
 // CleanupAct interface is implemented by anything that requires a cleanup step.
 type CleanupAct interface {
 	Cleanup(execCtx TTPExecutionContext) (*ActResult, error)
-	CleanupName() string
+	StepName() string
 	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	IsNil() bool
@@ -155,17 +155,6 @@ func (a *Act) ExplainInvalid() error {
 	default:
 		return nil
 	}
-}
-
-// Cleanup is a placeholder function for the base Act. Subtypes can override
-// this method to implement their own cleanup logic.
-//
-// **Returns:**
-//
-// error: Always returns nil for the base Act.
-func (a *Act) Cleanup(inputs map[string]string) error {
-	// base act will not do anything, this allows sub types to do what they need
-	return nil
 }
 
 // StepName returns the name of the Act.

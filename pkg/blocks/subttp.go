@@ -69,7 +69,33 @@ func NewSubTTPStep() *SubTTPStep {
 
 // GetCleanup returns a slice of CleanupAct associated with the SubTTPStep.
 func (s *SubTTPStep) GetCleanup() []CleanupAct {
-	return s.CleanupSteps
+	return []CleanupAct{s}
+}
+
+func aggregateResults(results []*ActResult) *ActResult {
+	var subStdouts []string
+	var subStderrs []string
+	for _, result := range results {
+		subStdouts = append(subStdouts, result.Stdout)
+		subStderrs = append(subStderrs, result.Stderr)
+	}
+
+	return &ActResult{
+		Stdout: strings.Join(subStdouts, ""),
+		Stderr: strings.Join(subStderrs, ""),
+	}
+}
+
+func (s *SubTTPStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	var results []*ActResult
+	for _, step := range s.CleanupSteps {
+		result, err := step.Cleanup(execCtx)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+	return aggregateResults(results), nil
 }
 
 // UnmarshalYAML is a custom unmarshaller for SubTTPStep which decodes
@@ -100,8 +126,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
-	var subStdouts []string
-	var subStderrs []string
+	var results []*ActResult
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
 		stepCopy.Setup(s.Environment, availableSteps)
@@ -117,8 +142,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		if err != nil {
 			return nil, err
 		}
-		subStdouts = append(subStdouts, result.Stdout)
-		subStderrs = append(subStderrs, result.Stderr)
+		results = append(results, &result.ActResult)
 
 		availableSteps[stepCopy.StepName()] = stepCopy
 
@@ -134,10 +158,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 	logging.Logger.Sugar().Info("Finished execution of sub ttp file")
 
 	return &ExecutionResult{
-		ActResult: ActResult{
-			Stdout: strings.Join(subStdouts, ""),
-			Stderr: strings.Join(subStderrs, ""),
-		},
+		ActResult: *aggregateResults(results),
 	}, nil
 }
 

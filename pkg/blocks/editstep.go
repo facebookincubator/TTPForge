@@ -60,11 +60,6 @@ func (s *EditStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
-// CleanupName returns the name of the cleanup step.
-func (s *EditStep) CleanupName() string {
-	return s.Name
-}
-
 // GetType returns the step type for a EditStep.
 func (s *EditStep) GetType() StepType {
 	return s.Type

@@ -110,11 +110,6 @@ func (b *BasicStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
-// CleanupName returns the name of the cleanup step.
-func (b *BasicStep) CleanupName() string {
-	return b.Name
-}
-
 // GetType returns the step type for a BasicStep.
 func (b *BasicStep) GetType() StepType {
 	return b.Type
