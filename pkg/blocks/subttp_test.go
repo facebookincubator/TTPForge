@@ -81,7 +81,7 @@ description: test sub ttp in current dir
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo in_current_dir`),
+      echo -n in_current_dir`),
 			},
 		},
 	}
@@ -99,15 +99,9 @@ ttp: anotherTest.yaml`
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	_, err = step.Execute(execCtx)
+	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
-
-	// TODO: clean this up after output handling refactor
-	stepOutput := step.GetOutput()
-	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
-	subStepOutput := subStepOutputMap["output"].(string)
-
-	assert.Equal(t, "in_current_dir", subStepOutput)
+	assert.Equal(t, "in_current_dir", result.Stdout)
 }
 
 func TestExecuteSubTtpWithArgs(t *testing.T) {
@@ -119,7 +113,7 @@ description: test ttp sub step
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo {{arg_number_one}} {{arg_number_two}}`),
+      echo -n {{arg_number_one}} {{arg_number_two}}`),
 			},
 		},
 	}
@@ -141,15 +135,9 @@ args:
 
 	// TODO: remove Setup() call after upcoming ExecutionContext refactor
 	step.Setup(nil, nil)
-	_, err := step.Execute(execCtx)
+	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
-
-	// TODO: clean this up after output handling refactor
-	stepOutput := step.GetOutput()
-	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
-	subStepOutput := subStepOutputMap["output"].(string)
-
-	assert.Equal(t, "hello world", subStepOutput)
+	assert.Equal(t, "hello world", result.Stdout)
 }
 
 func TestUnmarshalSubTtpInvalid(t *testing.T) {

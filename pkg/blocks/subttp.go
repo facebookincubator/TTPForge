@@ -120,10 +120,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		subStdouts = append(subStdouts, result.Stdout)
 		subStderrs = append(subStderrs, result.Stderr)
 
-		output := stepCopy.GetOutput()
-
 		availableSteps[stepCopy.StepName()] = stepCopy
-		s.output[stepCopy.StepName()] = output
 
 		stepClean := stepCopy.GetCleanup()
 		if stepClean != nil {
@@ -131,7 +128,6 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 			s.CleanupSteps = append(stepCopy.GetCleanup(), s.CleanupSteps...)
 		}
 
-		logging.Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.StepName()].GetOutput())
 		logging.Logger.Sugar().Infof("[+] Finished running step: %s", stepCopy.StepName())
 	}
 
