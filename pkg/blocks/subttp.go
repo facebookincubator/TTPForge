@@ -67,6 +67,7 @@ func aggregateResults(results []*ActResult) *ActResult {
 	}
 }
 
+// Cleanup runs the cleanup actions associated with all successful sub-steps
 func (s *SubTTPStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	var results []*ActResult
 	for _, step := range s.CleanupSteps {
