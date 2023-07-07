@@ -317,7 +317,7 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 		}
 	}
 
-	return stepResults, nil
+	return stepResults, err
 }
 
 func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct, stepResults StepResultsRecord) error {

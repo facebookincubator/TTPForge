@@ -288,7 +288,7 @@ steps:
 	require.NoError(t, err)
 
 	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{})
-	require.NoError(t, err)
+	assert.Error(t, err, "should get an error from step failure")
 
 	require.Equal(t, 2, len(stepResults.ByIndex))
 	assert.Equal(t, "step1\n", stepResults.ByIndex[0].Stdout)
