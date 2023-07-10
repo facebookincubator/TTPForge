@@ -93,11 +93,15 @@ steps:
 	}
 }
 
-func TestBasicStepExecute(t *testing.T) {
+func TestBasicStepExecuteWithOutput(t *testing.T) {
 
 	// prepare step
 	content := `name: test_basic_step
-inline: echo "basic test"`
+inline: echo {\"foo\":{\"bar\":\"baz\"}}
+outputs:
+  first:
+    filters:
+    - json_path: foo.bar`
 	var s blocks.BasicStep
 	execCtx := blocks.TTPExecutionContext{}
 	err := yaml.Unmarshal([]byte(content), &s)
@@ -108,5 +112,7 @@ inline: echo "basic test"`
 	// execute and check result
 	result, err := s.Execute(execCtx)
 	require.NoError(t, err)
-	assert.Equal(t, "basic test\n", result.Stdout)
+	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", result.Stdout)
+	require.Equal(t, 1, len(result.Outputs))
+	assert.Equal(t, "baz", result.Outputs["first"], "first output should be correct")
 }

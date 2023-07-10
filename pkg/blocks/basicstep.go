@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -262,5 +263,9 @@ func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
 	result := ExecutionResult{}
 	result.Stdout = outStr
 	result.Stderr = errStr
+	result.Outputs, err = outputs.Parse(b.Outputs, result.Stdout)
+	if err != nil {
+		return nil, err
+	}
 	return &result, nil
 }
