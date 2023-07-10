@@ -52,6 +52,12 @@ func TestExpandVariablesStepResults(t *testing.T) {
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["second_step"])
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["third_step"])
 	execCtx := blocks.TTPExecutionContext{
+		Cfg: blocks.TTPExecutionConfig{
+			Args: map[string]string{
+				"arg1": "myarg1",
+				"arg2": "myarg2",
+			},
+		},
 		StepResults: stepResults,
 	}
 
@@ -62,6 +68,18 @@ func TestExpandVariablesStepResults(t *testing.T) {
 		expectedResult  []string
 		wantError       bool
 	}{
+		{
+			name: "CLI Arguments Expansion",
+			stringsToExpand: []string{
+				"first arg: {{args.arg1}}",
+				"second arg: {{args.arg2}}",
+			},
+			expectedResult: []string{
+				"first arg: myarg1",
+				"second arg: myarg2",
+			},
+			wantError: false,
+		},
 		{
 			name: "Step Stdout Expansion",
 			stringsToExpand: []string{

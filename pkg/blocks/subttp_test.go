@@ -121,7 +121,7 @@ description: test ttp sub step
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo -n {{arg_number_one}} {{arg_number_two}}`),
+      echo -n {{args.arg_number_one}} {{args.arg_number_two}}`),
 			},
 		},
 	}

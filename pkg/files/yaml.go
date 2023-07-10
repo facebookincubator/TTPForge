@@ -22,10 +22,8 @@ package files
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -69,15 +67,6 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig) (*blocks.TTP, err
 	if err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
-	}
-
-	// Parse CLI inputs.
-	for _, arg := range c.CliInputs {
-		keyVal := strings.Split(arg, "=")
-		if len(keyVal) != 2 {
-			log.Fatalf("Invalid argument format for '%s'. Expected format is 'key=value'.", arg)
-		}
-		ttp.InputMap[keyVal[0]] = keyVal[1]
 	}
 
 	if _, err := ttp.RunSteps(c); err != nil {

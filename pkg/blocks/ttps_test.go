@@ -308,3 +308,42 @@ steps:
 	assert.Equal(t, "cleanup1\n", stepResults.ByName["step1"].Cleanup.Stdout)
 	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
 }
+
+func TestVariableExpansionArgsAndStepResults(t *testing.T) {
+	content := `name: test_variable_expansion
+description: tests args + step result variable expansion functionality
+inputs:
+- name: arg1
+steps:
+  - name: step1
+    inline: echo {\"foo\":{\"bar\":\"baz\"}}
+    outputs:
+      first:
+        filters:
+        - json_path: foo.bar
+  - name: step2
+    inline: echo "first output is {{steps.step1.outputs.first}}"
+  - name: step3
+    inline: echo "arg value is {{args.arg1}}"`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{
+		Args: map[string]string{
+			"arg1": "victory",
+		},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, 3, len(stepResults.ByIndex))
+	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "first output is baz\n", stepResults.ByIndex[1].Stdout)
+	assert.Equal(t, "arg value is victory\n", stepResults.ByIndex[2].Stdout)
+
+	require.Equal(t, 3, len(stepResults.ByName))
+	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByName["step1"].Stdout)
+	assert.Equal(t, "first output is baz\n", stepResults.ByName["step2"].Stdout)
+	assert.Equal(t, "arg value is victory\n", stepResults.ByName["step3"].Stdout)
+}

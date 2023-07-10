@@ -20,6 +20,8 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"strings"
+
 	"go.uber.org/zap"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -33,21 +35,36 @@ func init() {
 
 // RunTTPCmd runs an input TTP.
 func RunTTPCmd() *cobra.Command {
+	var argsList []string
 	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the TTP found in the specified YAML file.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			// build config
 			relativeTTPPath := args[0]
 			ttpCfg.TTPSearchPaths = Conf.TTPSearchPaths
+
+			// Parse CLI inputs.
+			ttpCfg.Args = make(map[string]string)
+			for _, arg := range argsList {
+				keyVal := strings.Split(arg, "=")
+				if len(keyVal) != 2 {
+					Logger.Sugar().Errorw("Invalid argument format for '%s'. Expected format is 'key=value'.", arg)
+					return
+				}
+				ttpCfg.Args[keyVal[0]] = keyVal[1]
+			}
+
+			// run TTP
 			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg); err != nil {
 				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 			}
 		},
 	}
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging)")
-	runCmd.Flags().StringArrayVarP(&ttpCfg.CliInputs, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
+	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
 
 	return runCmd
 }

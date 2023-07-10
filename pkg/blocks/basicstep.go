@@ -27,7 +27,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -196,7 +195,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	result, err := b.executeBashStdin(ctx, execCtx.Cfg.Args)
+	result, err := b.executeBashStdin(ctx, execCtx)
 	if err != nil {
 		logging.Logger.Sugar().Error(zap.Error(err))
 		return nil, err
@@ -207,13 +206,16 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 	return result, nil
 }
 
-func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]string) (*ExecutionResult, error) {
+func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ExecutionResult, error) {
+
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()
 
-	replaced := b.replaceInput(inputs)
-
-	cmd := b.prepareCommand(ctx, replaced)
+	expandedStrs, err := execCtx.ExpandVariables([]string{b.Inline})
+	if err != nil {
+		return nil, err
+	}
+	cmd := b.prepareCommand(ctx, expandedStrs[0])
 
 	result, err := b.runCommand(cmd)
 	if err != nil {
@@ -221,20 +223,6 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]stri
 	}
 
 	return result, nil
-}
-
-func (b *BasicStep) replaceInput(inputs map[string]string) string {
-	re := regexp.MustCompile(`\{\{([a-zA-Z\_\-\.][a-zA-Z0-9\.\-\_]+)\}\}`)
-	replaced := re.ReplaceAllStringFunc(b.Inline, func(match string) string {
-		s := strings.TrimLeft(match, "{")
-		s = strings.TrimRight(s, "}")
-		if val, ok := inputs[s]; ok {
-			return val
-		}
-		// return match if not present in args
-		return match
-	})
-	return replaced
 }
 
 func (b *BasicStep) prepareCommand(ctx context.Context, inline string) *exec.Cmd {
