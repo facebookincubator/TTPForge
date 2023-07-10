@@ -71,15 +71,6 @@ type Act struct {
 	Name        string            `yaml:"name"`
 	WorkDir     string            `yaml:"-"`
 	Type        StepType          `yaml:"-"`
-	stepRef     map[string]Step
-	output      map[string]any
-}
-
-// NewAct is a constructor for the Act struct.
-func NewAct() *Act {
-	return &Act{
-		output: make(map[string]interface{}),
-	}
 }
 
 // CleanupAct interface is implemented by anything that requires a cleanup step.
@@ -107,7 +98,6 @@ type Step interface {
 	IsNil() bool
 	ExplainInvalid() error
 	Validate(execCtx TTPExecutionContext) error
-	GetOutput() map[string]any
 	StepName() string
 	GetType() StepType
 }
@@ -158,15 +148,6 @@ func (a *Act) ExplainInvalid() error {
 // string: The name of the Act.
 func (a *Act) StepName() string {
 	return a.Name
-}
-
-// GetOutput returns the output map of the Act.
-//
-// **Returns:**
-//
-// map[string]any: The output map of the Act.
-func (a *Act) GetOutput() map[string]any {
-	return a.output
 }
 
 // Validate checks the Act for any validation errors, such as the presence of

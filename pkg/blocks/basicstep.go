@@ -188,7 +188,6 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
-	logging.Logger.Sugar().Debugw("available data", "outputs", b.output)
 
 	logging.Logger.Sugar().Info("========= Executing ==========")
 

@@ -165,7 +165,6 @@ func (f *FileStep) IsNil() bool {
 
 // Execute runs the FileStep and returns an error if any occur.
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
-	logging.Logger.Sugar().Debugw("available data", "outputs", f.output)
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if f.FilePath != "" {
