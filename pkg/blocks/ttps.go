@@ -240,6 +240,7 @@ func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []CleanupAct, error) {
 	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()
+	execCtx.StepResults = stepResults
 	var cleanup []CleanupAct
 
 	for _, step := range t.Steps {
