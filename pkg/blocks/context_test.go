@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -28,7 +29,7 @@ import (
 )
 
 func TestExpandVariablesStepResults(t *testing.T) {
-	// build the test fixture
+	// build the test fixture used across all cases
 	stepResults := blocks.NewStepResultsRecord()
 	stepResults.ByName["first_step"] = &blocks.ExecutionResult{
 		ActResult: blocks.ActResult{
@@ -46,9 +47,53 @@ func TestExpandVariablesStepResults(t *testing.T) {
 		StepResults: stepResults,
 	}
 
-	// test variable expansion
-	expandedStrs, err := execCtx.ExpandVariables([]string{"{{steps.first_step.stdout}} {{steps.second_step.stdout}}"})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(expandedStrs))
-	assert.Equal(t, "hello world", expandedStrs[0])
+	testCases := []struct {
+		name            string
+		stringsToExpand []string
+		expectedResult  []string
+		wantError       bool
+	}{
+		{
+			name: "Step Stdout Expansion",
+			stringsToExpand: []string{
+				"first: {{steps.first_step.stdout}}",
+				"second: {{steps.second_step.stdout}}",
+			},
+			expectedResult: []string{
+				"first: hello",
+				"second: world",
+			},
+			wantError: false,
+		},
+		{
+			name: "Invalid Variable Prefix",
+			stringsToExpand: []string{
+				"first: {{steps.first_step.stdout}}",
+				"second: {{steps.fakestep.stdout}}",
+			},
+			wantError: true,
+		},
+		{
+			name: "Invalid Step Name",
+			stringsToExpand: []string{
+				"should fail: {{foo.bar}}",
+			},
+			wantError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// test variable expansion
+			expandedStrs, err := execCtx.ExpandVariables(tc.stringsToExpand)
+			if tc.wantError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, len(tc.expectedResult), len(expandedStrs), "returned slice should have correct length")
+			assert.True(t, reflect.DeepEqual(tc.expectedResult, expandedStrs), "returned slice should match expected value")
+		})
+	}
+
 }

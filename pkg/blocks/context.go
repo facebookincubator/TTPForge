@@ -62,29 +62,31 @@ func (c TTPExecutionContext) processMatch(match string) (string, error) {
 		return "", fmt.Errorf("invalid variable expression: %v", match)
 	}
 
-	scope := tokens[0]
+	prefix := tokens[0]
 	path := strings.Join(tokens[1:], ".")
-	switch scope {
+	switch prefix {
 	case "steps":
 		return c.processStepsVariable(path)
 	}
-	return "", errors.New("invalid scope")
+	return "", fmt.Errorf("invalid variable prefix: %v", prefix)
 }
 
 func (c TTPExecutionContext) ExpandVariables(inStrs []string) ([]string, error) {
 	re := regexp.MustCompile(`\{\{([^\{\}]*)\}\}`)
 	var expandedStrs []string
 	for _, inStr := range inStrs {
-		var invalidMatches []string
+		var failedMatch string
+		var failedMatchError error
 		expandedStr := re.ReplaceAllStringFunc(inStr, func(match string) string {
 			result, err := c.processMatch(match)
 			if err != nil {
-				invalidMatches = append(invalidMatches, match)
+				failedMatch = match
+				failedMatchError = err
 			}
 			return result
 		})
-		if len(invalidMatches) > 0 {
-			return nil, fmt.Errorf("invalid variable expressions: %v", strings.Join(invalidMatches, ","))
+		if failedMatchError != nil {
+			return nil, fmt.Errorf("invalid variable expression %v: %v", failedMatch, failedMatchError)
 		}
 		expandedStrs = append(expandedStrs, expandedStr)
 	}
