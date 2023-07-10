@@ -76,3 +76,29 @@ func TestJSONFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestParse(t *testing.T) {
+	input := `{"foo":{"bar":"baz"},"a":"b"}`
+	specs := map[string]outputs.OutputSpec{
+		"first": {
+			Filters: []outputs.OutputFilter{
+				&outputs.JSONFilter{
+					Path: "foo.bar",
+				},
+			},
+		},
+		"second": {
+			Filters: []outputs.OutputFilter{
+				&outputs.JSONFilter{
+					Path: "a",
+				},
+			},
+		},
+	}
+
+	results, err := outputs.Parse(specs, input)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(results), "should have two outputs")
+	assert.Equal(t, "baz", results["first"], "first output should be correct")
+	assert.Equal(t, "b", results["second"], "second output should be correct")
+}

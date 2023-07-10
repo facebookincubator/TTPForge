@@ -89,3 +89,15 @@ func (f *JSONFilter) Apply(inStr string) (string, error) {
 	}
 	return result.String(), nil
 }
+
+func Parse(specs map[string]OutputSpec, inStr string) (map[string]string, error) {
+	outputs := make(map[string]string)
+	for name, spec := range specs {
+		outStr, err := spec.Apply(inStr)
+		if err != nil {
+			return nil, err
+		}
+		outputs[name] = outStr
+	}
+	return outputs, nil
+}
