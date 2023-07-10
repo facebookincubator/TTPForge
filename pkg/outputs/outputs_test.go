@@ -30,19 +30,33 @@ import (
 func TestJSONFilter(t *testing.T) {
 
 	testCases := []struct {
-		name      string
-		input     string
-		spec      string
-		result    string
-		wantError bool
+		name           string
+		input          string
+		spec           string
+		result         string
+		wantApplyError bool
 	}{
 		{
 			name:  "Simple Valid Path",
 			input: `{"foo":{"bar":"baz"}}`,
 			spec: `filters:
   - json_path: foo.bar`,
-			result:    "baz",
-			wantError: false,
+			result:         "baz",
+			wantApplyError: false,
+		},
+		{
+			name:  "Valid Path But Not Found",
+			input: `{"foo":{"bar":"baz"}}`,
+			spec: `filters:
+  - json_path: a.b`,
+			wantApplyError: true,
+		},
+		{
+			name:  "Invalid Path",
+			input: `{"foo":{"bar":"baz"}}`,
+			spec: `filters:
+  - json_path: a.....b`,
+			wantApplyError: true,
 		},
 	}
 
@@ -53,7 +67,11 @@ func TestJSONFilter(t *testing.T) {
 			require.NoError(t, err)
 
 			result, err := spec.Apply(tc.input)
-			require.NoError(t, err)
+			if tc.wantApplyError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 			assert.Equal(t, tc.result, result)
 		})
 	}
