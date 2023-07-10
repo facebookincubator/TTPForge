@@ -20,7 +20,6 @@ THE SOFTWARE.
 package blocks_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -41,12 +40,22 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			Stdout: "world",
 		},
 	}
+	stepResults.ByName["third_step"] = &blocks.ExecutionResult{
+		ActResult: blocks.ActResult{
+			Stdout: `{"foo":{"bar":"baz"}}`,
+			Outputs: map[string]string{
+				"myresult": "baz",
+			},
+		},
+	}
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["first_step"])
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["second_step"])
+	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["third_step"])
 	execCtx := blocks.TTPExecutionContext{
 		StepResults: stepResults,
 	}
 
+	// individual test cases that use the above fixture
 	testCases := []struct {
 		name            string
 		stringsToExpand []string
@@ -66,6 +75,30 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name: "Step Output Expansion - JSON",
+			stringsToExpand: []string{
+				"third: {{steps.third_step.outputs.myresult}}",
+			},
+			expectedResult: []string{
+				"third: baz",
+			},
+			wantError: false,
+		},
+		{
+			name: "Empty Variable Specifier",
+			stringsToExpand: []string{
+				"this is empty: {{}}",
+			},
+			wantError: true,
+		},
+		{
+			name: "Trailing dot in variable expression",
+			stringsToExpand: []string{
+				"this is wrong: {{steps.wut.}}",
+			},
+			wantError: true,
+		},
+		{
 			name: "Invalid Variable Prefix",
 			stringsToExpand: []string{
 				"first: {{steps.first_step.stdout}}",
@@ -77,6 +110,13 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			name: "Invalid Step Name",
 			stringsToExpand: []string{
 				"should fail: {{foo.bar}}",
+			},
+			wantError: true,
+		},
+		{
+			name: "Invalid Output Key",
+			stringsToExpand: []string{
+				"should fail: {{steps.third_step.outputs.fail}}",
 			},
 			wantError: true,
 		},
@@ -92,7 +132,7 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, len(tc.expectedResult), len(expandedStrs), "returned slice should have correct length")
-			assert.True(t, reflect.DeepEqual(tc.expectedResult, expandedStrs), "returned slice should match expected value")
+			assert.Equal(t, tc.expectedResult, expandedStrs, "returned slice should match expected value")
 		})
 	}
 

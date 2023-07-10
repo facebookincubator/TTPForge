@@ -42,15 +42,43 @@ type TTPExecutionContext struct {
 
 func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
 	tokens := strings.Split(path, ".")
-	stepName := tokens[0]
-	if stepResult, ok := c.StepResults.ByName[stepName]; ok {
-		return stepResult.Stdout, nil
+	if len(tokens) < 2 {
+		return "", fmt.Errorf("invalid step result reference: %v", "steps."+path)
 	}
-	return "", fmt.Errorf("invalid step name in variable expression: %v", "steps."+path)
+
+	stepName := tokens[0]
+	stepResult, ok := c.StepResults.ByName[stepName]
+	if !ok {
+		return "", fmt.Errorf("invalid step name in variable expression: %v", "steps."+path)
+	}
+
+	fieldSelector := tokens[1]
+	switch fieldSelector {
+	case "stdout":
+		if len(tokens) != 2 {
+			return "", fmt.Errorf("invalid step result reference (should end at stdout): %v", "steps."+path)
+		}
+		return stepResult.Stdout, nil
+	case "outputs":
+		if len(tokens) != 3 {
+			return "", fmt.Errorf("step output reference %v should be exactly one level deep (e.g. steps.foo.outputs.bar)", "steps."+path)
+		}
+		key := tokens[2]
+		if val, ok := stepResult.Outputs[key]; !ok {
+			return "", fmt.Errorf("key %v not found in output of step %v", key, stepName)
+		} else {
+			return val, nil
+		}
+	}
+	return "", fmt.Errorf("invalid step result field selector: %v", fieldSelector)
 }
 
 func (c TTPExecutionContext) processMatch(match string) (string, error) {
 	variableSpecifier := strings.TrimLeft(strings.TrimRight(match, "}"), "{")
+	if len(variableSpecifier) == 0 {
+		return "", errors.New("empty string in variable expression")
+	}
+
 	tokens := strings.Split(variableSpecifier, ".")
 	for _, token := range tokens {
 		// happens if we have a something like {{steps.wut.}} or {{.steps.wut}}
