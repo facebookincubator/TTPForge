@@ -104,8 +104,6 @@ inline: echo "basic test"`
 	require.NoError(t, err)
 	err = s.Validate(execCtx)
 	require.NoError(t, err)
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	s.Setup(nil, nil)
 
 	// execute and check result
 	result, err := s.Execute(execCtx)

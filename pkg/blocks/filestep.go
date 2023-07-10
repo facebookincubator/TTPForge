@@ -185,10 +185,10 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 func (f *FileStep) fileExec() error {
 	var cmd *exec.Cmd
 	if f.Executor == ExecutorBinary {
-		cmd = exec.Command(f.FilePath, f.FetchArgs(f.Args)...)
+		cmd = exec.Command(f.FilePath, f.Args...)
 	} else {
 		args := []string{f.FilePath}
-		args = append(args, f.FetchArgs(f.Args)...)
+		args = append(args, f.Args...)
 
 		logging.Logger.Sugar().Debugw("command line execution:", "exec", f.Executor, "args", args)
 		cmd = exec.Command(f.Executor, args...)

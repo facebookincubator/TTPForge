@@ -111,7 +111,6 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 	var results []*ActResult
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		stepCopy.Setup(s.Environment, availableSteps)
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
 		subExecCtx := TTPExecutionContext{

@@ -240,13 +240,11 @@ func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []CleanupAct, error) {
 	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()
-	availableSteps := make(map[string]Step)
 	var cleanup []CleanupAct
 
 	for _, step := range t.Steps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
-		stepCopy.Setup(t.Environment, availableSteps)
 
 		execResult, err := stepCopy.Execute(execCtx)
 		if err != nil {
@@ -323,7 +321,6 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct, stepResults StepResultsRecord) error {
 	for cleanupIdx, step := range cleanupSteps {
 		stepCopy := step
-		stepCopy.Setup(t.Environment, nil)
 
 		cleanupResult, err := stepCopy.Cleanup(execCtx)
 		if err != nil {

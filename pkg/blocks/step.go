@@ -20,11 +20,9 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -88,7 +86,6 @@ func NewAct() *Act {
 type CleanupAct interface {
 	Cleanup(execCtx TTPExecutionContext) (*ActResult, error)
 	StepName() string
-	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	IsNil() bool
 	Validate(execCtx TTPExecutionContext) error
@@ -102,7 +99,6 @@ type CleanupAct interface {
 // searching output, setting output success status, checking success status,
 // returning the step name, and getting the step type.
 type Step interface {
-	Setup(env map[string]string, outputRef map[string]Step)
 	SetDir(dir string)
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
@@ -111,9 +107,7 @@ type Step interface {
 	IsNil() bool
 	ExplainInvalid() error
 	Validate(execCtx TTPExecutionContext) error
-	FetchArgs(args []string) []string
 	GetOutput() map[string]any
-	SearchOutput(arg string) string
 	StepName() string
 	GetType() StepType
 }
@@ -189,139 +183,6 @@ func (a *Act) Validate() error {
 	}
 
 	return nil
-}
-
-// FetchArgs processes a slice of arguments and returns a new slice with the
-// output values of referenced steps.
-//
-// **Parameters:**
-//
-// args: A slice of strings representing the arguments to be processed.
-//
-// **Returns:**
-//
-// []string: A slice of strings containing the processed output values
-// of referenced steps.
-func (a *Act) FetchArgs(args []string) []string {
-	logging.Logger.Sugar().Debug("Fetching args data")
-	logging.Logger.Sugar().Debug(a.output)
-	var inputs []string
-	for _, arg := range args {
-		inputs = append(inputs, a.SearchOutput(arg))
-	}
-	logging.Logger.Sugar().Debugw("full list of inputs", "inputs", inputs)
-
-	return inputs
-}
-
-// Setup initializes the Act with the given environment and output
-// reference maps.
-//
-// **Parameters:**
-//
-// env: A map of environment variables, where the keys are
-// variable names and the values are variable values.
-// outputRef: A map of output references, where the keys are step names
-// and the values are Step instances.
-//
-// **Returns:**
-//
-// map[string]: Step instances.
-func (a *Act) Setup(env map[string]string, outputRef map[string]Step) {
-	a.stepRef = outputRef
-	a.output = make(map[string]any)
-
-	stepEnv := env
-	logging.Logger.Sugar().Debugw("supplied environment", "env", a.Environment)
-	for k, v := range a.Environment {
-		valLookup := a.SearchOutput(v)
-		stepEnv[k] = valLookup
-	}
-	a.Environment = stepEnv
-}
-
-// SearchOutput searches for the Output value of a step by parsing the provided
-// argument.
-//
-// **Parameters:**
-//
-// arg: A string representing the argument in the format
-// "steps.step_name.output".
-//
-// **Returns:**
-//
-// string: The Output value of the step as a string, or the original argument
-// if the step is not found or the argument is in an incorrect format.
-func (a *Act) SearchOutput(arg string) string {
-	logging.Logger.Sugar().Debugw("fetch arg", "arg", arg)
-	val, err := a.search(arg)
-	if err != nil {
-		logging.Logger.Sugar().Debugw("bad arg name", "arg", arg, "err", err)
-		return arg
-	}
-	switch v := val.(type) {
-	case string:
-		return v
-	case int:
-		return fmt.Sprint(v)
-	case bool:
-		return strconv.FormatBool(v)
-	default:
-		b, err := json.Marshal(val)
-		if err != nil {
-			logging.Logger.Sugar().Warnw("value improperly parsed, defaulting to arg as string", "val", val, "err", err)
-			return arg
-		}
-		return string(b)
-	}
-}
-
-func (a *Act) search(arg string) (any, error) {
-	if !strings.HasPrefix(arg, "steps.") {
-		return nil, errors.New("name is not of format steps.step_name.output")
-	}
-
-	steps := strings.SplitN(arg, "steps.", 2)
-	splitNames := strings.Split(steps[1], ".")
-
-	if len(splitNames) < 2 {
-		return nil, errors.New("invalid argument supplied")
-	}
-
-	stepName := splitNames[0]
-	outputKeys := splitNames[1:]
-
-	step, ok := a.stepRef[stepName]
-	if !ok {
-		return nil, errors.New("failed to locate step in args")
-	}
-
-	return getOutputValue(step.GetOutput(), outputKeys)
-}
-
-func getOutputValue(output map[string]interface{}, keys []string) (any, error) {
-	if len(keys) == 0 {
-		return nil, errors.New("no output keys provided")
-	}
-
-	value := output
-	for i, key := range keys {
-		v, ok := value[key]
-		if !ok {
-			return nil, fmt.Errorf("failed to locate output key: %s", strings.Join(keys[:i+1], "."))
-		}
-
-		if i == len(keys)-1 {
-			return v, nil
-		}
-
-		value, ok = v.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("output key %s is not a nested structure", strings.Join(keys[:i+1], "."))
-		}
-	}
-
-	return nil, errors.New("unexpected error while retrieving output value")
 }
 
 // CheckCondition checks the condition specified for an Act and returns true
