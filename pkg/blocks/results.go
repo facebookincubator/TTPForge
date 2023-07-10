@@ -23,8 +23,9 @@ package blocks
 // from both the execution of steps and their
 // associated cleanup actions
 type ActResult struct {
-	Stdout string
-	Stderr string
+	Stdout  string
+	Stderr  string
+	Outputs map[string]string
 }
 
 // ExecutionResult stores the results/outputs
