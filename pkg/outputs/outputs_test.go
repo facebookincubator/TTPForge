@@ -62,7 +62,7 @@ func TestJSONFilter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var spec outputs.OutputSpec
+			var spec outputs.Spec
 			err := yaml.Unmarshal([]byte(tc.spec), &spec)
 			require.NoError(t, err)
 
@@ -79,7 +79,7 @@ func TestJSONFilter(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	input := `{"foo":{"bar":"baz"},"a":"b"}`
-	specs := map[string]outputs.OutputSpec{
+	specs := map[string]outputs.Spec{
 		"first": {
 			Filters: []outputs.OutputFilter{
 				&outputs.JSONFilter{

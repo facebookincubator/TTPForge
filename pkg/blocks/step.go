@@ -67,12 +67,12 @@ const (
 // stepRef: Reference to other steps in the sequence.
 // output: The output of the Act's execution.
 type Act struct {
-	Condition   string                        `yaml:"if,omitempty"`
-	Environment map[string]string             `yaml:"env,omitempty"`
-	Name        string                        `yaml:"name"`
-	WorkDir     string                        `yaml:"-"`
-	Outputs     map[string]outputs.OutputSpec `yaml:"outputs,omitempty"`
-	Type        StepType                      `yaml:"-"`
+	Condition   string                  `yaml:"if,omitempty"`
+	Environment map[string]string       `yaml:"env,omitempty"`
+	Name        string                  `yaml:"name"`
+	WorkDir     string                  `yaml:"-"`
+	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	Type        StepType                `yaml:"-"`
 }
 
 // CleanupAct interface is implemented by anything that requires a cleanup step.

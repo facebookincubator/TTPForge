@@ -31,14 +31,14 @@ type OutputFilter interface {
 	Apply(inStr string) (string, error)
 }
 
-type OutputSpec struct {
+type Spec struct {
 	Filters []OutputFilter `yaml:"filters"`
 }
 
-func (o *OutputSpec) Apply(inStr string) (string, error) {
+func (s *Spec) Apply(inStr string) (string, error) {
 	var err error
 	curStr := inStr
-	for _, f := range o.Filters {
+	for _, f := range s.Filters {
 		curStr, err = f.Apply(curStr)
 		if err != nil {
 			return "", err
@@ -51,7 +51,7 @@ type JSONFilter struct {
 	Path string `yaml:"json_path"`
 }
 
-func (o *OutputSpec) UnmarshalYAML(node *yaml.Node) error {
+func (s *Spec) UnmarshalYAML(node *yaml.Node) error {
 	type SpecTmp struct {
 		FilterNodes []yaml.Node `yaml:"filters"`
 	}
@@ -78,7 +78,7 @@ func (o *OutputSpec) UnmarshalYAML(node *yaml.Node) error {
 	if len(filters) == 0 {
 		return errors.New("no valid filters found in output spec")
 	}
-	o.Filters = filters
+	s.Filters = filters
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (f *JSONFilter) Apply(inStr string) (string, error) {
 	return result.String(), nil
 }
 
-func Parse(specs map[string]OutputSpec, inStr string) (map[string]string, error) {
+func Parse(specs map[string]Spec, inStr string) (map[string]string, error) {
 	outputs := make(map[string]string)
 	for name, spec := range specs {
 		outStr, err := spec.Apply(inStr)
