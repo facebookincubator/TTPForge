@@ -27,15 +27,20 @@ import (
 )
 
 type Spec struct {
-	Name     string `yaml:"name"`
-	Type     string `yaml:"type,omitempty"`
-	Default  string `yaml:"default,omitempty"`
-	Required bool   `yaml:"required,omitempty"`
+	Name    string `yaml:"name"`
+	Type    string `yaml:"type,omitempty"`
+	Default string `yaml:"default,omitempty"`
 }
 
 func (spec Spec) validate() error {
 	if spec.Name == "" {
 		return errors.New("argument name cannot be empty")
+	}
+	if spec.Default != "" {
+		err := spec.checkArgType(spec.Default)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -43,10 +48,8 @@ func (spec Spec) validate() error {
 func (spec Spec) checkArgType(val string) error {
 	switch spec.Type {
 	case "", "string":
-		//string is the default
-		if val == "" {
-			return errors.New("value provided for string argument cannot be empty")
-		}
+		//string is the default - any string is valid
+		break
 	case "int":
 		if _, err := strconv.Atoi(val); err != nil {
 			return errors.New("non-integer value provided")
@@ -101,6 +104,18 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, err
 
 		// valid arg value - save
 		processedArgs[argName] = argVal
+	}
+
+	// set default values - error if argument was not provided
+	// and no default value was specified
+	for _, spec := range specs {
+		if _, ok := processedArgs[spec.Name]; !ok {
+			if spec.Default != "" {
+				processedArgs[spec.Name] = spec.Default
+			} else {
+				return nil, fmt.Errorf("value for required argument '%v' was not provided and no default value was specified", spec.Name)
+			}
+		}
 	}
 	return processedArgs, nil
 }

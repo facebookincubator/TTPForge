@@ -37,7 +37,7 @@ func TestValidateArgs(t *testing.T) {
 		wantError      bool
 	}{
 		{
-			name: "Parse String Argument",
+			name: "Parse String and Integer Arguments",
 			specs: []args.Spec{
 				{
 					Name: "alpha",
@@ -54,6 +54,27 @@ func TestValidateArgs(t *testing.T) {
 			expectedResult: map[string]string{
 				"alpha": "foo",
 				"beta":  "3",
+			},
+			wantError: false,
+		},
+		{
+			name: "Parse String and Integer Argument (Default Value)",
+			specs: []args.Spec{
+				{
+					Name: "alpha",
+				},
+				{
+					Name:    "beta",
+					Type:    "int",
+					Default: "1337",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=foo",
+			},
+			expectedResult: map[string]string{
+				"alpha": "foo",
+				"beta":  "1337",
 			},
 			wantError: false,
 		},
@@ -94,14 +115,17 @@ func TestValidateArgs(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name: "Invalid Inputs (Empty Value)",
+			name: "Invalid Inputs (Missing Required Argument)",
 			specs: []args.Spec{
 				{
 					Name: "alpha",
 				},
+				{
+					Name: "beta",
+				},
 			},
 			argKvStrs: []string{
-				"alpha=",
+				"alpha=foo",
 			},
 			wantError: true,
 		},
@@ -150,6 +174,20 @@ func TestValidateArgs(t *testing.T) {
 			argKvStrs: []string{
 				"alpha=foo",
 				"beta=bar",
+			},
+			wantError: true,
+		},
+		{
+			name: "Default Value Wrong Type (string instead of int)",
+			specs: []args.Spec{
+				{
+					Name:    "alpha",
+					Type:    "int",
+					Default: "wut",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=1337",
 			},
 			wantError: true,
 		},
