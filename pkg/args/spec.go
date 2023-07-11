@@ -22,6 +22,7 @@ package args
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -35,6 +36,23 @@ type Spec struct {
 func (spec Spec) validate() error {
 	if spec.Name == "" {
 		return errors.New("argument name cannot be empty")
+	}
+	return nil
+}
+
+func (spec Spec) checkArgType(val string) error {
+	switch spec.Type {
+	case "", "string":
+		//string is the default
+		if val == "" {
+			return errors.New("value provided for string argument cannot be empty")
+		}
+	case "int":
+		if _, err := strconv.Atoi(val); err != nil {
+			return errors.New("non-integer value provided")
+		}
+	default:
+		return fmt.Errorf("invalid type %v specified in configuration for argument %v", spec.Type, spec.Name)
 	}
 	return nil
 }
@@ -63,9 +81,25 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, err
 		}
 		argName := argKv[0]
 		argVal := argKv[1]
-		if _, ok := specsByName[argName]; !ok {
+
+		// passed foo=bar with no argument foo defined in specs
+		spec, ok := specsByName[argName]
+		if !ok {
 			return nil, fmt.Errorf("received unexpected argument: %v ", argName)
 		}
+
+		// passed argument value of invalid type
+		err := spec.checkArgType(argVal)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"invalid value '%v' specified for argument '%v': %v",
+				argVal,
+				argName,
+				err,
+			)
+		}
+
+		// valid arg value - save
 		processedArgs[argName] = argVal
 	}
 	return processedArgs, nil

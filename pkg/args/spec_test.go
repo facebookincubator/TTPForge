@@ -44,15 +44,16 @@ func TestValidateArgs(t *testing.T) {
 				},
 				{
 					Name: "beta",
+					Type: "int",
 				},
 			},
 			argKvStrs: []string{
 				"alpha=foo",
-				"beta=bar",
+				"beta=3",
 			},
 			expectedResult: map[string]string{
 				"alpha": "foo",
-				"beta":  "bar",
+				"beta":  "3",
 			},
 			wantError: false,
 		},
@@ -93,6 +94,18 @@ func TestValidateArgs(t *testing.T) {
 			wantError: true,
 		},
 		{
+			name: "Invalid Inputs (Empty Value)",
+			specs: []args.Spec{
+				{
+					Name: "alpha",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=",
+			},
+			wantError: true,
+		},
+		{
 			name: "Argument Name Not In Specs",
 			specs: []args.Spec{
 				{
@@ -120,6 +133,23 @@ func TestValidateArgs(t *testing.T) {
 			},
 			argKvStrs: []string{
 				"alpha=foo",
+			},
+			wantError: true,
+		},
+		{
+			name: "Wrong Type (string instead of int)",
+			specs: []args.Spec{
+				{
+					Name: "alpha",
+				},
+				{
+					Name: "beta",
+					Type: "int",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=foo",
+				"beta=bar",
 			},
 			wantError: true,
 		},
