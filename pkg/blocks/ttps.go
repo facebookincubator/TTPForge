@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -174,20 +173,6 @@ func (t *TTP) handleInvalidStepError(stepNode yaml.Node) error {
 	return fmt.Errorf("invalid step found with no name, missing parameters for step types")
 }
 
-// fetchEnv retrieves the environment variables and populates the TTP's
-// Environment map.
-func (t *TTP) fetchEnv() {
-	if t.Environment == nil {
-		t.Environment = make(map[string]string)
-	}
-	logging.Logger.Sugar().Debugw("environment for ttps", "env", t.Environment)
-
-	for _, e := range os.Environ() {
-		pair := strings.SplitN(e, "=", 2)
-		t.Environment[pair[0]] = pair[1]
-	}
-}
-
 func (t *TTP) setWorkingDirectory() error {
 	if t.WorkDir != "" {
 		return nil
@@ -271,8 +256,6 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	if err := t.ValidateSteps(execCtx); err != nil {
 		return nil, err
 	}
-
-	t.fetchEnv()
 
 	stepResults, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
