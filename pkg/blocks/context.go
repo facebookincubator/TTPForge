@@ -41,6 +41,7 @@ type TTPExecutionContext struct {
 
 // ExpandVariables takes a string containing the following types of variables
 // and expands all of them to their appropriate values:
+//
 // * Command-line arguments: ({{args.foo}})
 // * Step outputs: ({{step.bar.outputs.baz}})
 //
