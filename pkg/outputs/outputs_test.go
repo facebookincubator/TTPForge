@@ -81,14 +81,14 @@ func TestParse(t *testing.T) {
 	input := `{"foo":{"bar":"baz"},"a":"b"}`
 	specs := map[string]outputs.Spec{
 		"first": {
-			Filters: []outputs.OutputFilter{
+			Filters: []outputs.Filter{
 				&outputs.JSONFilter{
 					Path: "foo.bar",
 				},
 			},
 		},
 		"second": {
-			Filters: []outputs.OutputFilter{
+			Filters: []outputs.Filter{
 				&outputs.JSONFilter{
 					Path: "a",
 				},

@@ -27,12 +27,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type OutputFilter interface {
+type Filter interface {
 	Apply(inStr string) (string, error)
 }
 
 type Spec struct {
-	Filters []OutputFilter `yaml:"filters"`
+	Filters []Filter `yaml:"filters"`
 }
 
 func (s *Spec) Apply(inStr string) (string, error) {
@@ -61,9 +61,9 @@ func (s *Spec) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 
-	var filters []OutputFilter
+	var filters []Filter
 	for _, fn := range tmp.FilterNodes {
-		filterTypes := []OutputFilter{&JSONFilter{}}
+		filterTypes := []Filter{&JSONFilter{}}
 		var alreadyFound bool
 		for _, ft := range filterTypes {
 			if err := fn.Decode(ft); err == nil {
@@ -90,6 +90,18 @@ func (f *JSONFilter) Apply(inStr string) (string, error) {
 	return result.String(), nil
 }
 
+// Parse uses provided output specifications to extract output values
+// from the provided raw stdout string
+//
+// **Parameters:**
+//
+// specs: the specs for the outputs to be extracted
+// inStr: the raw stdout string from the step whose outputs will be extracted
+//
+// **Returns:**
+//
+// map[string]string: the output keys and values
+// error: an error if there is a problem
 func Parse(specs map[string]Spec, inStr string) (map[string]string, error) {
 	outputs := make(map[string]string)
 	for name, spec := range specs {
