@@ -1,5 +1,5 @@
 ---
-name: args_example
+name: define_args
 description: |
   Illustrates how to define CLI arguments for TTPs
 args:
