@@ -26,40 +26,25 @@ import (
 	"strings"
 )
 
+// Spec defines a CLI argument for the TTP
 type Spec struct {
 	Name    string `yaml:"name"`
 	Type    string `yaml:"type,omitempty"`
 	Default string `yaml:"default,omitempty"`
 }
 
-func (spec Spec) validate() error {
-	if spec.Name == "" {
-		return errors.New("argument name cannot be empty")
-	}
-	if spec.Default != "" {
-		err := spec.checkArgType(spec.Default)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (spec Spec) checkArgType(val string) error {
-	switch spec.Type {
-	case "", "string":
-		//string is the default - any string is valid
-		break
-	case "int":
-		if _, err := strconv.Atoi(val); err != nil {
-			return errors.New("non-integer value provided")
-		}
-	default:
-		return fmt.Errorf("invalid type %v specified in configuration for argument %v", spec.Type, spec.Name)
-	}
-	return nil
-}
-
+// ParseAndValidate checks that the provided arguments
+// match the argument specifications for this TTP
+//
+// **Parameters:**
+//
+// specs: slice of argument Spec values loaded from the TTP yaml
+// argKvStrs: slice of arguments in "ARG_NAME=ARG_VALUE" format
+//
+// **Returns:**
+//
+// map[string]string: the parsed and validated argument key-value pairs
+// error: an error if there is a problem
 func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, error) {
 
 	// validate the specs
@@ -118,4 +103,32 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, err
 		}
 	}
 	return processedArgs, nil
+}
+
+func (spec Spec) validate() error {
+	if spec.Name == "" {
+		return errors.New("argument name cannot be empty")
+	}
+	if spec.Default != "" {
+		err := spec.checkArgType(spec.Default)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (spec Spec) checkArgType(val string) error {
+	switch spec.Type {
+	case "", "string":
+		//string is the default - any string is valid
+		break
+	case "int":
+		if _, err := strconv.Atoi(val); err != nil {
+			return errors.New("non-integer value provided")
+		}
+	default:
+		return fmt.Errorf("invalid type %v specified in configuration for argument %v", spec.Type, spec.Name)
+	}
+	return nil
 }
