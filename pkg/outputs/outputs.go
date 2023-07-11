@@ -27,14 +27,44 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Filter interface {
-	Apply(inStr string) (string, error)
+// Parse uses provided output specifications to extract output values
+// from the provided raw stdout string
+//
+// **Parameters:**
+//
+// specs: the specs for the outputs to be extracted
+// inStr: the raw stdout string from the step whose outputs will be extracted
+//
+// **Returns:**
+//
+// map[string]string: the output keys and values
+// error: an error if there is a problem
+func Parse(specs map[string]Spec, inStr string) (map[string]string, error) {
+	outputs := make(map[string]string)
+	for name, spec := range specs {
+		outStr, err := spec.Apply(inStr)
+		if err != nil {
+			return nil, err
+		}
+		outputs[name] = outStr
+	}
+	return outputs, nil
 }
 
+// Spec defines an output value for which
+// a given step's stdout should be scanned
 type Spec struct {
 	Filters []Filter `yaml:"filters"`
 }
 
+// Filter can be used to extract an output value
+// from the provided string using Apply(...)
+type Filter interface {
+	Apply(inStr string) (string, error)
+}
+
+// Apply applies all filters in this output spec
+// to the target string in order, producing a new string
 func (s *Spec) Apply(inStr string) (string, error) {
 	var err error
 	curStr := inStr
@@ -47,10 +77,13 @@ func (s *Spec) Apply(inStr string) (string, error) {
 	return curStr, nil
 }
 
+// JSONFilter will parse a JSON string
+// and extract the value at the provided path (like jq)
 type JSONFilter struct {
 	Path string `yaml:"json_path"`
 }
 
+// UnmarshalYAML is used to load specs from yaml files
 func (s *Spec) UnmarshalYAML(node *yaml.Node) error {
 	type SpecTmp struct {
 		FilterNodes []yaml.Node `yaml:"filters"`
@@ -82,34 +115,12 @@ func (s *Spec) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// Apply applies this filters to the target string
+// and produces a new string
 func (f *JSONFilter) Apply(inStr string) (string, error) {
 	result := gjson.Get(inStr, f.Path)
 	if !result.Exists() {
 		return "", fmt.Errorf("json path not found: %v", f.Path)
 	}
 	return result.String(), nil
-}
-
-// Parse uses provided output specifications to extract output values
-// from the provided raw stdout string
-//
-// **Parameters:**
-//
-// specs: the specs for the outputs to be extracted
-// inStr: the raw stdout string from the step whose outputs will be extracted
-//
-// **Returns:**
-//
-// map[string]string: the output keys and values
-// error: an error if there is a problem
-func Parse(specs map[string]Spec, inStr string) (map[string]string, error) {
-	outputs := make(map[string]string)
-	for name, spec := range specs {
-		outStr, err := spec.Apply(inStr)
-		if err != nil {
-			return nil, err
-		}
-		outputs[name] = outStr
-	}
-	return outputs, nil
 }
