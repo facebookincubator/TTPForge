@@ -70,7 +70,7 @@ func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, 
 		require.NoError(t, err, "failed to chdir back to former current directory")
 	}()
 
-	_, err = files.ExecuteYAML(ttpRelPath, ttpConfig)
+	_, err = files.ExecuteYAML(ttpRelPath, ttpConfig, nil)
 	require.NoError(t, err, "failed to execute TTP")
 
 	// validate that correct files were generated

@@ -37,25 +37,16 @@ import (
 const yamlContent = `---
 name: paramtest
 description: Test variadiac parameter handling
+args:
+  - name: user
+  - name: password 
 steps:
   - name: "paramtest"
     inline: |
       set -e
 
-      user="$(echo {{user}} | tr -d '\n\t\r')"
-      if [[ "{{user}}" == *'{{'* ]]; then
-          user=""
-      fi
-
-      password="$(echo {{password}} | tr -d '\n\t\r')"
-      if [[ "{{password}}" == *'{{'* ]]; then
-          password=""
-      fi
-
-      if [[ (-z "$user") || (-z "$password") ]]; then
-          echo "Error: Both user and password must have a value."
-          exit 1
-      fi
+      user="$(echo {{args.user}} | tr -d '\n\t\r')"
+      password="$(echo {{args.password}} | tr -d '\n\t\r')"
 
       go run variadicParameterExample.go \
         --user $user \

@@ -25,6 +25,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -37,12 +38,7 @@ type TTP struct {
 	Description string            `yaml:"description"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
-	Inputs      []struct {
-		Name     string `yaml:"name"`
-		Type     string `yaml:"type"`
-		Default  string `yaml:"default,omitempty"`
-		Required bool   `yaml:"required,omitempty"`
-	} `yaml:"inputs,omitempty,flow"`
+	Args        []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
 }
@@ -118,12 +114,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		Description string            `yaml:"description"`
 		Environment map[string]string `yaml:"env,flow,omitempty"`
 		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
-		Inputs      []struct {
-			Name     string `yaml:"name"`
-			Type     string `yaml:"type"`
-			Default  string `yaml:"default,omitempty"`
-			Required bool   `yaml:"required,omitempty"`
-		} `yaml:"inputs,omitempty,flow"`
+		Args        []args.Spec       `yaml:"args,omitempty,flow"`
 	}
 
 	var tmpl TTPTmpl
@@ -134,7 +125,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Name = tmpl.Name
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
-	t.Inputs = tmpl.Inputs
+	t.Args = tmpl.Args
 
 	return t.decodeSteps(tmpl.Steps)
 }

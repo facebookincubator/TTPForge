@@ -312,7 +312,7 @@ steps:
 func TestVariableExpansionArgsAndStepResults(t *testing.T) {
 	content := `name: test_variable_expansion
 description: tests args + step result variable expansion functionality
-inputs:
+args:
 - name: arg1
 steps:
   - name: step1

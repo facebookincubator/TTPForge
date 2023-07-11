@@ -58,7 +58,7 @@ func RunTTPCmd() *cobra.Command {
 			}
 
 			// run TTP
-			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg); err != nil {
+			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg, argsList); err != nil {
 				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
 			}
 		},
