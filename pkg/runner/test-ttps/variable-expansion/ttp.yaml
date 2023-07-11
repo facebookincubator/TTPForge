@@ -16,11 +16,15 @@ steps:
     inline: |
       echo "{\"test_key\":\"$input\",\"another_key\":\"wut\"}" >> result.txt
     env:
-      input: steps.echo_env_inline.output
+      input: "{{steps.echo_env_inline.stdout}}"
   - name: echo_more_json
     inline: |
       echo "{\"yet_another_key\":\"foo\"}"
+    outputs:
+      another_one: 
+        filters:
+        - json_path: yet_another_key
   - name: test_step_output_in_arg_list
     file: write-to-result.sh
     args:
-      - steps.echo_more_json.yet_another_key
+      - "{{steps.echo_more_json.outputs.another_one}}"

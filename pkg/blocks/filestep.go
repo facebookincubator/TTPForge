@@ -168,7 +168,7 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if f.FilePath != "" {
-		if err := f.fileExec(); err != nil {
+		if err := f.fileExec(execCtx); err != nil {
 			logging.Logger.Sugar().Error(zap.Error(err))
 			return nil, err
 		}
@@ -181,24 +181,33 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 
 // fileExec executes the FileStep with the specified executor and arguments,
 // and returns an error if any occur.
-func (f *FileStep) fileExec() error {
+func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 	var cmd *exec.Cmd
+	expandedArgs, err := execCtx.ExpandVariables(f.Args)
+	if err != nil {
+		return err
+	}
 	if f.Executor == ExecutorBinary {
-		cmd = exec.Command(f.FilePath, f.Args...)
+		cmd = exec.Command(f.FilePath, expandedArgs...)
 	} else {
 		args := []string{f.FilePath}
-		args = append(args, f.Args...)
+		args = append(args, expandedArgs...)
 
 		logging.Logger.Sugar().Debugw("command line execution:", "exec", f.Executor, "args", args)
 		cmd = exec.Command(f.Executor, args...)
 	}
-	cmd.Env = FetchEnv(f.Environment)
+	envAsList := FetchEnv(f.Environment)
+	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
+	if err != nil {
+		return err
+	}
+	cmd.Env = expandedEnvAsList
 	cmd.Dir = f.WorkDir
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
-	err := cmd.Run()
+	err = cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
 		logging.Logger.Sugar().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
