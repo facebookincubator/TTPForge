@@ -52,40 +52,6 @@ if the Act is valid.
 
 ---
 
-### Act.FetchArgs([]string)
-
-```go
-FetchArgs([]string) []string
-```
-
-FetchArgs processes a slice of arguments and returns a new slice with the
-output values of referenced steps.
-
-**Parameters:**
-
-args: A slice of strings representing the arguments to be processed.
-
-**Returns:**
-
-[]string: A slice of strings containing the processed output values
-of referenced steps.
-
----
-
-### Act.GetOutput()
-
-```go
-GetOutput() map[string]any
-```
-
-GetOutput returns the output map of the Act.
-
-**Returns:**
-
-map[string]any: The output map of the Act.
-
----
-
 ### Act.IsNil()
 
 ```go
@@ -123,27 +89,6 @@ error: An error if the node contains invalid parameters.
 
 ---
 
-### Act.SearchOutput(string)
-
-```go
-SearchOutput(string) string
-```
-
-SearchOutput searches for the Output value of a step by parsing the provided
-argument.
-
-**Parameters:**
-
-arg: A string representing the argument in the format
-"steps.step_name.output".
-
-**Returns:**
-
-string: The Output value of the step as a string, or the original argument
-if the step is not found or the argument is in an incorrect format.
-
----
-
 ### Act.SetDir(string)
 
 ```go
@@ -156,28 +101,6 @@ SetDir sets the working directory for the Act.
 
 dir: A string representing the directory path to be set
 as the working directory.
-
----
-
-### Act.Setup(map[string]string, map[string]Step)
-
-```go
-Setup(map[string]string, map[string]Step)
-```
-
-Setup initializes the Act with the given environment and output
-reference maps.
-
-**Parameters:**
-
-env: A map of environment variables, where the keys are
-variable names and the values are variable values.
-outputRef: A map of output references, where the keys are step names
-and the values are Step instances.
-
-**Returns:**
-
-map[string]: Step instances.
 
 ---
 
@@ -599,16 +522,6 @@ err: An error if the file contains invalid data or cannot be read.
 
 ---
 
-### NewAct()
-
-```go
-NewAct() *Act
-```
-
-NewAct is a constructor for the Act struct.
-
----
-
 ### NewBasicStep()
 
 ```go
@@ -820,6 +733,28 @@ If all steps are successfully validated, the method returns nil.
 **Returns:**
 
 error: An error if any step validation fails, otherwise nil.
+
+---
+
+### TTPExecutionContext.ExpandVariables([]string)
+
+```go
+ExpandVariables([]string) []string, error
+```
+
+ExpandVariables takes a string containing the following types of variables
+and expands all of them to their appropriate values:
+* Command-line arguments: ({{args.foo}})
+* Step outputs: ({{step.bar.outputs.baz}})
+
+**Parameters:**
+
+inStrs: the list of strings that have variables expanded
+
+**Returns:**
+
+[]string: the corresponding strings with variables expanded
+error: an error if there is a problem
 
 ---
 

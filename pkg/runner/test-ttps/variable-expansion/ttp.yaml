@@ -21,9 +21,9 @@ steps:
     inline: |
       echo "{\"yet_another_key\":\"foo\"}"
     outputs:
-      another_one: 
+      another_one:
         filters:
-        - json_path: yet_another_key
+          - json_path: yet_another_key
   - name: test_step_output_in_arg_list
     file: write-to-result.sh
     args:

@@ -39,34 +39,19 @@ type TTPExecutionContext struct {
 	StepResults *StepResultsRecord
 }
 
-func (c TTPExecutionContext) processMatch(match string) (string, error) {
-	variableSpecifier := strings.TrimLeft(strings.TrimRight(match, "}"), "{")
-	if len(variableSpecifier) == 0 {
-		return "", errors.New("empty string in variable expression")
-	}
-
-	tokens := strings.Split(variableSpecifier, ".")
-	for _, token := range tokens {
-		// happens if we have a something like {{steps.wut.}} or {{.steps.wut}}
-		if token == "" {
-			return "", errors.New("leading or trailing '.' in variable expression")
-		}
-	}
-	if len(tokens) < 2 {
-		return "", fmt.Errorf("invalid variable expression: %v", match)
-	}
-
-	prefix := tokens[0]
-	path := strings.Join(tokens[1:], ".")
-	switch prefix {
-	case "args":
-		return c.processArgsVariable(path)
-	case "steps":
-		return c.processStepsVariable(path)
-	}
-	return "", fmt.Errorf("invalid variable prefix: %v", prefix)
-}
-
+// ExpandVariables takes a string containing the following types of variables
+// and expands all of them to their appropriate values:
+// * Command-line arguments: ({{args.foo}})
+// * Step outputs: ({{step.bar.outputs.baz}})
+//
+// **Parameters:**
+//
+// inStrs: the list of strings that have variables expanded
+//
+// **Returns:**
+//
+// []string: the corresponding strings with variables expanded
+// error: an error if there is a problem
 func (c TTPExecutionContext) ExpandVariables(inStrs []string) ([]string, error) {
 	re := regexp.MustCompile(`\{\{([^\{\}]*)\}\}`)
 	var expandedStrs []string
@@ -122,11 +107,39 @@ func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
 			return "", fmt.Errorf("step output reference %v should be exactly one level deep (e.g. steps.foo.outputs.bar)", "steps."+path)
 		}
 		key := tokens[2]
-		if val, ok := stepResult.Outputs[key]; !ok {
+		val, ok := stepResult.Outputs[key]
+		if !ok {
 			return "", fmt.Errorf("key %v not found in output of step %v", key, stepName)
-		} else {
-			return val, nil
 		}
+		return val, nil
 	}
 	return "", fmt.Errorf("invalid step result field selector: %v", fieldSelector)
+}
+
+func (c TTPExecutionContext) processMatch(match string) (string, error) {
+	variableSpecifier := strings.TrimLeft(strings.TrimRight(match, "}"), "{")
+	if len(variableSpecifier) == 0 {
+		return "", errors.New("empty string in variable expression")
+	}
+
+	tokens := strings.Split(variableSpecifier, ".")
+	for _, token := range tokens {
+		// happens if we have a something like {{steps.wut.}} or {{.steps.wut}}
+		if token == "" {
+			return "", errors.New("leading or trailing '.' in variable expression")
+		}
+	}
+	if len(tokens) < 2 {
+		return "", fmt.Errorf("invalid variable expression: %v", match)
+	}
+
+	prefix := tokens[0]
+	path := strings.Join(tokens[1:], ".")
+	switch prefix {
+	case "args":
+		return c.processArgsVariable(path)
+	case "steps":
+		return c.processStepsVariable(path)
+	}
+	return "", fmt.Errorf("invalid variable prefix: %v", prefix)
 }

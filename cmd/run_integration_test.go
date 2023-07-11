@@ -39,7 +39,7 @@ name: paramtest
 description: Test variadiac parameter handling
 args:
   - name: user
-  - name: password 
+  - name: password
 steps:
   - name: "paramtest"
     inline: |

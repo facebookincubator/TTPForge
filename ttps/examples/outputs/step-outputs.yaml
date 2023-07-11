@@ -10,8 +10,8 @@ steps:
   - name: with_json_output
     inline: echo {\"foo\":\"bar\"}
     outputs:
-      my_value: 
+      my_value:
         filters:
-        - json_path: foo
+          - json_path: foo
   - name: print_json
     inline: echo {{steps.with_json_output.outputs.my_value}}

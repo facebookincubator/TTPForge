@@ -55,9 +55,8 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, err
 		}
 		if _, ok := specsByName[spec.Name]; ok {
 			return nil, fmt.Errorf("duplicate argument name: %v", spec.Name)
-		} else {
-			specsByName[spec.Name] = spec
 		}
+		specsByName[spec.Name] = spec
 	}
 
 	// validate the inputs
@@ -121,7 +120,7 @@ func (spec Spec) validate() error {
 func (spec Spec) checkArgType(val string) error {
 	switch spec.Type {
 	case "", "string":
-		//string is the default - any string is valid
+		// string is the default - any string is valid
 		break
 	case "int":
 		if _, err := strconv.Atoi(val); err != nil {
