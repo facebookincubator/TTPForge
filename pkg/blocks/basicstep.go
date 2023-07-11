@@ -211,11 +211,20 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()
 
+	// expand variables in command
 	expandedStrs, err := execCtx.ExpandVariables([]string{b.Inline})
 	if err != nil {
 		return nil, err
 	}
-	cmd := b.prepareCommand(ctx, expandedStrs[0])
+
+	// expand variables in environment
+	envAsList := FetchEnv(b.Environment)
+	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := b.prepareCommand(ctx, expandedEnvAsList, expandedStrs[0])
 
 	result, err := b.runCommand(cmd)
 	if err != nil {
@@ -225,9 +234,9 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	return result, nil
 }
 
-func (b *BasicStep) prepareCommand(ctx context.Context, inline string) *exec.Cmd {
+func (b *BasicStep) prepareCommand(ctx context.Context, envAsList []string, inline string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, b.Executor)
-	cmd.Env = FetchEnv(b.Environment)
+	cmd.Env = envAsList
 	cmd.Dir = b.WorkDir
 	cmd.Stdin = strings.NewReader(inline)
 

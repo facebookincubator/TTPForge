@@ -97,13 +97,21 @@ func TestBasicStepExecuteWithOutput(t *testing.T) {
 
 	// prepare step
 	content := `name: test_basic_step
-inline: echo {\"foo\":{\"bar\":\"baz\"}}
+inline: echo {\"foo\":{\"bar\":\"${myEnvVar}\"}}
+env:
+  myEnvVar: "{{args.myarg}}"
 outputs:
   first:
     filters:
     - json_path: foo.bar`
 	var s blocks.BasicStep
-	execCtx := blocks.TTPExecutionContext{}
+	execCtx := blocks.TTPExecutionContext{
+		Cfg: blocks.TTPExecutionConfig{
+			Args: map[string]string{
+				"myarg": "baz",
+			},
+		},
+	}
 	err := yaml.Unmarshal([]byte(content), &s)
 	require.NoError(t, err)
 	err = s.Validate(execCtx)
