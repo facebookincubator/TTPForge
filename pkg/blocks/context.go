@@ -28,9 +28,10 @@ import (
 
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
-	NoCleanup      bool
-	Args           map[string]string
-	TTPSearchPaths []string
+	NoCleanup           bool
+	CleanupDelaySeconds uint
+	Args                map[string]string
+	TTPSearchPaths      []string
 }
 
 // TTPExecutionContext - holds config and context for the currently executing TTP

@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -266,6 +267,10 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	logging.Logger.Sugar().Info("[*] Completed TTP")
 
 	if !execCtx.Cfg.NoCleanup {
+		if execCtx.Cfg.CleanupDelaySeconds > 0 {
+			logging.Logger.Sugar().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
+			time.Sleep(time.Duration(execCtx.Cfg.CleanupDelaySeconds) * time.Second)
+		}
 		if len(cleanup) > 0 {
 			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
 			if err := t.executeCleanupSteps(execCtx, cleanup, *stepResults); err != nil {
