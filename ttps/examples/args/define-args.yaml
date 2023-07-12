@@ -1,0 +1,16 @@
+---
+name: define_args
+description: |
+  Illustrates how to define CLI arguments for TTPs
+args:
+  - name: a_message
+  - name: a_number
+    type: int
+  - name: has_a_default
+    default: this is the default value
+steps:
+  - name: print_args
+    inline: |
+      echo "hi! You passed the message: {{args.a_message}}"
+      echo "You passed the number: {{args.a_number}}"
+      echo "has_a_default has the value: '{{args.has_a_default}}'"

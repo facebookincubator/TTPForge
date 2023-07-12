@@ -60,11 +60,6 @@ func (s *EditStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
-// CleanupName returns the name of the cleanup step.
-func (s *EditStep) CleanupName() string {
-	return s.Name
-}
-
 // GetType returns the step type for a EditStep.
 func (s *EditStep) GetType() StepType {
 	return s.Type
@@ -125,7 +120,7 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the EditStep and returns an error if any occur.
-func (s *EditStep) Execute(execCtx TTPExecutionContext) error {
+func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
 	if fileSystem == nil {
@@ -133,12 +128,12 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) error {
 		var err error
 		targetPath, err = FetchAbs(targetPath, s.WorkDir)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	rawContents, err := afero.ReadFile(fileSystem, targetPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	contents := string(rawContents)
@@ -146,7 +141,7 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) error {
 	if s.BackupFile != "" {
 		err = afero.WriteFile(fileSystem, s.BackupFile, []byte(contents), 0644)
 		if err != nil {
-			return fmt.Errorf("could not write backup file %v: %v", s.BackupFile, err)
+			return nil, fmt.Errorf("could not write backup file %v: %v", s.BackupFile, err)
 		}
 	}
 
@@ -159,7 +154,7 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) error {
 		// failures if the format of the file they're trying to edit changes
 		// and their regexes no longer work
 		if len(matches) == 0 {
-			return fmt.Errorf(
+			return nil, fmt.Errorf(
 				"pattern '%v' from edit #%d was not found in file %v",
 				edit.Old,
 				editIdx+1,
@@ -171,8 +166,8 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) error {
 
 	err = afero.WriteFile(fileSystem, targetPath, []byte(contents), 0644)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &ExecutionResult{}, nil
 }

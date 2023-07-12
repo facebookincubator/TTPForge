@@ -118,8 +118,9 @@ func (f *FileStep) GetType() StepType {
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
-func (f *FileStep) Cleanup(execCtx TTPExecutionContext) error {
-	return f.Execute(execCtx)
+func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	result, err := f.Execute(execCtx)
+	return &result.ActResult, err
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -128,11 +129,6 @@ func (f *FileStep) GetCleanup() []CleanupAct {
 		return []CleanupAct{f.CleanupStep}
 	}
 	return []CleanupAct{}
-}
-
-// CleanupName returns the name of the cleanup action as a string.
-func (f *FileStep) CleanupName() string {
-	return f.Name
 }
 
 // ExplainInvalid returns an error message explaining why the FileStep
@@ -168,50 +164,56 @@ func (f *FileStep) IsNil() bool {
 }
 
 // Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(execCtx TTPExecutionContext) (err error) {
-	logging.Logger.Sugar().Debugw("available data", "outputs", f.output)
+func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
 	if f.FilePath != "" {
-		if err := f.fileExec(); err != nil {
+		if err := f.fileExec(execCtx); err != nil {
 			logging.Logger.Sugar().Error(zap.Error(err))
-			return err
+			return nil, err
 		}
 	}
 
 	logging.Logger.Sugar().Info("========= Result ==========")
 
-	return nil
+	return &ExecutionResult{}, nil
 }
 
 // fileExec executes the FileStep with the specified executor and arguments,
 // and returns an error if any occur.
-func (f *FileStep) fileExec() error {
+func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 	var cmd *exec.Cmd
+	expandedArgs, err := execCtx.ExpandVariables(f.Args)
+	if err != nil {
+		return err
+	}
 	if f.Executor == ExecutorBinary {
-		cmd = exec.Command(f.FilePath, f.FetchArgs(f.Args)...)
+		cmd = exec.Command(f.FilePath, expandedArgs...)
 	} else {
 		args := []string{f.FilePath}
-		args = append(args, f.FetchArgs(f.Args)...)
+		args = append(args, expandedArgs...)
 
 		logging.Logger.Sugar().Debugw("command line execution:", "exec", f.Executor, "args", args)
 		cmd = exec.Command(f.Executor, args...)
 	}
-	cmd.Env = FetchEnv(f.Environment)
+	envAsList := FetchEnv(f.Environment)
+	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
+	if err != nil {
+		return err
+	}
+	cmd.Env = expandedEnvAsList
 	cmd.Dir = f.WorkDir
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
-	err := cmd.Run()
+	err = cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
 		logging.Logger.Sugar().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return err
 	}
 	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
-
-	f.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
 
 	return nil
 }

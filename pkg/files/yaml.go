@@ -22,11 +22,10 @@ package files
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
@@ -49,7 +48,7 @@ import (
 // and its related information.
 //
 // error: An error if the TTP execution fails or if the TTP file cannot be found.
-func ExecuteYAML(yamlFile string, c blocks.TTPExecutionContext) (*blocks.TTP, error) {
+func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig, argsKvStrs []string) (*blocks.TTP, error) {
 
 	// see if the relative path exists in current dir
 	var absPathToTTP string
@@ -71,16 +70,12 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionContext) (*blocks.TTP, er
 		return nil, err
 	}
 
-	// Parse CLI inputs.
-	for _, arg := range c.CliInputs {
-		keyVal := strings.Split(arg, "=")
-		if len(keyVal) != 2 {
-			log.Fatalf("Invalid argument format for '%s'. Expected format is 'key=value'.", arg)
-		}
-		ttp.InputMap[keyVal[0]] = keyVal[1]
+	c.Args, err = args.ParseAndValidate(ttp.Args, argsKvStrs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
 	}
 
-	if err := ttp.RunSteps(c); err != nil {
+	if _, err := ttp.RunSteps(c); err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
 	}

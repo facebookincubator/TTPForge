@@ -1,0 +1,17 @@
+---
+name: step_outputs_example
+description: |
+  Illustrates how to pass outputs between steps
+steps:
+  - name: raw_output
+    inline: echo "this will be accessible in stdout"
+  - name: access_raw_output
+    inline: echo "previous step output is {{steps.raw_output.stdout}}"
+  - name: with_json_output
+    inline: echo {\"foo\":\"bar\"}
+    outputs:
+      my_value:
+        filters:
+          - json_path: foo
+  - name: print_json
+    inline: echo {{steps.with_json_output.outputs.my_value}}

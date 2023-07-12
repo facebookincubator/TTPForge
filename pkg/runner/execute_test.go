@@ -39,9 +39,9 @@ type ScenarioResult struct {
 	FileContents map[string]string
 }
 
-func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, opts ...blocks.TTPExecutionContext) {
+func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, opts ...blocks.TTPExecutionConfig) {
 	// learned this trick from here
-	var ttpConfig blocks.TTPExecutionContext
+	var ttpConfig blocks.TTPExecutionConfig
 	if len(opts) > 0 {
 		ttpConfig = opts[0]
 	}
@@ -72,7 +72,7 @@ func runE2ETest(t *testing.T, ttpRelPath string, expectedResult ScenarioResult, 
 		require.NoError(t, err, "failed to chdir back to former current directory")
 	}()
 
-	_, err = files.ExecuteYAML(ttpRelPath, ttpConfig)
+	_, err = files.ExecuteYAML(ttpRelPath, ttpConfig, nil)
 	require.NoError(t, err, "failed to execute TTP")
 
 	// validate that correct files were generated
@@ -94,7 +94,7 @@ func TestVariableExpansion(t *testing.T) {
 
 	ttpPath := filepath.Join("variable-expansion", "ttp.yaml")
 	resultLines := []string{
-		fmt.Sprintf("{\"test_key\":\"%v\",\"another_key\":\"wut\"}", dirname),
+		fmt.Sprintf("{\"test_key\":\"%v\n\",\"another_key\":\"wut\"}", dirname),
 		"you said: foo",
 		"cleaning up now",
 	}
@@ -120,7 +120,7 @@ func TestNoCleanup(t *testing.T) {
 		FileContents: map[string]string{
 			"result.txt": "A\nB\nC\n",
 		},
-	}, blocks.TTPExecutionContext{
+	}, blocks.TTPExecutionConfig{
 		NoCleanup: true,
 	})
 }

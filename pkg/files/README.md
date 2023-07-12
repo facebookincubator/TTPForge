@@ -40,10 +40,10 @@ error: An error if the directory could not be created.
 
 ---
 
-### ExecuteYAML(string, blocks.TTPExecutionContext)
+### ExecuteYAML(string, blocks.TTPExecutionConfig, []string)
 
 ```go
-ExecuteYAML(string, blocks.TTPExecutionContext) *blocks.TTP, error
+ExecuteYAML(string, blocks.TTPExecutionConfig, []string) *blocks.TTP, error
 ```
 
 ExecuteYAML is the top-level function for executing a TTP defined

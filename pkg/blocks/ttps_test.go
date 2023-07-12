@@ -25,6 +25,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -208,7 +209,7 @@ steps:
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			assert.NoError(t, err)
 
-			err = ttp.RunSteps(blocks.TTPExecutionContext{})
+			_, err = ttp.RunSteps(blocks.TTPExecutionConfig{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
@@ -259,4 +260,90 @@ steps:
 			}
 		})
 	}
+}
+
+func TestCleanupAfterStepFailure(t *testing.T) {
+	content := `name: test
+description: verifies that cleanups run after step failures
+steps:
+    - name: step1
+      inline: echo "step1"
+      cleanup:
+        inline: echo "cleanup1"
+    - name: step2
+      inline: echo "step2"
+      cleanup:
+        inline: echo "cleanup2"
+    - name: step3
+      inline: THIS WILL FAIL ON PURPOSE
+      cleanup:
+        inline: echo "cleanup3"
+    - name: step4
+      inline: echo "step4"
+      cleanup:
+        inline: echo "cleanup4"`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{})
+	assert.Error(t, err, "should get an error from step failure")
+
+	require.Equal(t, 2, len(stepResults.ByIndex))
+	assert.Equal(t, "step1\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "step2\n", stepResults.ByIndex[1].Stdout)
+
+	require.Equal(t, 2, len(stepResults.ByName))
+	assert.Equal(t, "step1\n", stepResults.ByName["step1"].Stdout)
+	assert.Equal(t, "step2\n", stepResults.ByName["step2"].Stdout)
+
+	require.NotNil(t, stepResults.ByIndex[0].Cleanup)
+	require.NotNil(t, stepResults.ByIndex[1].Cleanup)
+	assert.Equal(t, "cleanup1\n", stepResults.ByIndex[0].Cleanup.Stdout)
+	assert.Equal(t, "cleanup2\n", stepResults.ByIndex[1].Cleanup.Stdout)
+
+	require.NotNil(t, stepResults.ByName["step1"].Cleanup)
+	require.NotNil(t, stepResults.ByName["step2"].Cleanup)
+	assert.Equal(t, "cleanup1\n", stepResults.ByName["step1"].Cleanup.Stdout)
+	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
+}
+
+func TestVariableExpansionArgsAndStepResults(t *testing.T) {
+	content := `name: test_variable_expansion
+description: tests args + step result variable expansion functionality
+args:
+- name: arg1
+steps:
+  - name: step1
+    inline: echo {\"foo\":{\"bar\":\"baz\"}}
+    outputs:
+      first:
+        filters:
+        - json_path: foo.bar
+  - name: step2
+    inline: echo "first output is {{steps.step1.outputs.first}}"
+  - name: step3
+    inline: echo "arg value is {{args.arg1}}"`
+
+	var ttp blocks.TTP
+	err := yaml.Unmarshal([]byte(content), &ttp)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{
+		Args: map[string]string{
+			"arg1": "victory",
+		},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, 3, len(stepResults.ByIndex))
+	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "first output is baz\n", stepResults.ByIndex[1].Stdout)
+	assert.Equal(t, "arg value is victory\n", stepResults.ByIndex[2].Stdout)
+
+	require.Equal(t, 3, len(stepResults.ByName))
+	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByName["step1"].Stdout)
+	assert.Equal(t, "first output is baz\n", stepResults.ByName["step2"].Stdout)
+	assert.Equal(t, "arg value is victory\n", stepResults.ByName["step3"].Stdout)
 }

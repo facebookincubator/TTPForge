@@ -27,11 +27,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -97,8 +97,9 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 }
 
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) error {
-	return b.Execute(execCtx)
+func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	result, err := b.Execute(execCtx)
+	return &result.ActResult, err
 }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
@@ -107,11 +108,6 @@ func (b *BasicStep) GetCleanup() []CleanupAct {
 		return []CleanupAct{b.CleanupStep}
 	}
 	return []CleanupAct{}
-}
-
-// CleanupName returns the name of the cleanup step.
-func (b *BasicStep) CleanupName() string {
-	return b.Name
 }
 
 // GetType returns the step type for a BasicStep.
@@ -189,65 +185,65 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the BasicStep and returns an error if any occur.
-func (b *BasicStep) Execute(execCtx TTPExecutionContext) (err error) {
+func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
-	logging.Logger.Sugar().Debugw("available data", "outputs", b.output)
 
 	logging.Logger.Sugar().Info("========= Executing ==========")
 
-	if b.Inline != "" {
-		if err := b.executeBashStdin(ctx, execCtx.Args); err != nil {
-			logging.Logger.Sugar().Error(zap.Error(err))
-			return err
-		}
+	if b.Inline == "" {
+		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	logging.Logger.Sugar().Info("========= Result ==========")
+	result, err := b.executeBashStdin(ctx, execCtx)
+	if err != nil {
+		logging.Logger.Sugar().Error(zap.Error(err))
+		return nil, err
+	}
 
-	return nil
+	logging.Logger.Sugar().Info("========= Done ==========")
+
+	return result, nil
 }
 
-func (b *BasicStep) executeBashStdin(ptx context.Context, inputs map[string]string) (err error) {
+func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ExecutionResult, error) {
+
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()
 
-	replaced := b.replaceInput(inputs)
-
-	cmd := b.prepareCommand(ctx, replaced)
-
-	err = b.runCommand(cmd)
+	// expand variables in command
+	expandedStrs, err := execCtx.ExpandVariables([]string{b.Inline})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// expand variables in environment
+	envAsList := FetchEnv(b.Environment)
+	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := b.prepareCommand(ctx, expandedEnvAsList, expandedStrs[0])
+
+	result, err := b.runCommand(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-func (b *BasicStep) replaceInput(inputs map[string]string) string {
-	re := regexp.MustCompile(`\{\{([a-zA-Z\_\-\.][a-zA-Z0-9\.\-\_]+)\}\}`)
-	replaced := re.ReplaceAllStringFunc(b.Inline, func(match string) string {
-		s := strings.TrimLeft(match, "{")
-		s = strings.TrimRight(s, "}")
-		if val, ok := inputs[s]; ok {
-			return val
-		}
-		// return match if not present in args
-		return match
-	})
-	return replaced
-}
-
-func (b *BasicStep) prepareCommand(ctx context.Context, inline string) *exec.Cmd {
+func (b *BasicStep) prepareCommand(ctx context.Context, envAsList []string, inline string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, b.Executor)
-	cmd.Env = FetchEnv(b.Environment)
+	cmd.Env = envAsList
 	cmd.Dir = b.WorkDir
 	cmd.Stdin = strings.NewReader(inline)
 
 	return cmd
 }
 
-func (b *BasicStep) runCommand(cmd *exec.Cmd) error {
+func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
@@ -256,12 +252,17 @@ func (b *BasicStep) runCommand(cmd *exec.Cmd) error {
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
 		logging.Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
-		return err
+		return nil, err
 	}
 
 	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
-	b.SetOutputSuccess(&stdoutBuf, cmd.ProcessState.ExitCode())
-
-	return nil
+	result := ExecutionResult{}
+	result.Stdout = outStr
+	result.Stderr = errStr
+	result.Outputs, err = outputs.Parse(b.Outputs, result.Stdout)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

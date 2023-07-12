@@ -42,9 +42,14 @@ func TestExecuteSubTtpSearchPath(t *testing.T) {
 				Data: []byte(`name: test
 description: test sub ttp in search path
 steps:
-  - name: testing_sub_ttp
-    inline: |
-      echo victory`),
+  - name: sub_step_1
+    inline: echo sub_step_1_output
+    cleanup:
+      inline: echo cleanup_sub_step_1
+  - name: sub_step_2
+    inline: echo sub_step_2_output
+    cleanup:
+      inline: echo cleanup_sub_step_2`),
 			},
 		},
 	}
@@ -57,22 +62,24 @@ ttp: test.yaml`
 	require.NoError(t, err, "invalid sub ttp step format")
 
 	execCtx := blocks.TTPExecutionContext{
-		TTPSearchPaths: []string{"ttps"},
+		Cfg: blocks.TTPExecutionConfig{
+			TTPSearchPaths: []string{"ttps"},
+		},
 	}
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	step.Setup(nil, nil)
-	err = step.Execute(execCtx)
+	// execute the step
+	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
+	assert.Equal(t, "sub_step_1_output\nsub_step_2_output\n", result.Stdout)
 
-	// TODO: clean this up after output handling refactor
-	stepOutput := step.GetOutput()
-	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
-	subStepOutput := subStepOutputMap["output"].(string)
-
-	assert.Equal(t, "victory", subStepOutput)
+	// cleanup the step
+	cleanups := step.GetCleanup()
+	require.NotNil(t, cleanups)
+	cleanupResult, err := cleanups[0].Cleanup(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "cleanup_sub_step_2\ncleanup_sub_step_1\n", cleanupResult.Stdout)
 }
 
 func TestExecuteSubTtpCurrentDir(t *testing.T) {
@@ -84,7 +91,7 @@ description: test sub ttp in current dir
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo in_current_dir`),
+      echo -n in_current_dir`),
 			},
 		},
 	}
@@ -100,17 +107,9 @@ ttp: anotherTest.yaml`
 	err = step.Validate(execCtx)
 	require.NoError(t, err, "TTP failed to validate")
 
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	step.Setup(nil, nil)
-	err = step.Execute(execCtx)
+	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
-
-	// TODO: clean this up after output handling refactor
-	stepOutput := step.GetOutput()
-	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
-	subStepOutput := subStepOutputMap["output"].(string)
-
-	assert.Equal(t, "in_current_dir", subStepOutput)
+	assert.Equal(t, "in_current_dir", result.Stdout)
 }
 
 func TestExecuteSubTtpWithArgs(t *testing.T) {
@@ -122,7 +121,7 @@ description: test ttp sub step
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo {{arg_number_one}} {{arg_number_two}}`),
+      echo -n {{args.arg_number_one}} {{args.arg_number_two}}`),
 			},
 		},
 	}
@@ -142,17 +141,9 @@ args:
 		t.Error("TTP failed to validate", err)
 	}
 
-	// TODO: remove Setup() call after upcoming ExecutionContext refactor
-	step.Setup(nil, nil)
-	err := step.Execute(execCtx)
+	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
-
-	// TODO: clean this up after output handling refactor
-	stepOutput := step.GetOutput()
-	subStepOutputMap := stepOutput["testing_sub_ttp"].(map[string]interface{})
-	subStepOutput := subStepOutputMap["output"].(string)
-
-	assert.Equal(t, "hello world", subStepOutput)
+	assert.Equal(t, "hello world", result.Stdout)
 }
 
 func TestUnmarshalSubTtpInvalid(t *testing.T) {

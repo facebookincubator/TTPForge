@@ -146,7 +146,7 @@ edits:
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(execCtx)
+	_, err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	contents, err := afero.ReadFile(testFs, "a.txt")
@@ -180,7 +180,7 @@ edits:
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(execCtx)
+	_, err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	backupContents, err := afero.ReadFile(testFs, "backup.txt")
@@ -220,7 +220,7 @@ moarawesomestuff`
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(execCtx)
+	_, err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	contents, err := afero.ReadFile(testFs, "b.txt")
@@ -264,7 +264,7 @@ moarawesomestuff`
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(execCtx)
+	_, err = step.Execute(execCtx)
 	require.NoError(t, err)
 
 	contents, err := afero.ReadFile(testFs, "b.txt")
@@ -295,7 +295,7 @@ edits:
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	err = step.Execute(blocks.TTPExecutionContext{})
+	_, err = step.Execute(blocks.TTPExecutionContext{})
 	require.Error(t, err, "not finding a search string should result in an error")
 	assert.Equal(t, "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt", err.Error())
 }

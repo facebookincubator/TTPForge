@@ -17,25 +17,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-/*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
 package blocks
 
 import (
@@ -44,6 +25,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
@@ -68,7 +50,34 @@ func NewSubTTPStep() *SubTTPStep {
 
 // GetCleanup returns a slice of CleanupAct associated with the SubTTPStep.
 func (s *SubTTPStep) GetCleanup() []CleanupAct {
-	return s.CleanupSteps
+	return []CleanupAct{s}
+}
+
+func aggregateResults(results []*ActResult) *ActResult {
+	var subStdouts []string
+	var subStderrs []string
+	for _, result := range results {
+		subStdouts = append(subStdouts, result.Stdout)
+		subStderrs = append(subStderrs, result.Stderr)
+	}
+
+	return &ActResult{
+		Stdout: strings.Join(subStdouts, ""),
+		Stderr: strings.Join(subStderrs, ""),
+	}
+}
+
+// Cleanup runs the cleanup actions associated with all successful sub-steps
+func (s *SubTTPStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	var results []*ActResult
+	for _, step := range s.CleanupSteps {
+		result, err := step.Cleanup(execCtx)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+	return aggregateResults(results), nil
 }
 
 // UnmarshalYAML is a custom unmarshaller for SubTTPStep which decodes
@@ -95,26 +104,28 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
-func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
+func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
+	var results []*ActResult
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		stepCopy.Setup(s.Environment, availableSteps)
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
 		subExecCtx := TTPExecutionContext{
-			Args: s.Args,
-		}
-		if err := stepCopy.Execute(subExecCtx); err != nil {
-			return err
+			Cfg: TTPExecutionConfig{
+				Args: s.Args,
+			},
 		}
 
-		output := stepCopy.GetOutput()
+		result, err := stepCopy.Execute(subExecCtx)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, &result.ActResult)
 
 		availableSteps[stepCopy.StepName()] = stepCopy
-		s.output[stepCopy.StepName()] = output
 
 		stepClean := stepCopy.GetCleanup()
 		if stepClean != nil {
@@ -122,13 +133,14 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) error {
 			s.CleanupSteps = append(stepCopy.GetCleanup(), s.CleanupSteps...)
 		}
 
-		logging.Logger.Sugar().Debugw("available step data", "data", availableSteps[stepCopy.StepName()].GetOutput())
 		logging.Logger.Sugar().Infof("[+] Finished running step: %s", stepCopy.StepName())
 	}
 
 	logging.Logger.Sugar().Info("Finished execution of sub ttp file")
 
-	return nil
+	return &ExecutionResult{
+		ActResult: *aggregateResults(results),
+	}, nil
 }
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance
@@ -137,7 +149,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 
 	// search for the referenced TTP in the configured search paths
 	// and the current directory
-	augmentedSearchPaths := append([]string{"."}, execCtx.TTPSearchPaths...)
+	augmentedSearchPaths := append([]string{"."}, execCtx.Cfg.TTPSearchPaths...)
 	var fullPath string
 	for _, searchPath := range augmentedSearchPaths {
 		fullPath = filepath.Join(searchPath, s.TtpFile)
