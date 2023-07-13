@@ -118,10 +118,15 @@ func TestExecuteSubTtpWithArgs(t *testing.T) {
 			"test.yaml": &fstest.MapFile{
 				Data: []byte(`name: test
 description: test ttp sub step
+args:
+  - name: arg_number_one
+  - name: arg_number_two
+  - name: arg_number_three
+    default: victory
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo -n {{args.arg_number_one}} {{args.arg_number_two}}`),
+      echo -n {{args.arg_number_one}} {{args.arg_number_two}} {{args.arg_number_three}}`),
 			},
 		},
 	}
@@ -132,18 +137,16 @@ args:
   arg_number_one: hello
   arg_number_two: world`
 
-	if err := yaml.Unmarshal([]byte(content), &step); err != nil {
-		t.Error("invalid sub ttp step format", step)
-	}
+	err := yaml.Unmarshal([]byte(content), &step)
+	require.NoError(t, err)
 
 	var execCtx blocks.TTPExecutionContext
-	if err := step.Validate(execCtx); err != nil {
-		t.Error("TTP failed to validate", err)
-	}
+	err = step.Validate(execCtx)
+	require.NoError(t, err)
 
 	result, err := step.Execute(execCtx)
 	require.NoError(t, err)
-	assert.Equal(t, "hello world", result.Stdout)
+	assert.Equal(t, "hello world victory", result.Stdout)
 }
 
 func TestUnmarshalSubTtpInvalid(t *testing.T) {

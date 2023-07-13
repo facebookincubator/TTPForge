@@ -223,7 +223,6 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []C
 
 		execResult, err := stepCopy.Execute(execCtx)
 		if err != nil {
-			logging.Logger.Sugar().Errorw("error encountered in stepCopy execution: %v", err)
 			return stepResults, cleanup, err
 		}
 		stepResults.ByName[step.StepName()] = execResult

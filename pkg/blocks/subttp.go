@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
@@ -41,6 +42,7 @@ type SubTTPStep struct {
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
 	ttp          *TTP
+	subExecCtx   TTPExecutionContext
 }
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
@@ -71,7 +73,7 @@ func aggregateResults(results []*ActResult) *ActResult {
 func (s *SubTTPStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	var results []*ActResult
 	for _, step := range s.CleanupSteps {
-		result, err := step.Cleanup(execCtx)
+		result, err := step.Cleanup(s.subExecCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -102,6 +104,19 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) (map[string]string, error) {
+	var argKvStrs []string
+	for k, v := range s.Args {
+		argKvStrs = append(argKvStrs, k+"="+v)
+	}
+
+	expandedArgKvStrs, err := execCtx.ExpandVariables(argKvStrs)
+	if err != nil {
+		return nil, err
+	}
+	return args.ParseAndValidate(s.ttp.Args, expandedArgKvStrs)
+}
+
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
@@ -113,13 +128,17 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
 
-		subExecCtx := TTPExecutionContext{
+		subArgs, err := s.processSubTTPArgs(execCtx)
+		if err != nil {
+			return nil, err
+		}
+		s.subExecCtx = TTPExecutionContext{
 			Cfg: TTPExecutionConfig{
-				Args: s.Args,
+				Args: subArgs,
 			},
 		}
 
-		result, err := stepCopy.Execute(subExecCtx)
+		result, err := stepCopy.Execute(s.subExecCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +233,6 @@ func (s *SubTTPStep) ExplainInvalid() error {
 
 // IsNil checks if the SubTTPStep is empty or uninitialized.
 func (s *SubTTPStep) IsNil() bool {
-	logging.Logger.Sugar().Info(s.Act)
 	switch {
 	case s.Act.IsNil():
 		return true

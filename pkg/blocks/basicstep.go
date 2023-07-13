@@ -99,6 +99,9 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
 func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	result, err := b.Execute(execCtx)
+	if err != nil {
+		return nil, err
+	}
 	return &result.ActResult, err
 }
 
@@ -197,7 +200,6 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 
 	result, err := b.executeBashStdin(ctx, execCtx)
 	if err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
 		return nil, err
 	}
 
@@ -218,7 +220,7 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	}
 
 	// expand variables in environment
-	envAsList := FetchEnv(b.Environment)
+	envAsList := append(FetchEnv(b.Environment), os.Environ()...)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {
 		return nil, err
@@ -251,11 +253,8 @@ func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
 	err := cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
-		logging.Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return nil, err
 	}
-
-	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
 	result := ExecutionResult{}
 	result.Stdout = outStr

@@ -120,6 +120,9 @@ func (f *FileStep) GetType() StepType {
 // f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	result, err := f.Execute(execCtx)
+	if err != nil {
+		return nil, err
+	}
 	return &result.ActResult, err
 }
 
@@ -147,7 +150,6 @@ func (f *FileStep) ExplainInvalid() error {
 		err = fmt.Errorf("[!] invalid FileStep: [%s] %v", f.Name, zap.Error(err))
 	}
 
-	logging.Logger.Sugar().Error(zap.Error(err))
 	return err
 }
 
