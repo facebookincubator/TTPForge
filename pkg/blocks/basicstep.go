@@ -253,11 +253,8 @@ func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
 	err := cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
-		logging.Logger.Sugar().Warnw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return nil, err
 	}
-
-	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
 	result := ExecutionResult{}
 	result.Stdout = outStr
