@@ -42,6 +42,7 @@ type SubTTPStep struct {
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
 	ttp          *TTP
+	subExecCtx   TTPExecutionContext
 }
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
@@ -72,7 +73,7 @@ func aggregateResults(results []*ActResult) *ActResult {
 func (s *SubTTPStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	var results []*ActResult
 	for _, step := range s.CleanupSteps {
-		result, err := step.Cleanup(execCtx)
+		result, err := step.Cleanup(s.subExecCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -131,13 +132,13 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		if err != nil {
 			return nil, err
 		}
-		subExecCtx := TTPExecutionContext{
+		s.subExecCtx = TTPExecutionContext{
 			Cfg: TTPExecutionConfig{
 				Args: subArgs,
 			},
 		}
 
-		result, err := stepCopy.Execute(subExecCtx)
+		result, err := stepCopy.Execute(s.subExecCtx)
 		if err != nil {
 			return nil, err
 		}
