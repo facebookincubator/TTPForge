@@ -214,7 +214,6 @@ func (s *SubTTPStep) ExplainInvalid() error {
 
 // IsNil checks if the SubTTPStep is empty or uninitialized.
 func (s *SubTTPStep) IsNil() bool {
-	logging.Logger.Sugar().Info(s.Act)
 	switch {
 	case s.Act.IsNil():
 		return true

@@ -147,7 +147,6 @@ func (f *FileStep) ExplainInvalid() error {
 		err = fmt.Errorf("[!] invalid FileStep: [%s] %v", f.Name, zap.Error(err))
 	}
 
-	logging.Logger.Sugar().Error(zap.Error(err))
 	return err
 }
 
