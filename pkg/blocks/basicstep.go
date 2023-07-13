@@ -218,7 +218,7 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	}
 
 	// expand variables in environment
-	envAsList := FetchEnv(b.Environment)
+	envAsList := append(FetchEnv(b.Environment), os.Environ()...)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {
 		return nil, err
