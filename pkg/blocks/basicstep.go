@@ -200,7 +200,6 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 
 	result, err := b.executeBashStdin(ctx, execCtx)
 	if err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
 		return nil, err
 	}
 
