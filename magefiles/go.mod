@@ -3,7 +3,6 @@ module magefile
 go 1.20
 
 require (
-	github.com/fatih/color v1.15.0
 	github.com/l50/goutils/v2 v2.0.8
 	github.com/magefile/mage v1.15.0
 	github.com/spf13/afero v1.9.5
@@ -16,6 +15,7 @@ require (
 	github.com/bitfield/script v0.22.0 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/fatih/color v1.15.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
 	github.com/go-git/go-git/v5 v5.7.0 // indirect
