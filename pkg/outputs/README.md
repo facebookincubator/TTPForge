@@ -76,7 +76,7 @@ To use the TTPForge/outputs package, you first need to install it.
 Follow the steps below to install via go get.
 
 ```bash
-go get github.com/ttpforge/facebookincubator/outputs
+go get github.com/facebookincubator/ttpforge/outputs
 ```
 
 ---
@@ -87,7 +87,7 @@ After installation, you can import the package in your Go project
 using the following import statement:
 
 ```go
-import "github.com/ttpforge/facebookincubator/outputs"
+import "github.com/facebookincubator/ttpforge/outputs"
 ```
 
 ---

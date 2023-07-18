@@ -3,7 +3,7 @@ module github.com/facebookincubator/ttpforge
 go 1.20
 
 require (
-	github.com/l50/goutils/v2 v2.0.8
+	github.com/l50/goutils/v2 v2.0.9
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/otiai10/copy v1.12.0
 	github.com/spf13/afero v1.9.5

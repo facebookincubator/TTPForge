@@ -80,7 +80,7 @@ To use the TTPForge/cmd package, you first need to install it.
 Follow the steps below to install via go get.
 
 ```bash
-go get github.com/ttpforge/facebookincubator/cmd
+go get github.com/facebookincubator/ttpforge/cmd
 ```
 
 ---
@@ -91,7 +91,7 @@ After installation, you can import the package in your Go project
 using the following import statement:
 
 ```go
-import "github.com/ttpforge/facebookincubator/cmd"
+import "github.com/facebookincubator/ttpforge/cmd"
 ```
 
 ---
