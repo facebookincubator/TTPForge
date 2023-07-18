@@ -68,11 +68,11 @@ RUN python3 -m pip install --upgrade pip \
     && python3 -m pip install --upgrade pre-commit \
     && pre-commit install
 
-# Install gvm
-RUN curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | bash
+# Install asdf
+RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf
 
-# Install Go 1.20 using gvm
-RUN /usr/bin/zsh -c "source .gvm \
+# Install Go using asdf
+RUN /usr/bin/zsh -c "source .asdf \
     # Install go dependencies
     && go install github.com/magefile/mage@latest \
     && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
@@ -89,7 +89,7 @@ RUN /usr/bin/zsh -c "source .gvm \
 # Remove the copied repository content
 RUN rm -rf /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 
-# Add the gvm source to the .zshrc file
-RUN echo "\nsource /home/ttpforge/go/src/github.com/facebookincubator/ttpforge/.gvm" | tee -a /home/ttpforge/.zshrc
+# Add the asdf source to the .zshrc file
+RUN echo "\nsource /home/ttpforge/go/src/github.com/facebookincubator/ttpforge/.asdf" | tee -a /home/ttpforge/.zshrc
 
 CMD ["zsh"]

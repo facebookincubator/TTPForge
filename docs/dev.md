@@ -8,23 +8,30 @@ and follow along.
 
 ## Dependencies
 
+- [Install asdf](https://asdf-vm.com/):
+
+  ```bash
+  git clone https://github.com/asdf-vm/asdf.git ~/.asdf
+  ```
+
+- Install and use asdf plugins to manage go, python, and ruby for this project:
+
+  ```bash
+  source .asdf
+  ```
+
+  Alternatively, you can pick and choose which plugins to install:
+
+  ```bash
+  # Employ asdf for this project's python:
+  source .asdf python
+  ```
+
 - [Install pre-commit](https://pre-commit.com/):
 
   ```bash
-  pip3 install pre-commit
-  ```
-
-- [Install gvm](https://github.com/moovweb/gvm):
-
-  ```bash
-  bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-  source "${GVM_BIN}"
-  ```
-
-- [Install golang](https://go.dev/):
-
-  ```bash
-  source .gvm
+  python3 -m pip install --upgrade pip
+  python3 -m pip install pre-commit
   ```
 
 - [Install Mage](https://magefile.org/):
@@ -39,25 +46,19 @@ and follow along.
 
 ## Configure environment
 
-1. Setup go environment:
+1. Install dependencies:
 
    ```bash
-   source .gvm
+   mage installDeps
    ```
 
-1. Install pre-commit hooks:
-
-   ```bash
-   mage installPreCommitHooks
-   ```
-
-1. Run pre-commit hooks locally:
+1. Update and run pre-commit hooks locally:
 
    ```bash
    mage runPreCommit
    ```
 
-1. Compile warpgate:
+1. Compile ttpforge:
 
    ```bash
    go build -o ttpforge

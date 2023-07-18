@@ -1,0 +1,37 @@
+### Examples: ###
+# Employ asdf for go, ruby, and python used by this project only:
+# source .asdf
+# Employ asdf for python used by this project only:
+# source .asdf python
+
+# Define the URL of setup_asdf.sh
+setup_asdf_url="https://raw.githubusercontent.com/l50/dotfiles/main/files/setup_asdf.sh"
+
+# Define the local path of setup_asdf.sh
+setup_asdf_path="/tmp/setup_asdf.sh"
+
+# Check if setup_asdf.sh exists locally
+if [[ ! -f "${setup_asdf_path}" ]]; then
+    # setup_asdf.sh doesn't exist locally, so download it
+    curl -s "${setup_asdf_url}" -o "${setup_asdf_path}"
+fi
+
+# Source /tmp/setup_asdf.sh
+# shellcheck source=/dev/null
+source "${setup_asdf_path}"
+
+# Function to setup language
+setup_language_if_requested() {
+  local language="$1"
+
+  # Check if the language is requested or if no language is specified
+  if [[ " $* " =~ " $language " ]] || [[ $# -eq 0 ]]; then
+    # Setup the language
+    setup_language "$language" "local"
+  fi
+}
+
+# Call setup_language_if_requested for each language
+setup_language_if_requested "$@" "golang"
+setup_language_if_requested "$@" "python"
+setup_language_if_requested "$@" "ruby"
