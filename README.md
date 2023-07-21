@@ -39,8 +39,7 @@ targets and mediums.
 
    ```bash
    ./ttpforge -c config.yaml \
-     -l ttpforge.log \
-     run ttps/examples/variadic-params/variadicParameterExample.yaml \
-     --arg user=bob \
+     run examples/variadic-params/variadicParameterExample.yaml \
+     --arg name=jimbo \
      --arg password=fakepassword123
    ```
