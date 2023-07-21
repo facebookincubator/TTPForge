@@ -85,12 +85,17 @@ repos:
         entry: .hooks/go-vet.sh
         files: '\.go$'
 
-      - id: gocritic
-        name: gocritic
+      - id: go-critic
+        name: go-critic
         language: script
         files: '\.go$'
         entry: .hooks/go-critic.sh
         args: ["check"]
+
+      - id: go-licenses
+        name: Run go-licenses
+        language: script
+        entry: .hooks/go-licenses.sh check_forbidden
 
         # - id: generate-docs
         #   name: Update package docs
