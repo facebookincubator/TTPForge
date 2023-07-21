@@ -4,7 +4,7 @@ This example demonstrates how to use variadic parameters.
 
 ## Arguments
 
-- user: fake username
+- name: fake username
 - password: fake password
 
 ## Example Usage
@@ -12,10 +12,8 @@ This example demonstrates how to use variadic parameters.
 Run the example with the following command:
 
 ```bash
-./ttpforge \
-    -c config.yaml \
-    -l ttpforge.log \
+./ttpforge -c config.yaml \
     run ttps/examples/variadic-params/variadicParameterExample.yaml \
-    --arg user=bob \
+    --arg name=jimbo \
     --arg password=fakepassword123
 ```
