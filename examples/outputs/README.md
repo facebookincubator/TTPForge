@@ -7,7 +7,7 @@ These TTPs illustrate how to pass outputs between different steps.
 Run this TTP as follows:
 
 ```bash
-ttpforge run ttps/examples/outputs/step-outputs.yaml
+ttpforge run examples/outputs/step-outputs.yaml
 ```
 
 Expected output:

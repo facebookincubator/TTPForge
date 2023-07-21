@@ -13,7 +13,7 @@ Run the example with the following command:
 
 ```bash
 ./ttpforge -c config.yaml \
-    run ttps/examples/variadic-params/variadicParameterExample.yaml \
+    run examples/variadic-params/variadicParameterExample.yaml \
     --arg name=jimbo \
     --arg password=fakepassword123
 ```

@@ -7,7 +7,7 @@ These TTPs illustrate how to use the CLI argument features of TTPForge.
 Run this TTP as follows:
 
 ```bash
-ttpforge run ttps/examples/args/define-args.yaml \
+ttpforge run examples/args/define-args.yaml \
   --arg a_message=foo \
   --arg a_number=1337
 ```
