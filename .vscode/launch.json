@@ -22,7 +22,7 @@
         "-c",
         "config.yaml",
         "run",
-        "ttps/examples/variadic-params/variadicParameterExample.yaml"
+        "examples/variadic-params/variadicParameterExample.yaml"
       ]
     },
     {
