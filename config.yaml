@@ -1,8 +1,8 @@
 ---
 inventory:
-  - ~/pt/tools/TTPForge/ttps
+  - ~/pt/tools/TTPForge/examples
 ttp_search_paths:
-  - ttps
+  - examples
 logfile: ""
 nocolor: false
 stacktrace: false
