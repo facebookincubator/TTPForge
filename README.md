@@ -13,18 +13,22 @@ targets and mediums.
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
+- [Getting Started - User](#getting-started-as-a-user)
+- [Getting Started - Developer](docs/dev.md)
 - [Using the TTPForge Dev Container](docs/container.md)
-- [Developer Environment Setup](docs/dev.md)
 - [Code Standards](docs/code-standards.md)
 - [Creating a new release](docs/release.md)
 - [TTPForge Building Blocks](docs/building-blocks.md)
 
 ---
 
-## Getting Started
+## Getting started as a user
 
-1. Download and install the [gh cli tool](https://cli.github.com/).
+1. Download and install the [gh cli tool](https://cli.github.com/):
+
+   - [macOS](https://github.com/cli/cli#macos)
+   - [Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+   - [Windows](https://github.com/cli/cli#windows)
 
 1. Get latest TTPForge release:
 
