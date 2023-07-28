@@ -1,4 +1,4 @@
-# Developer Environment Setup
+# Getting started as a developer
 
 To get involved with this project,
 [create a fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
