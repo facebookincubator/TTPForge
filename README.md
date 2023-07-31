@@ -33,11 +33,26 @@ targets and mediums.
 1. Get latest TTPForge release:
 
    ```bash
-   OS="$(uname | python3 -c 'print(open(0).read().lower().strip())')"
-   ARCH="$(uname -a | awk '{ print $NF }')"
-   gh release download -p "*${OS}_${ARCH}.tar.gz"
-   tar -xvf *tar.gz
+   # Download utility functions
+   bashutils_url="https://raw.githubusercontent.com/l50/dotfiles/main/bashutils"
+
+   # Define the local path of bashutils.sh
+   bashutils_path="/tmp/bashutils"
+
+   if [[ ! -f "${bashutils_path}" ]]; then
+      # bashutils.sh doesn't exist locally, so download it
+      curl -s "${bashutils_url}" -o "${bashutils_path}"
+   fi
+
+   # Source bashutils
+   # shellcheck source=/dev/null
+   source "${bashutils_path}"
+
+   fetchFromGithub "facebookincubator" "TTPForge" "v0.0.5" ttpforge $GITHUB_TOKEN
    ```
+
+   At this point, the latest `ttpforge` release should be in
+   `~/.local/bin/ttpforge` and subsequently, the `$USER`'s `$PATH`.
 
 1. Run a basic example:
 
