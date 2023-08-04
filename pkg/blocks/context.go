@@ -120,6 +120,7 @@ func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
 
 func (c TTPExecutionContext) processMatch(match string) (string, error) {
 	variableSpecifier := strings.TrimLeft(strings.TrimRight(match, "}"), "{")
+	variableSpecifier = strings.TrimSpace(variableSpecifier)
 	if len(variableSpecifier) == 0 {
 		return "", errors.New("empty string in variable expression")
 	}
