@@ -73,10 +73,12 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			stringsToExpand: []string{
 				"first arg: {{args.arg1}}",
 				"second arg: {{args.arg2}}",
+				"should trim spaces and still work: {{ args.arg2  }}",
 			},
 			expectedResult: []string{
 				"first arg: myarg1",
 				"second arg: myarg2",
+				"should trim spaces and still work: myarg2",
 			},
 			wantError: false,
 		},
