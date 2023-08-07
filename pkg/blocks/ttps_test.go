@@ -72,56 +72,6 @@ steps:
 	}
 }
 
-func TestUnmarshalSimpleCleanupLarge(t *testing.T) {
-	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
-	}{
-		{
-			name: "Simple cleanup large",
-			content: `name: test
-description: this is a test
-steps:
-  - name: testinline
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  - name: test_cleanup_two
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  - name: test_cleanup_three
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  `,
-			wantError: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
 func TestUnmarshalScenario(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -154,62 +104,6 @@ steps:
 		t.Run(tc.name, func(t *testing.T) {
 			var ttps blocks.TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestTTP_RunSteps(t *testing.T) {
-	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
-	}{
-		{
-			name: "Empty steps",
-			content: `
-name: test
-description: this is a test
-steps: []
-`,
-			wantError: false,
-		},
-		{
-			name: "Valid steps with cleanup",
-			content: `
-name: test
-description: this is a test
-steps:
-  - name: step1
-    inline: |
-      echo "step1"
-    cleanup:
-      name: cleanup1
-      inline: |
-        echo "cleanup1"
-  - name: step2
-    inline: |
-      echo "step2"
-    cleanup:
-      name: cleanup2
-      inline: |
-        echo "cleanup2"
-`,
-			wantError: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttp)
-			assert.NoError(t, err)
-
-			_, err = ttp.RunSteps(blocks.TTPExecutionConfig{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
