@@ -225,9 +225,9 @@ steps:
 {{ end }}`
 
 	execCfg := blocks.TTPExecutionConfig{
-		Args: map[string]string{
+		Args: map[string]any{
 			"arg1":               "victory",
-			"do_optional_step_2": "true",
+			"do_optional_step_2": true,
 		},
 	}
 	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
@@ -263,7 +263,7 @@ steps:
     inline: echo "arg value is {{ .Args.arg1 }}"`
 
 	execCfg := blocks.TTPExecutionConfig{
-		Args: map[string]string{
+		Args: map[string]any{
 			"arg1": "victory",
 		},
 	}

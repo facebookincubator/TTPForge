@@ -30,7 +30,7 @@ import (
 type TTPExecutionConfig struct {
 	NoCleanup           bool
 	CleanupDelaySeconds uint
-	Args                map[string]string
+	Args                map[string]any
 	TTPSearchPaths      []string
 }
 
@@ -74,15 +74,6 @@ func (c TTPExecutionContext) ExpandVariables(inStrs []string) ([]string, error) 
 		expandedStrs = append(expandedStrs, expandedStr)
 	}
 	return expandedStrs, nil
-}
-
-func (c TTPExecutionContext) processArgsVariable(path string) (string, error) {
-
-	argVal, ok := c.Cfg.Args[path]
-	if !ok {
-		return "", fmt.Errorf("invalid reference to CLI argument: %v", "args."+path)
-	}
-	return argVal, nil
 }
 
 func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
@@ -139,8 +130,6 @@ func (c TTPExecutionContext) processMatch(match string) (string, error) {
 	prefix := tokens[0]
 	path := strings.Join(tokens[1:], ".")
 	switch prefix {
-	case "args":
-		return c.processArgsVariable(path)
 	case "steps":
 		return c.processStepsVariable(path)
 	}

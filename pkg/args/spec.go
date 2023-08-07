@@ -45,7 +45,7 @@ type Spec struct {
 //
 // map[string]string: the parsed and validated argument key-value pairs
 // error: an error if there is a problem
-func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, error) {
+func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error) {
 
 	// validate the specs
 	specsByName := make(map[string]Spec)
@@ -60,7 +60,7 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]string, err
 	}
 
 	// validate the inputs
-	processedArgs := make(map[string]string)
+	processedArgs := make(map[string]any)
 	for _, argKvStr := range argsKvStrs {
 		argKv := strings.SplitN(argKvStr, "=", 2)
 		if len(argKv) != 2 {

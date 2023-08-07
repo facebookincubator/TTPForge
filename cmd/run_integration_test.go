@@ -45,8 +45,8 @@ steps:
     inline: |
       set -e
 
-      user="$(echo {{args.user}} | tr -d '\n\t\r')"
-      password="$(echo {{args.password}} | tr -d '\n\t\r')"
+      user="$(echo {{ .Args.user }} | tr -d '\n\t\r')"
+      password="$(echo {{ .Args.password }} | tr -d '\n\t\r')"
 
       go run variadicParameterExample.go \
         --user $user \
