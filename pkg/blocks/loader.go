@@ -21,20 +21,36 @@ package blocks
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
+
+var stepsTopLevelKeyRegexp *regexp.Regexp
+
+func init() {
+	stepsTopLevelKeyRegexp = regexp.MustCompile("(?m)^steps:")
+}
+
+func LintTTP(ttpBytes []byte) error {
+	// `steps:` should always be the last top-level key
+	stepTopLevelKeyLocs := stepsTopLevelKeyRegexp.FindAllIndex(ttpBytes, -1)
+	if len(stepTopLevelKeyLocs) != 1 {
+		return errors.New("the top level key `steps:` should occur exactly once")
+	}
+	return nil
+}
 
 // RenderTemplatedTTP uses Golang's `text/template` to substitute template
 // expressions such as `{{ .Args.myarg }}` with their appropriate values
 // This function should always be called before YAML unmarshaling since
 // the template syntax `{{ ... }}` may be invalid yaml in certain circumstances
-
 func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error) {
 	tmpl, err := template.New("ttp").Parse(ttpStr)
 	if err != nil {
