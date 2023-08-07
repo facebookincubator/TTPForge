@@ -22,6 +22,7 @@ package blocks
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -105,26 +106,14 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 //
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) (*TTP, error) {
+func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
 
-	var file fs.File
-	var err error
-	if system == nil {
-		file, err = os.Open(ttpFilePath)
-	} else {
-		file, err = system.Open(ttpFilePath)
-	}
+	ttpBytes, err := readTTPBytes(ttpFilePath, system)
 	if err != nil {
 		return nil, err
 	}
 
-	// read TTP and check linting
-	contents, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := LintTTP(contents)
+	result, err := LintTTP(ttpBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +129,13 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) 
 		return nil, err
 	}
 
-	ttp, err := RenderTemplatedTTP(string(contents), execCfg)
+	argValues, err := args.ParseAndValidate(tmpContainer.ArgSpecs, argsKvStrs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
+	}
+	execCfg.Args = argValues
+
+	ttp, err := RenderTemplatedTTP(string(ttpBytes), execCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -171,4 +166,23 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) 
 	}
 
 	return ttp, nil
+}
+
+func readTTPBytes(ttpFilePath string, system fs.StatFS) ([]byte, error) {
+	var file fs.File
+	var err error
+	if system == nil {
+		file, err = os.Open(ttpFilePath)
+	} else {
+		file, err = system.Open(ttpFilePath)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	contents, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	return contents, nil
 }

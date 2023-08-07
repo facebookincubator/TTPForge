@@ -226,7 +226,7 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 			password:        "testPassword",
 			optionalStepOne: false,
 			optionalStepTwo: true,
-			expected:        "User input: testUser\nPassword input: testPassword\n",
+			expected:        "User input: testUser\nPassword input: testPassword\noptional step two\noptional step three\n",
 			err:             false,
 		},
 		{
