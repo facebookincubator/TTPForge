@@ -136,7 +136,8 @@ func (t *TTP) decodeSteps(steps []yaml.Node) error {
 		// these candidate steps are pointers, so this line
 		// MUST be inside the outer step loop or horrible things will happen
 		// #justpointerthings
-		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep()}
+		// stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep()}
+		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewEditStep()}
 		for _, stepType := range stepTypes {
 			err := stepNode.Decode(stepType)
 			if err == nil && !stepType.IsNil() {

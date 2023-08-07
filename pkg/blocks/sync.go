@@ -40,7 +40,7 @@ import (
 //
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string, system fs.StatFS) (*TTP, error) {
+func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) (*TTP, error) {
 
 	var ttp TTP
 	var file fs.File

@@ -64,7 +64,7 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig, argsKvStrs []stri
 		}
 	}
 
-	ttp, err := blocks.LoadTTP(absPathToTTP, nil)
+	ttp, err := blocks.LoadTTP(absPathToTTP, nil, nil)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err

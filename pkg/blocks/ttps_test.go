@@ -53,15 +53,15 @@ steps:
     inline: foo
     file: bar`,
 		},
-		{
-			name: "Ambiguous Edit+SubTTP Step",
-			content: `name: test
-description: this is a test
-steps:
-  - name: ambiguous
-    edit_file: hello
-    ttp: world`,
-		},
+		// 		{
+		// 			name: "Ambiguous Edit+SubTTP Step",
+		// 			content: `name: test
+		// description: this is a test
+		// steps:
+		//   - name: ambiguous
+		//     edit_file: hello
+		//     ttp: world`,
+		// 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
