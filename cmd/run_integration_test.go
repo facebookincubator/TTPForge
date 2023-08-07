@@ -40,6 +40,14 @@ description: Test variadiac parameter handling
 args:
   - name: user
   - name: password
+  - name: optional_step_one
+    type: bool
+  - name: optional_step_two
+    type: bool
+    default: false
+  - name: optional_step_three
+    type: bool
+    default: true
 steps:
   - name: "paramtest"
     inline: |
@@ -50,7 +58,19 @@ steps:
 
       go run variadicParameterExample.go \
         --user $user \
-        --password $password`
+        --password $password
+{{ if .Args.optional_step_one }}
+  - name: optional_step_one
+    inline: echo "optional step one"
+{{ end }}
+{{ if .Args.optional_step_two }}
+  - name: optional_step_two
+    inline: echo "optional step two"
+{{ end }}
+{{ if .Args.optional_step_three }}
+  - name: optional_step_three
+    inline: echo "optional step three"
+{{ end }}`
 
 const goMod = `
 module github.com/facebookincubator/ttpforge
@@ -187,12 +207,14 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	testCases := []struct {
-		name     string
-		setFlags func(*cobra.Command)
-		user     string
-		password string
-		expected string
-		err      bool
+		name            string
+		setFlags        func(*cobra.Command)
+		user            string
+		password        string
+		optionalStepOne bool
+		optionalStepTwo bool
+		expected        string
+		err             bool
 	}{
 		{
 			name: "Should successfully run command with correct arguments",
@@ -200,10 +222,12 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 				_ = newRunTTPCmd.Flags().Set("config", testConfigYAMLPath)
 				_ = newRunTTPCmd.Flags().Set("no-cleanup", "true")
 			},
-			user:     "testUser",
-			password: "testPassword",
-			expected: "User input: testUser\nPassword input: testPassword\n",
-			err:      false,
+			user:            "testUser",
+			password:        "testPassword",
+			optionalStepOne: false,
+			optionalStepTwo: true,
+			expected:        "User input: testUser\nPassword input: testPassword\n",
+			err:             false,
 		},
 		{
 			name:     "Should fail to run command without arguments",
@@ -222,6 +246,8 @@ func TestRunCommandVariadicArgs(t *testing.T) {
 			tc.setFlags(newRunTTPCmd)
 			_ = newRunTTPCmd.Flags().Set("arg", fmt.Sprintf("user=%s", tc.user))
 			_ = newRunTTPCmd.Flags().Set("arg", fmt.Sprintf("password=%s", tc.password))
+			_ = newRunTTPCmd.Flags().Set("arg", fmt.Sprintf("optional_step_one=%v", tc.optionalStepOne))
+			_ = newRunTTPCmd.Flags().Set("arg", fmt.Sprintf("optional_step_two=%v", tc.optionalStepTwo))
 
 			// Add the path to the TTP script file as an argument
 			newRunTTPCmd.SetArgs([]string{filepath.Join(testDir, "paramtest.yaml")})
