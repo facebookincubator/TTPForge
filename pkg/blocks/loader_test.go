@@ -37,7 +37,7 @@ steps:
 - name: step2
   inline: echo "step two"`
 
-	err := blocks.LintTTP([]byte(ttpStr))
+	_, err := blocks.LintTTP([]byte(ttpStr))
 	require.NoError(t, err)
 }
 
@@ -51,22 +51,21 @@ steps:
 - name: step2
   inline: echo "step two"`
 
-	err := blocks.LintTTP([]byte(ttpStr))
+	_, err := blocks.LintTTP([]byte(ttpStr))
 	require.Error(t, err)
 }
 
-// TODO: error on this
-// func TestLintTTPScrambled(t *testing.T) {
-// 	ttpStr := `name: scrambled ttp
-// description: should fail linting due to args after steps
-// steps:
-// - name: step1
-//   inline: echo "arg value is {{ .Args.arg1 }}"
-// - name: step2
-//   inline: echo "step two"
-// args:
-// - name: arg1`
+func TestLintTTPScrambled(t *testing.T) {
+	ttpStr := `name: scrambled ttp
+description: should fail linting due to args after steps
+steps:
+- name: step1
+  inline: echo "arg value is {{ .Args.arg1 }}"
+- name: step2
+  inline: echo "step two"
+args:
+- name: arg1`
 
-// 	err := blocks.LintTTP([]byte(ttpStr))
-// 	require.NoError(t, err)
-// }
+	_, err := blocks.LintTTP([]byte(ttpStr))
+	require.Error(t, err)
+}

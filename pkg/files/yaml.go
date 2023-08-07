@@ -70,7 +70,7 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig, argsKvStrs []stri
 		return nil, err
 	}
 
-	c.Args, err = args.ParseAndValidate(ttp.Args, argsKvStrs)
+	c.Args, err = args.ParseAndValidate(ttp.ArgSpecs, argsKvStrs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
 	}

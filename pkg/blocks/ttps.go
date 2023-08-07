@@ -38,7 +38,7 @@ type TTP struct {
 	Description string            `yaml:"description"`
 	Environment map[string]string `yaml:"env,flow,omitempty"`
 	Steps       []Step            `yaml:"steps,omitempty,flow"`
-	Args        []args.Spec       `yaml:"args,omitempty,flow"`
+	ArgSpecs    []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
 }
@@ -114,7 +114,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		Description string            `yaml:"description"`
 		Environment map[string]string `yaml:"env,flow,omitempty"`
 		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
-		Args        []args.Spec       `yaml:"args,omitempty,flow"`
+		ArgSpecs    []args.Spec       `yaml:"args,omitempty,flow"`
 	}
 
 	var tmpl TTPTmpl
@@ -125,7 +125,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Name = tmpl.Name
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
-	t.Args = tmpl.Args
+	t.ArgSpecs = tmpl.ArgSpecs
 
 	return t.decodeSteps(tmpl.Steps)
 }

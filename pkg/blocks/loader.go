@@ -29,22 +29,44 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/facebookincubator/ttpforge/pkg/args"
 	"gopkg.in/yaml.v3"
 )
 
-var stepsTopLevelKeyRegexp *regexp.Regexp
+var (
+	stepsTopLevelKeyRegexp *regexp.Regexp
+	topLevelKeyRegexp      *regexp.Regexp
+)
 
 func init() {
 	stepsTopLevelKeyRegexp = regexp.MustCompile("(?m)^steps:")
+	topLevelKeyRegexp = regexp.MustCompile(`(?m)^[^\s]+:`)
 }
 
-func LintTTP(ttpBytes []byte) error {
-	// `steps:` should always be the last top-level key
+type LintResult struct {
+	PreambleBytes []byte
+	StepsBytes    []byte
+}
+
+func LintTTP(ttpBytes []byte) (*LintResult, error) {
+	// no duplicate keys
 	stepTopLevelKeyLocs := stepsTopLevelKeyRegexp.FindAllIndex(ttpBytes, -1)
 	if len(stepTopLevelKeyLocs) != 1 {
-		return errors.New("the top level key `steps:` should occur exactly once")
+		return nil, errors.New("the top-level key `steps:` should occur exactly once")
 	}
-	return nil
+	stepTopLevelKeyLoc := stepTopLevelKeyLocs[0]
+
+	// `steps:` should always be the last top-level key
+	topLevelKeyLocs := topLevelKeyRegexp.FindAllIndex(ttpBytes, -1)
+	for _, loc := range topLevelKeyLocs {
+		if loc[0] > stepTopLevelKeyLoc[0] {
+			return nil, errors.New("the top-level key `steps:` should always be the last top-level key in the file")
+		}
+	}
+	return &LintResult{
+		PreambleBytes: ttpBytes[:stepTopLevelKeyLoc[0]],
+		StepsBytes:    ttpBytes[stepTopLevelKeyLoc[0]:stepTopLevelKeyLoc[1]],
+	}, nil
 }
 
 // RenderTemplatedTTP uses Golang's `text/template` to substitute template
@@ -96,7 +118,24 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) 
 		return nil, err
 	}
 
+	// read TTP and check linting
 	contents, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := LintTTP(contents)
+	if err != nil {
+		return nil, err
+	}
+
+	// linting above establishes that the TTP yaml will be
+	// compatible with our rendering process
+	type ArgSpecContainer struct {
+		ArgSpecs []args.Spec `yaml:"args"`
+	}
+	var tmpContainer ArgSpecContainer
+	err = yaml.Unmarshal(result.PreambleBytes, &tmpContainer)
 	if err != nil {
 		return nil, err
 	}
