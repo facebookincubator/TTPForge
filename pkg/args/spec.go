@@ -48,11 +48,22 @@ type Spec struct {
 func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error) {
 
 	// validate the specs
+	processedArgs := make(map[string]any)
 	specsByName := make(map[string]Spec)
 	for _, spec := range specs {
-		if err := spec.validate(); err != nil {
-			return nil, err
+		if spec.Name == "" {
+			return nil, errors.New("argument name cannot be empty")
 		}
+
+		// set the default value, will be overwritten by passed value
+		if spec.Default != "" {
+			defaultVal, err := spec.convertArgToType(spec.Default)
+			if err != nil {
+				return nil, fmt.Errorf("default value type does not match spec: %v", err)
+			}
+			processedArgs[spec.Name] = defaultVal
+		}
+
 		if _, ok := specsByName[spec.Name]; ok {
 			return nil, fmt.Errorf("duplicate argument name: %v", spec.Name)
 		}
@@ -60,7 +71,6 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 	}
 
 	// validate the inputs
-	processedArgs := make(map[string]any)
 	for _, argKvStr := range argsKvStrs {
 		argKv := strings.SplitN(argKvStr, "=", 2)
 		if len(argKv) != 2 {
@@ -75,8 +85,7 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 			return nil, fmt.Errorf("received unexpected argument: %v ", argName)
 		}
 
-		// passed argument value of invalid type
-		err := spec.checkArgType(argVal)
+		typedVal, err := spec.convertArgToType(argVal)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"invalid value '%v' specified for argument '%v': %v",
@@ -87,47 +96,36 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 		}
 
 		// valid arg value - save
-		processedArgs[argName] = argVal
+		processedArgs[argName] = typedVal
 	}
 
-	// set default values - error if argument was not provided
-	// and no default value was specified
+	// error if argument was not provided and no default value was specified
 	for _, spec := range specs {
 		if _, ok := processedArgs[spec.Name]; !ok {
-			if spec.Default != "" {
-				processedArgs[spec.Name] = spec.Default
-			} else {
-				return nil, fmt.Errorf("value for required argument '%v' was not provided and no default value was specified", spec.Name)
-			}
+			return nil, fmt.Errorf("value for required argument '%v' was not provided and no default value was specified", spec.Name)
 		}
 	}
 	return processedArgs, nil
 }
 
-func (spec Spec) validate() error {
-	if spec.Name == "" {
-		return errors.New("argument name cannot be empty")
-	}
-	if spec.Default != "" {
-		err := spec.checkArgType(spec.Default)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (spec Spec) checkArgType(val string) error {
+func (spec Spec) convertArgToType(val string) (any, error) {
 	switch spec.Type {
 	case "", "string":
 		// string is the default - any string is valid
-		break
+		return val, nil
 	case "int":
-		if _, err := strconv.Atoi(val); err != nil {
-			return errors.New("non-integer value provided")
+		asInt, err := strconv.Atoi(val)
+		if err != nil {
+			return nil, errors.New("non-integer value provided")
 		}
+		return asInt, nil
+	case "bool":
+		asBool, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, errors.New("no-boolean value provided")
+		}
+		return asBool, nil
 	default:
-		return fmt.Errorf("invalid type %v specified in configuration for argument %v", spec.Type, spec.Name)
+		return nil, fmt.Errorf("invalid type %v specified in configuration for argument %v", spec.Type, spec.Name)
 	}
-	return nil
 }

@@ -53,7 +53,7 @@ func TestValidateArgs(t *testing.T) {
 			},
 			expectedResult: map[string]any{
 				"alpha": "foo",
-				"beta":  "3",
+				"beta":  3,
 			},
 			wantError: false,
 		},
@@ -74,7 +74,7 @@ func TestValidateArgs(t *testing.T) {
 			},
 			expectedResult: map[string]any{
 				"alpha": "foo",
-				"beta":  "1337",
+				"beta":  1337,
 			},
 			wantError: false,
 		},
