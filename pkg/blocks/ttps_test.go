@@ -203,6 +203,49 @@ steps:
 	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
 }
 
+func TestTemplatingArgsAndConditionalExec(t *testing.T) {
+	content := `name: test_variable_expansion
+description: tests args + step result variable expansion functionality
+args:
+- name: arg1
+- name: do_optional_step_1
+  default: false
+- name: do_optional_step_2
+  default: false
+steps:
+  - name: mandatory_step
+    inline: echo "arg value is {{ .Args.arg1 }}"
+    {{ if .Args.do_optional_step_1 }}
+  - name: optional_step_1
+    inline: echo "optional step 1"
+    {{ end }}
+    {{ if .Args.do_optional_step_2 }}
+  - name: optional_step_2
+    inline: echo "optional step 2"
+    {{ end }}`
+
+	execCfg := blocks.TTPExecutionConfig{
+		Args: map[string]string{
+			"arg1":               "victory",
+			"do_optional_step_1": "false",
+			"do_optional_step_2": "true",
+		},
+	}
+	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(execCfg)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(stepResults.ByIndex))
+	assert.Equal(t, "arg value is victory\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "optional step 2\n", stepResults.ByIndex[1].Stdout)
+
+	require.Equal(t, 2, len(stepResults.ByName))
+	assert.Equal(t, "arg value is victory\n", stepResults.ByName["mandatory_step"].Stdout)
+	assert.Equal(t, "optional step 2\n", stepResults.ByName["optional_step_2"].Stdout)
+}
+
 func TestVariableExpansionArgsAndStepResults(t *testing.T) {
 	content := `name: test_variable_expansion
 description: tests args + step result variable expansion functionality
