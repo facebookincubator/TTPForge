@@ -216,19 +216,19 @@ steps:
         filters:
         - json_path: foo.bar
   - name: step2
-    inline: echo "first output is {{steps.step1.outputs.first}}"
+    inline: echo "first output is baz"
   - name: step3
-    inline: echo "arg value is {{args.arg1}}"`
+    inline: echo "arg value is {{ .Args.arg1 }}"`
 
-	var ttp blocks.TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{
+	execCfg := blocks.TTPExecutionConfig{
 		Args: map[string]string{
 			"arg1": "victory",
 		},
-	})
+	}
+	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(execCfg)
 	require.NoError(t, err)
 
 	require.Equal(t, 3, len(stepResults.ByIndex))

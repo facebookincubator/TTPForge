@@ -20,6 +20,8 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"bytes"
+	"html/template"
 	"io"
 	"io/fs"
 	"os"
@@ -27,6 +29,31 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+// RenderTemplatedTTP uses Golang's `text/template` to substitute template
+// expressions such as `{{ .Args.myarg }}` with their appropriate values
+// This function should always be called before YAML unmarshaling since
+// the template syntax `{{ ... }}` may be invalid yaml in certain circumstances
+
+func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error) {
+	tmpl, err := template.New("ttp").Parse(ttpStr)
+	if err != nil {
+		return nil, err
+	}
+
+	var result bytes.Buffer
+	err = tmpl.Execute(&result, execCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var ttp TTP
+	err = yaml.Unmarshal(result.Bytes(), &ttp)
+	if err != nil {
+		return nil, err
+	}
+	return &ttp, nil
+}
 
 // LoadTTP reads a TTP file and creates a TTP instance based on its contents.
 // If the file is empty or contains invalid data, it returns an error.
@@ -42,7 +69,6 @@ import (
 // err: An error if the file contains invalid data or cannot be read.
 func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) (*TTP, error) {
 
-	var ttp TTP
 	var file fs.File
 	var err error
 	if system == nil {
@@ -59,7 +85,7 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) 
 		return nil, err
 	}
 
-	err = yaml.Unmarshal(contents, &ttp)
+	ttp, err := RenderTemplatedTTP(string(contents), execCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -89,5 +115,5 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig) 
 		}
 	}
 
-	return &ttp, nil
+	return ttp, nil
 }
