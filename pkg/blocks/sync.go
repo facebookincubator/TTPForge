@@ -91,11 +91,3 @@ func LoadTTP(ttpFilePath string, system fs.StatFS) (*TTP, error) {
 
 	return &ttp, nil
 }
-
-// Actors represents the various actors involved in the execution of TTPs.
-// It contains Outputs and Environment, which are maps for storing output
-// data and environment variables.
-type Actors struct {
-	Outputs     map[string]any    // Outputs stores the results generated during the execution of TTPs.
-	Environment map[string]string // Environment stores the environment variables required for TTPs execution.
-}
