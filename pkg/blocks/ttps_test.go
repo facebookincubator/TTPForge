@@ -215,19 +215,18 @@ args:
 steps:
   - name: mandatory_step
     inline: echo "arg value is {{ .Args.arg1 }}"
-    {{ if .Args.do_optional_step_1 }}
+{{ if .Args.do_optional_step_1 }}
   - name: optional_step_1
     inline: echo "optional step 1"
-    {{ end }}
-    {{ if .Args.do_optional_step_2 }}
+{{ end }}
+{{ if .Args.do_optional_step_2 }}
   - name: optional_step_2
     inline: echo "optional step 2"
-    {{ end }}`
+{{ end }}`
 
 	execCfg := blocks.TTPExecutionConfig{
 		Args: map[string]string{
 			"arg1":               "victory",
-			"do_optional_step_1": "false",
 			"do_optional_step_2": "true",
 		},
 	}
