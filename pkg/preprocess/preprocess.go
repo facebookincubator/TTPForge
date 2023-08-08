@@ -34,17 +34,30 @@ func init() {
 	topLevelKeyRegexp = regexp.MustCompile(`(?m)^[^\s]+:`)
 }
 
-// Result contains the TTP contents broken down into chunks for
-// subsequent template processing and unmarshalling
+// Result contains the TTP contents divided into sections for
+// further template processing and unmarshalling.
+//
+// **Attributes:**
+//
+// PreambleBytes: A byte slice representing the preamble section of the TTP.
+// StepsBytes: A byte slice representing the individual steps within the TTP.
 type Result struct {
 	PreambleBytes []byte
 	StepsBytes    []byte
 }
 
-// Parse performs several key tasks for early-stage processing of a TTP
-//   - it performs basic linting on the TTP
-//   - it breaks a TTP in to "not steps"  and "steps" -
-//     we need this for YAML unmarshalling plus templating wizardry
+// Parse is responsible for early-stage processing of a TTP. It carries out several essential functions:
+//   - Performs basic linting on the TTP.
+//   - Divides the TTP into "not steps" and "steps" sections, required for YAML unmarshalling and templating operations.
+//
+// **Parameters:**
+//
+// ttpBytes: A byte slice containing the raw TTP to be processed.
+//
+// **Returns:**
+//
+// *Result: A pointer to a Result object containing the parsed preamble and steps sections.
+// error: An error if the parsing process fails or if there are issues with the top-level key arrangement in the file.
 func Parse(ttpBytes []byte) (*Result, error) {
 	// no duplicate keys
 	stepTopLevelKeyLocs := stepsTopLevelKeyRegexp.FindAllIndex(ttpBytes, -1)
