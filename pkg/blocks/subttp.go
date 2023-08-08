@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
@@ -104,7 +103,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) (map[string]string, error) {
+func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, error) {
 	var argKvStrs []string
 	for k, v := range s.Args {
 		argKvStrs = append(argKvStrs, k+"="+v)
@@ -114,7 +113,7 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) (map[string]
 	if err != nil {
 		return nil, err
 	}
-	return args.ParseAndValidate(s.ttp.Args, expandedArgKvStrs)
+	return expandedArgKvStrs, nil
 }
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
@@ -127,16 +126,6 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
 		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
-
-		subArgs, err := s.processSubTTPArgs(execCtx)
-		if err != nil {
-			return nil, err
-		}
-		s.subExecCtx = TTPExecutionContext{
-			Cfg: TTPExecutionConfig{
-				Args: subArgs,
-			},
-		}
 
 		result, err := stepCopy.Execute(s.subExecCtx)
 		if err != nil {
@@ -193,7 +182,12 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 		return fmt.Errorf("could not find TTP file in any configured search paths: %v", s.TtpFile)
 	}
 
-	ttps, err := LoadTTP(fullPath, s.FileSystem)
+	subArgsKv, err := s.processSubTTPArgs(execCtx)
+	if err != nil {
+		return err
+	}
+
+	ttps, err := LoadTTP(fullPath, s.FileSystem, &s.subExecCtx.Cfg, subArgsKv)
 	if err != nil {
 		return err
 	}

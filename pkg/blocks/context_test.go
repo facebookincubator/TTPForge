@@ -53,7 +53,7 @@ func TestExpandVariablesStepResults(t *testing.T) {
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["third_step"])
 	execCtx := blocks.TTPExecutionContext{
 		Cfg: blocks.TTPExecutionConfig{
-			Args: map[string]string{
+			Args: map[string]any{
 				"arg1": "myarg1",
 				"arg2": "myarg2",
 			},
@@ -69,24 +69,10 @@ func TestExpandVariablesStepResults(t *testing.T) {
 		wantError       bool
 	}{
 		{
-			name: "CLI Arguments Expansion",
-			stringsToExpand: []string{
-				"first arg: {{args.arg1}}",
-				"second arg: {{args.arg2}}",
-				"should trim spaces and still work: {{ args.arg2  }}",
-			},
-			expectedResult: []string{
-				"first arg: myarg1",
-				"second arg: myarg2",
-				"should trim spaces and still work: myarg2",
-			},
-			wantError: false,
-		},
-		{
 			name: "Step Stdout Expansion",
 			stringsToExpand: []string{
-				"first: {{steps.first_step.stdout}}",
-				"second: {{steps.second_step.stdout}}",
+				"first: $forge.steps.first_step.stdout",
+				"second: $forge.steps.second_step.stdout",
 			},
 			expectedResult: []string{
 				"first: hello",
@@ -97,7 +83,7 @@ func TestExpandVariablesStepResults(t *testing.T) {
 		{
 			name: "Step Output Expansion - JSON",
 			stringsToExpand: []string{
-				"third: {{steps.third_step.outputs.myresult}}",
+				"third: $forge.steps.third_step.outputs.myresult",
 			},
 			expectedResult: []string{
 				"third: baz",
@@ -105,38 +91,50 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name: "Escape forge magic string",
+			stringsToExpand: []string{
+				"this should be escaped: $$forge.foo.bar.baz",
+				"and so should this: $$$forge.a.b.c",
+			},
+			expectedResult: []string{
+				"this should be escaped: $forge.foo.bar.baz",
+				"and so should this: $$forge.a.b.c",
+			},
+			wantError: false,
+		},
+		{
 			name: "Empty Variable Specifier",
 			stringsToExpand: []string{
-				"this is empty: {{}}",
+				"this is empty: $forge.)",
 			},
 			wantError: true,
 		},
 		{
 			name: "Trailing dot in variable expression",
 			stringsToExpand: []string{
-				"this is wrong: {{steps.wut.}}",
-			},
-			wantError: true,
-		},
-		{
-			name: "Invalid Variable Prefix",
-			stringsToExpand: []string{
-				"first: {{steps.first_step.stdout}}",
-				"second: {{steps.fakestep.stdout}}",
+				"this is wrong: $forge.steps.wut.",
 			},
 			wantError: true,
 		},
 		{
 			name: "Invalid Step Name",
 			stringsToExpand: []string{
-				"should fail: {{foo.bar}}",
+				"first: $forge.steps.first_step.stdout",
+				"second: $forge.steps.fakestep.stdout",
+			},
+			wantError: true,
+		},
+		{
+			name: "Invalid Variable Path Prefix",
+			stringsToExpand: []string{
+				"should fail: $forge.notreal.first_step",
 			},
 			wantError: true,
 		},
 		{
 			name: "Invalid Output Key",
 			stringsToExpand: []string{
-				"should fail: {{steps.third_step.outputs.fail}}",
+				"should fail: $forge.steps.third_step.outputs.fail",
 			},
 			wantError: true,
 		},
@@ -155,5 +153,4 @@ func TestExpandVariablesStepResults(t *testing.T) {
 			assert.Equal(t, tc.expectedResult, expandedStrs, "returned slice should match expected value")
 		})
 	}
-
 }

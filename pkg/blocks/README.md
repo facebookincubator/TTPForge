@@ -501,10 +501,10 @@ error: An error if the object cannot be encoded as JSON.
 
 ---
 
-### LoadTTP(string, fs.StatFS)
+### LoadTTP(string, fs.StatFS, *TTPExecutionConfig, []string)
 
 ```go
-LoadTTP(string, fs.StatFS) *TTP, error
+LoadTTP(string, fs.StatFS, *TTPExecutionConfig, []string) *TTP, error
 ```
 
 LoadTTP reads a TTP file and creates a TTP instance based on its contents.
@@ -569,6 +569,29 @@ NewSubTTPStep() *SubTTPStep
 ```
 
 NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
+
+---
+
+### RenderTemplatedTTP(string, *TTPExecutionConfig)
+
+```go
+RenderTemplatedTTP(string, *TTPExecutionConfig) *TTP, error
+```
+
+RenderTemplatedTTP is a function that utilizes Golang's `text/template` for template substitution.
+It replaces template expressions like `{{ .Args.myarg }}` with corresponding values.
+This function must be invoked prior to YAML unmarshaling, as the template syntax `{{ ... }}`
+may result in invalid YAML under specific conditions.
+
+**Parameters:**
+
+ttpStr: A string containing the TTP template to be rendered.
+execCfg: A pointer to a TTPExecutionConfig that represents the execution configuration for the TTP.
+
+**Returns:**
+
+*TTP: A pointer to the TTP object created from the template.
+error: An error if the rendering or unmarshaling process fails.
 
 ---
 
@@ -745,8 +768,7 @@ ExpandVariables([]string) []string, error
 ExpandVariables takes a string containing the following types of variables
 and expands all of them to their appropriate values:
 
-* Command-line arguments: ({{args.foo}})
-* Step outputs: ({{step.bar.outputs.baz}})
+* Step outputs: ($forge.steps.bar.outputs.baz)
 
 **Parameters:**
 

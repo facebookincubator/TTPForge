@@ -26,11 +26,13 @@ import (
 	"strings"
 )
 
+const contextVariablePrefix = "$forge."
+
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
 	NoCleanup           bool
 	CleanupDelaySeconds uint
-	Args                map[string]string
+	Args                map[string]any
 	TTPSearchPaths      []string
 }
 
@@ -43,8 +45,7 @@ type TTPExecutionContext struct {
 // ExpandVariables takes a string containing the following types of variables
 // and expands all of them to their appropriate values:
 //
-// * Command-line arguments: ({{args.foo}})
-// * Step outputs: ({{step.bar.outputs.baz}})
+// * Step outputs: ($forge.steps.bar.outputs.baz)
 //
 // **Parameters:**
 //
@@ -55,7 +56,9 @@ type TTPExecutionContext struct {
 // []string: the corresponding strings with variables expanded
 // error: an error if there is a problem
 func (c TTPExecutionContext) ExpandVariables(inStrs []string) ([]string, error) {
-	re := regexp.MustCompile(`\{\{([^\{\}]*)\}\}`)
+	re := regexp.MustCompile(
+		`\$*` + regexp.QuoteMeta(contextVariablePrefix) + `[\w\.]*`,
+	)
 	var expandedStrs []string
 	for _, inStr := range inStrs {
 		var failedMatch string
@@ -76,15 +79,6 @@ func (c TTPExecutionContext) ExpandVariables(inStrs []string) ([]string, error) 
 	return expandedStrs, nil
 }
 
-func (c TTPExecutionContext) processArgsVariable(path string) (string, error) {
-
-	argVal, ok := c.Cfg.Args[path]
-	if !ok {
-		return "", fmt.Errorf("invalid reference to CLI argument: %v", "args."+path)
-	}
-	return argVal, nil
-}
-
 func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
 	tokens := strings.Split(path, ".")
 	if len(tokens) < 2 {
@@ -94,7 +88,7 @@ func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
 	stepName := tokens[0]
 	stepResult, ok := c.StepResults.ByName[stepName]
 	if !ok {
-		return "", fmt.Errorf("invalid step name in variable expression: %v", "steps."+path)
+		return "", fmt.Errorf("invalid step name in variable path: %v", "steps."+path)
 	}
 
 	fieldSelector := tokens[1]
@@ -119,12 +113,10 @@ func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {
 }
 
 func (c TTPExecutionContext) processMatch(match string) (string, error) {
-	variableSpecifier := strings.TrimLeft(strings.TrimRight(match, "}"), "{")
-	variableSpecifier = strings.TrimSpace(variableSpecifier)
-	if len(variableSpecifier) == 0 {
-		return "", errors.New("empty string in variable expression")
+	if strings.HasPrefix(match, "$$") {
+		return strings.TrimPrefix(match, "$"), nil
 	}
-
+	variableSpecifier := strings.TrimPrefix(match, contextVariablePrefix)
 	tokens := strings.Split(variableSpecifier, ".")
 	for _, token := range tokens {
 		// happens if we have a something like {{steps.wut.}} or {{.steps.wut}}
@@ -138,10 +130,7 @@ func (c TTPExecutionContext) processMatch(match string) (string, error) {
 
 	prefix := tokens[0]
 	path := strings.Join(tokens[1:], ".")
-	switch prefix {
-	case "args":
-		return c.processArgsVariable(path)
-	case "steps":
+	if prefix == "steps" {
 		return c.processStepsVariable(path)
 	}
 	return "", fmt.Errorf("invalid variable prefix: %v", prefix)

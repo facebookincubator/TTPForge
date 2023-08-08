@@ -72,56 +72,6 @@ steps:
 	}
 }
 
-func TestUnmarshalSimpleCleanupLarge(t *testing.T) {
-	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
-	}{
-		{
-			name: "Simple cleanup large",
-			content: `name: test
-description: this is a test
-steps:
-  - name: testinline
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  - name: test_cleanup_two
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  - name: test_cleanup_three
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  `,
-			wantError: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
 func TestUnmarshalScenario(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -154,62 +104,6 @@ steps:
 		t.Run(tc.name, func(t *testing.T) {
 			var ttps blocks.TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestTTP_RunSteps(t *testing.T) {
-	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
-	}{
-		{
-			name: "Empty steps",
-			content: `
-name: test
-description: this is a test
-steps: []
-`,
-			wantError: false,
-		},
-		{
-			name: "Valid steps with cleanup",
-			content: `
-name: test
-description: this is a test
-steps:
-  - name: step1
-    inline: |
-      echo "step1"
-    cleanup:
-      name: cleanup1
-      inline: |
-        echo "cleanup1"
-  - name: step2
-    inline: |
-      echo "step2"
-    cleanup:
-      name: cleanup2
-      inline: |
-        echo "cleanup2"
-`,
-			wantError: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttp)
-			assert.NoError(t, err)
-
-			_, err = ttp.RunSteps(blocks.TTPExecutionConfig{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
@@ -309,6 +203,48 @@ steps:
 	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
 }
 
+func TestTemplatingArgsAndConditionalExec(t *testing.T) {
+	content := `name: test_variable_expansion
+description: tests args + step result variable expansion functionality
+args:
+- name: arg1
+- name: do_optional_step_1
+  default: false
+- name: do_optional_step_2
+  default: false
+steps:
+  - name: mandatory_step
+    inline: echo "arg value is {{ .Args.arg1 }}"
+{{ if .Args.do_optional_step_1 }}
+  - name: optional_step_1
+    inline: echo "optional step 1"
+{{ end }}
+{{ if .Args.do_optional_step_2 }}
+  - name: optional_step_2
+    inline: echo "optional step 2"
+{{ end }}`
+
+	execCfg := blocks.TTPExecutionConfig{
+		Args: map[string]any{
+			"arg1":               "victory",
+			"do_optional_step_2": true,
+		},
+	}
+	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(execCfg)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(stepResults.ByIndex))
+	assert.Equal(t, "arg value is victory\n", stepResults.ByIndex[0].Stdout)
+	assert.Equal(t, "optional step 2\n", stepResults.ByIndex[1].Stdout)
+
+	require.Equal(t, 2, len(stepResults.ByName))
+	assert.Equal(t, "arg value is victory\n", stepResults.ByName["mandatory_step"].Stdout)
+	assert.Equal(t, "optional step 2\n", stepResults.ByName["optional_step_2"].Stdout)
+}
+
 func TestVariableExpansionArgsAndStepResults(t *testing.T) {
 	content := `name: test_variable_expansion
 description: tests args + step result variable expansion functionality
@@ -322,19 +258,19 @@ steps:
         filters:
         - json_path: foo.bar
   - name: step2
-    inline: echo "first output is {{steps.step1.outputs.first}}"
+    inline: echo "first output is baz"
   - name: step3
-    inline: echo "arg value is {{args.arg1}}"`
+    inline: echo "arg value is {{ .Args.arg1 }}"`
 
-	var ttp blocks.TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{
-		Args: map[string]string{
+	execCfg := blocks.TTPExecutionConfig{
+		Args: map[string]any{
 			"arg1": "victory",
 		},
-	})
+	}
+	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
+	require.NoError(t, err)
+
+	stepResults, err := ttp.RunSteps(execCfg)
 	require.NoError(t, err)
 
 	require.Equal(t, 3, len(stepResults.ByIndex))

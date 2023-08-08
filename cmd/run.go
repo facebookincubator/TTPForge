@@ -47,7 +47,7 @@ func RunTTPCmd() *cobra.Command {
 			ttpCfg.TTPSearchPaths = Conf.TTPSearchPaths
 
 			// Parse CLI inputs.
-			ttpCfg.Args = make(map[string]string)
+			ttpCfg.Args = make(map[string]any)
 			for _, arg := range argsList {
 				keyVal := strings.Split(arg, "=")
 				if len(keyVal) != 2 {

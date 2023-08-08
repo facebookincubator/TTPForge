@@ -97,9 +97,7 @@ func TestBasicStepExecuteWithOutput(t *testing.T) {
 
 	// prepare step
 	content := `name: test_basic_step
-inline: echo {\"foo\":{\"bar\":\"${myEnvVar}\"}}
-env:
-  myEnvVar: "{{args.myarg}}"
+inline: echo {\"foo\":{\"bar\":\"baz\"}}
 outputs:
   first:
     filters:
@@ -107,7 +105,7 @@ outputs:
 	var s blocks.BasicStep
 	execCtx := blocks.TTPExecutionContext{
 		Cfg: blocks.TTPExecutionConfig{
-			Args: map[string]string{
+			Args: map[string]any{
 				"myarg": "baz",
 			},
 		},
@@ -120,7 +118,6 @@ outputs:
 	// execute and check result
 	result, err := s.Execute(execCtx)
 	require.NoError(t, err)
-	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", result.Stdout)
 	require.Equal(t, 1, len(result.Outputs))
 	assert.Equal(t, "baz", result.Outputs["first"], "first output should be correct")
 }

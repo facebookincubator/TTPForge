@@ -33,7 +33,7 @@ func TestValidateArgs(t *testing.T) {
 		name           string
 		specs          []args.Spec
 		argKvStrs      []string
-		expectedResult map[string]string
+		expectedResult map[string]any
 		wantError      bool
 	}{
 		{
@@ -51,9 +51,9 @@ func TestValidateArgs(t *testing.T) {
 				"alpha=foo",
 				"beta=3",
 			},
-			expectedResult: map[string]string{
+			expectedResult: map[string]any{
 				"alpha": "foo",
-				"beta":  "3",
+				"beta":  3,
 			},
 			wantError: false,
 		},
@@ -72,9 +72,9 @@ func TestValidateArgs(t *testing.T) {
 			argKvStrs: []string{
 				"alpha=foo",
 			},
-			expectedResult: map[string]string{
+			expectedResult: map[string]any{
 				"alpha": "foo",
-				"beta":  "1337",
+				"beta":  1337,
 			},
 			wantError: false,
 		},
@@ -92,7 +92,7 @@ func TestValidateArgs(t *testing.T) {
 				"alpha=foo",
 				"beta=bar=baz",
 			},
-			expectedResult: map[string]string{
+			expectedResult: map[string]any{
 				"alpha": "foo",
 				"beta":  "bar=baz",
 			},

@@ -126,7 +126,7 @@ args:
 steps:
   - name: testing_sub_ttp
     inline: |
-      echo -n {{args.arg_number_one}} {{args.arg_number_two}} {{args.arg_number_three}}`),
+      echo -n {{ .Args.arg_number_one}} {{ .Args.arg_number_two}} {{ .Args.arg_number_three }}`),
 			},
 		},
 	}

@@ -25,7 +25,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
@@ -64,15 +63,12 @@ func ExecuteYAML(yamlFile string, c blocks.TTPExecutionConfig, argsKvStrs []stri
 		}
 	}
 
-	ttp, err := blocks.LoadTTP(absPathToTTP, nil)
+	// load TTP and process argument values
+	// based on the TTPs argument value specifications
+	ttp, err := blocks.LoadTTP(absPathToTTP, nil, &c, argsKvStrs)
 	if err != nil {
 		logging.Logger.Sugar().Errorw("failed to run TTP", zap.Error(err))
 		return nil, err
-	}
-
-	c.Args, err = args.ParseAndValidate(ttp.Args, argsKvStrs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
 	}
 
 	if _, err := ttp.RunSteps(c); err != nil {

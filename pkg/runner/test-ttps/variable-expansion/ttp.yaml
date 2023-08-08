@@ -16,7 +16,7 @@ steps:
     inline: |
       echo "{\"test_key\":\"$input\",\"another_key\":\"wut\"}" >> result.txt
     env:
-      input: "{{steps.echo_env_inline.stdout}}"
+      input: $forge.steps.echo_env_inline.stdout
   - name: echo_more_json
     inline: |
       echo "{\"yet_another_key\":\"foo\"}"
@@ -27,4 +27,4 @@ steps:
   - name: test_step_output_in_arg_list
     file: write-to-result.sh
     args:
-      - "{{steps.echo_more_json.outputs.another_one}}"
+      - $forge.steps.echo_more_json.outputs.another_one
