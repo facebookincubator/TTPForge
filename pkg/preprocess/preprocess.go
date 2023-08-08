@@ -48,7 +48,7 @@ type Result struct {
 
 // Parse is responsible for early-stage processing of a TTP. It carries out several essential functions:
 //   - Performs basic linting on the TTP.
-//   - Divides the TTP into "not steps" and "steps" sections, required for YAML unmarshalling 
+//   - Divides the TTP into "not steps" and "steps" sections, required for YAML unmarshalling
 //     and templating operations.
 //
 // **Parameters:**
