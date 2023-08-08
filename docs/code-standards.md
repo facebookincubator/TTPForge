@@ -198,33 +198,34 @@ if err != nil {
 Note: The use of the "Example" prefix in these tests indicates that their
 primary purpose is to serve as executable documentation for your code. They
 are designed to provide developers with clear, practical examples of how to
-use your functions. When these Example tests are run, the actual output from
-the function is compared with the expected output, as specified in the `// Output:`
-comment. This comparison ensures that your examples stay accurate and up-to-date
-as your API evolves over time, preventing documentation from becoming obsolete or
-misleading. Remember, Example tests complement, but do not replace, traditional
-unit and integration tests.
+use your functions.
+
+When these Example tests are run, the actual output from the function is
+compared with the expected output, as specified in the `// Output:`
+comment.
 
 **Resource:** <https://go.dev/blog/examples>
 
 ### Test Architecture
 
-Tests should reside in a separate package from the one containing the code under test.
-We advocate for this convention due to several reasons:
+Tests should reside in a separate package from the one containing the code
+under test. We advocate for this convention due to several reasons:
 
 **Encapsulation and separation of concerns:**
 
-- Keeping test code distinct from production code simplifies comprehension and maintenance.
+- Keeping test code distinct from production code simplifies comprehension
+  and maintenance.
 
 **Testing exported functionality:**
 
 - External test packages promote testing of only the exported functionality,
-  mirroring the package consumers' perspective. This emphasizes the public API's behavior.
+  mirroring the package consumers' perspective. This emphasizes the public
+  API's behavior.
 
 **Avoiding test-only dependencies:**
 
-- External test packages eliminate test-only dependencies from the compiled binary,
-  reducing its size and warding off accidental usage in production code.
+- External test packages eliminate test-only dependencies from the compiled
+  binary, reducing its size and warding off accidental usage in production code.
 
 **Resources:**
 
@@ -234,19 +235,22 @@ We advocate for this convention due to several reasons:
 ### Test Maintenance
 
 Test maintenance is pivotal. If library code is updated in a way that modifies
-functionality (add, update, remove, etc.), the corresponding tests should also be updated.
+functionality (add, update, remove, etc.), the corresponding tests should
+also be updated.
 
-For instance, if an exported function is updated to support `github.com/spf13/afero`,
-its associated tests should also be updated to ensure they still function correctly.
+For instance, if an exported function is updated to support
+`github.com/spf13/afero`, its associated tests should also be updated to
+ensure they still function correctly.
 
 ---
 
 ## Documentation
 
-Automated package documentation is an essential part of our work. It benefits us in
-terms of reducing manual effort and standardizing documentation. That's why we utilize
-the following templates. They're designed to support autogen package docs, enabling
-us to parse this format and create READMEs for each package automatically.
+Automated package documentation is an essential part of our work. It benefits
+us in terms of reducing manual effort and standardizing documentation. That's
+why we utilize the following templates. They're designed to support autogen
+package docs, enabling us to parse this format and create READMEs
+for each package automatically.
 
 ### Documenting Exported Functions
 
