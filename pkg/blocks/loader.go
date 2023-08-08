@@ -33,10 +33,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// RenderTemplatedTTP uses Golang's `text/template` to substitute template
-// expressions such as `{{ .Args.myarg }}` with their appropriate values
-// This function should always be called before YAML unmarshaling since
-// the template syntax `{{ ... }}` may be invalid yaml in certain circumstances
+// RenderTemplatedTTP is a function that utilizes Golang's `text/template` for template substitution.
+// It replaces template expressions like `{{ .Args.myarg }}` with corresponding values.
+// This function must be invoked prior to YAML unmarshaling, as the template syntax `{{ ... }}`
+// may result in invalid YAML under specific conditions.
+//
+// **Parameters:**
+//
+// ttpStr: A string containing the TTP template to be rendered.
+// execCfg: A pointer to a TTPExecutionConfig that represents the execution configuration for the TTP.
+//
+// **Returns:**
+//
+// *TTP: A pointer to the TTP object created from the template.
+// error: An error if the rendering or unmarshaling process fails.
 func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error) {
 	tmpl, err := template.New("ttp").Parse(ttpStr)
 	if err != nil {
