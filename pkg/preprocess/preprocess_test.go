@@ -17,12 +17,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package preprocess_test
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +37,7 @@ steps:
 - name: step2
   inline: echo "step two"`
 
-	_, err := blocks.LintTTP([]byte(ttpStr))
+	_, err := preprocess.Parse([]byte(ttpStr))
 	require.NoError(t, err)
 }
 
@@ -51,7 +51,7 @@ steps:
 - name: step2
   inline: echo "step two"`
 
-	_, err := blocks.LintTTP([]byte(ttpStr))
+	_, err := preprocess.Parse([]byte(ttpStr))
 	require.Error(t, err)
 }
 
@@ -66,6 +66,6 @@ steps:
 args:
 - name: arg1`
 
-	_, err := blocks.LintTTP([]byte(ttpStr))
+	_, err := preprocess.Parse([]byte(ttpStr))
 	require.Error(t, err)
 }

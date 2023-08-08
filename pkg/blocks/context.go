@@ -130,8 +130,7 @@ func (c TTPExecutionContext) processMatch(match string) (string, error) {
 
 	prefix := tokens[0]
 	path := strings.Join(tokens[1:], ".")
-	switch prefix {
-	case "steps":
+	if prefix == "steps" {
 		return c.processStepsVariable(path)
 	}
 	return "", fmt.Errorf("invalid variable prefix: %v", prefix)

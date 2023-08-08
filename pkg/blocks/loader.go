@@ -21,54 +21,17 @@ package blocks
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
+	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 	"gopkg.in/yaml.v3"
 )
-
-var (
-	stepsTopLevelKeyRegexp *regexp.Regexp
-	topLevelKeyRegexp      *regexp.Regexp
-)
-
-func init() {
-	stepsTopLevelKeyRegexp = regexp.MustCompile("(?m)^steps:")
-	topLevelKeyRegexp = regexp.MustCompile(`(?m)^[^\s]+:`)
-}
-
-type LintResult struct {
-	PreambleBytes []byte
-	StepsBytes    []byte
-}
-
-func LintTTP(ttpBytes []byte) (*LintResult, error) {
-	// no duplicate keys
-	stepTopLevelKeyLocs := stepsTopLevelKeyRegexp.FindAllIndex(ttpBytes, -1)
-	if len(stepTopLevelKeyLocs) != 1 {
-		return nil, errors.New("the top-level key `steps:` should occur exactly once")
-	}
-	stepTopLevelKeyLoc := stepTopLevelKeyLocs[0]
-
-	// `steps:` should always be the last top-level key
-	topLevelKeyLocs := topLevelKeyRegexp.FindAllIndex(ttpBytes, -1)
-	for _, loc := range topLevelKeyLocs {
-		if loc[0] > stepTopLevelKeyLoc[0] {
-			return nil, errors.New("the top-level key `steps:` should always be the last top-level key in the file")
-		}
-	}
-	return &LintResult{
-		PreambleBytes: ttpBytes[:stepTopLevelKeyLoc[0]],
-		StepsBytes:    ttpBytes[stepTopLevelKeyLoc[0]:stepTopLevelKeyLoc[1]],
-	}, nil
-}
 
 // RenderTemplatedTTP uses Golang's `text/template` to substitute template
 // expressions such as `{{ .Args.myarg }}` with their appropriate values
@@ -113,7 +76,7 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig, 
 		return nil, err
 	}
 
-	result, err := LintTTP(ttpBytes)
+	result, err := preprocess.Parse(ttpBytes)
 	if err != nil {
 		return nil, err
 	}
