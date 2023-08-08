@@ -46,19 +46,19 @@ type Result struct {
 	StepsBytes    []byte
 }
 
-// Parse is responsible for early-stage processing of a TTP. It carries out several essential functions:
-//   - Performs basic linting on the TTP.
-//   - Divides the TTP into "not steps" and "steps" sections, required for YAML unmarshalling
-//     and templating operations.
+// Parse handles early-stage processing of a TTP. It does two main tasks:
+// 1) It lints the TTP.
+// 2) It segments the TTP into "not steps" and "steps" sections, both crucial
+// for YAML unmarshalling and templating.
 //
 // **Parameters:**
 //
-// ttpBytes: A byte slice containing the raw TTP to be processed.
+// ttpBytes: A byte slice with the raw TTP for processing.
 //
 // **Returns:**
 //
-// *Result: A pointer to a Result object containing the parsed preamble and steps sections.
-// error: An error if the parsing process fails or if there are issues with the top-level key arrangement in the file.
+// *Result: Pointer to Result with parsed preamble and steps.
+// error: Error for parsing issues or top-level key arrangement problems.
 func Parse(ttpBytes []byte) (*Result, error) {
 	// no duplicate keys
 	stepTopLevelKeyLocs := stepsTopLevelKeyRegexp.FindAllIndex(ttpBytes, -1)

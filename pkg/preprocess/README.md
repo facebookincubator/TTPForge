@@ -1,6 +1,6 @@
-# TTPForge/args
+# TTPForge/preprocess
 
-The `args` package is a part of the TTPForge.
+The `preprocess` package is a part of the TTPForge.
 
 ---
 
@@ -17,34 +17,35 @@ The `args` package is a part of the TTPForge.
 
 ## Functions
 
-### ParseAndValidate([]Spec, []string)
+### Parse([]byte)
 
 ```go
-ParseAndValidate([]Spec, []string) map[string]any, error
+Parse([]byte) *Result, error
 ```
 
-ParseAndValidate checks that the provided arguments
-match the argument specifications for this TTP
+Parse handles early-stage processing of a TTP. It does two main tasks:
+1) It lints the TTP.
+2) It segments the TTP into "not steps" and "steps" sections, both crucial
+for YAML unmarshalling and templating.
 
 **Parameters:**
 
-specs: slice of argument Spec values loaded from the TTP yaml
-argKvStrs: slice of arguments in "ARG_NAME=ARG_VALUE" format
+ttpBytes: A byte slice with the raw TTP for processing.
 
 **Returns:**
 
-map[string]string: the parsed and validated argument key-value pairs
-error: an error if there is a problem
+*Result: Pointer to Result with parsed preamble and steps.
+error: Error for parsing issues or top-level key arrangement problems.
 
 ---
 
 ## Installation
 
-To use the TTPForge/args package, you first need to install it.
+To use the TTPForge/preprocess package, you first need to install it.
 Follow the steps below to install via go get.
 
 ```bash
-go get github.com/facebookincubator/ttpforge/args
+go get github.com/facebookincubator/ttpforge/preprocess
 ```
 
 ---
@@ -55,7 +56,7 @@ After installation, you can import the package in your Go project
 using the following import statement:
 
 ```go
-import "github.com/facebookincubator/ttpforge/args"
+import "github.com/facebookincubator/ttpforge/preprocess"
 ```
 
 ---
@@ -63,7 +64,7 @@ import "github.com/facebookincubator/ttpforge/args"
 ## Tests
 
 To ensure the package is working correctly, run the following
-command to execute the tests for `TTPForge/args`:
+command to execute the tests for `TTPForge/preprocess`:
 
 ```bash
 go test -v
