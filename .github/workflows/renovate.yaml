@@ -1,6 +1,19 @@
 ---
 name: Renovate
 on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - .github/renovate-bot.json5
+      - .github/renovate.json5
+      - .github/renovate/**.json5
+  merge_group:
+  push:
+    branches: ["main"]
+    paths:
+      - .github/renovate-bot.json5
+      - .github/renovate.json5
+      - .github/renovate/**.json5
   workflow_dispatch:
     inputs:
       dryRun:
@@ -14,12 +27,6 @@ on:
   schedule:
     # Run once per week - at 00:00 on Sunday
     - cron: "0 0 * * 0"
-  push:
-    branches: ["main"]
-    paths:
-      - .github/renovate-bot.json5
-      - .github/renovate.json5
-      - .github/renovate/**.json5
 
 env:
   LOG_LEVEL: debug
@@ -44,8 +51,10 @@ jobs:
       - name: Delete old dashboard
         run: |
           ISSUE_NUMBER=$(gh issue list -S 'Renovate Dashboard 🤖' --json number -q '.[0].number')
-          if [ "$ISSUE_NUMBER" != "null" ]; then
-            gh issue close $ISSUE_NUMBER
+          if [ "$ISSUE_NUMBER" != "null" ] && [ -n "$ISSUE_NUMBER" ]; then
+            gh issue close "$ISSUE_NUMBER"
+          else
+            echo "No issue found to close."
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
