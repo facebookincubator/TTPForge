@@ -26,8 +26,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLintTTPCorrect(t *testing.T) {
-	ttpStr := `name: valid ttp
+func TestLintTTP(t *testing.T) {
+	tests := []struct {
+		name        string
+		ttpStr      string
+		expectError bool
+	}{
+		{
+			name: "valid ttp",
+			ttpStr: `name: valid ttp
 description: should pass linting
 args:
 - name: arg1
@@ -35,28 +42,24 @@ steps:
 - name: step1
   inline: echo "arg value is {{ .Args.arg1 }}"
 - name: step2
-  inline: echo "step two"`
-
-	_, err := preprocess.Parse([]byte(ttpStr))
-	require.NoError(t, err)
-}
-
-func TestLintTTPDuplicateKey(t *testing.T) {
-	ttpStr := `name: duplicate step key
+  inline: echo "step two"`,
+			expectError: false,
+		},
+		{
+			name: "duplicate step key",
+			ttpStr: `name: duplicate step key
 description: should fail linting
 steps:
 - name: step1
   inline: echo "step one"
 steps:
 - name: step2
-  inline: echo "step two"`
-
-	_, err := preprocess.Parse([]byte(ttpStr))
-	require.Error(t, err)
-}
-
-func TestLintTTPScrambled(t *testing.T) {
-	ttpStr := `name: scrambled ttp
+  inline: echo "step two"`,
+			expectError: true,
+		},
+		{
+			name: "scrambled ttp",
+			ttpStr: `name: scrambled ttp
 description: should fail linting due to args after steps
 steps:
 - name: step1
@@ -64,8 +67,19 @@ steps:
 - name: step2
   inline: echo "step two"
 args:
-- name: arg1`
+- name: arg1"`,
+			expectError: true,
+		},
+	}
 
-	_, err := preprocess.Parse([]byte(ttpStr))
-	require.Error(t, err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := preprocess.Parse([]byte(tc.ttpStr))
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
