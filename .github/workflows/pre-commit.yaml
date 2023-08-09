@@ -1,0 +1,56 @@
+---
+name: Pre-Commit
+on:
+  pull_request:
+  push:
+  # Run once a week (see https://crontab.guru)
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  pre-commit:
+    name: Update pre-commit hooks and run pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up git repository
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Set up Python
+        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4
+        with:
+          python-version: "3.x"
+
+      - name: Set up Go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4
+        with:
+          go-version: "1.20"
+
+      - name: Install go module dependencies
+        run: |
+          go install mvdan.cc/sh/v3/cmd/shfmt@latest
+          go install github.com/magefile/mage@latest
+
+      - name: Install pre-commit
+        run: pip3 install pre-commit
+
+      - name: Run go mod tidy - necessary to avoid errors with dependabot PRs
+        run: |
+          go mod tidy
+          pushd magefiles; go mod tidy; popd
+
+      - name: Commit go.mod and go.sum changes to keep pre-commit happy
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add go.mod go.sum magefiles/go.mod magefiles/go.sum
+          git diff --quiet && git diff --staged --quiet || \
+            git commit -m "Update go.mod and go.sum"
+
+      - name: Make sure docs have been generated prior to push
+        run: bash .hooks/generate-docs.sh
+
+      - name: Install pre-commit dependencies
+        run: mage installDeps
+
+      - name: Run pre-commit
+        run: mage runPreCommit

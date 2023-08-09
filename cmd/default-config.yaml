@@ -1,0 +1,6 @@
+---
+repos:
+  - name: forgearmory
+    path: repos/forgearmory
+    git:
+      url: https://github.com/facebookincubator/forgearmory

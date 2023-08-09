@@ -1,0 +1,24 @@
+---
+area/github:
+  - ".github/**/*"
+
+area/pre-commit:
+  - ".pre-commit-config.yaml"
+  - ".hooks/**/*"
+
+area/go:
+  - "pkg/**/*"
+  - "cmd/**/*"
+  - "main.go"
+  - "magefiles/*"
+  - "go.mod"
+  - "go.sum"
+
+area/mage:
+  - "magefiles/*"
+
+area/docs:
+  - "docs/*"
+
+area/ttps:
+  - "ttps/**/*"
