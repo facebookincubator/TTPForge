@@ -25,6 +25,9 @@ import (
 	"github.com/spf13/afero"
 )
 
+// MakeAferoTestFs is a convenience function that lets you
+// construct many directories and files in an afero in-memory filesystem
+// by passing a single path->contents map
 func MakeAferoTestFs(filesMap map[string][]byte) (afero.Fs, error) {
 	fsys := afero.NewMemMapFs()
 	for path, contents := range filesMap {

@@ -50,6 +50,8 @@ type GitConfig struct {
 	Branch string `yaml:"branch"`
 }
 
+// Repo provides an interface for finding TTPs and templates
+// from a repo such as ForgeArmory
 type Repo interface {
 	GetFs() afero.Fs
 	FindTTP(ttpPath string) (string, error)
@@ -99,8 +101,8 @@ func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
 	return "", nil
 }
 
-// LoadConfigs searches the pat file the provided `specs`
-// for repository configuration files
+// Load will clone a repository if necessary and valdiate
+// its configuration, making it usable to lookup TTPs
 func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
 
 	err := spec.ensurePresent(fsys)

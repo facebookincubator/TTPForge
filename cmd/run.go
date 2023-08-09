@@ -22,11 +22,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -83,23 +81,4 @@ func RunTTPCmd() *cobra.Command {
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
 
 	return runCmd
-}
-
-func findDirectPathToTTP(ttpPath string) (string, error) {
-	// if an existing absolute or relative TTP path was specified
-	// (meaning repository search is not necessary) then we just use that
-	// This would happen for example if you ran `ttpforge run ~/src/myrepo/ttp.yaml`
-	fsys := afero.NewOsFs()
-	exists, err := afero.Exists(fsys, ttpPath)
-	if err != nil {
-		return "", err
-	}
-	if !exists {
-		return "", nil
-	}
-	fullPath, err := filepath.Abs(ttpPath)
-	if err != nil {
-		return "", err
-	}
-	return fullPath, nil
 }

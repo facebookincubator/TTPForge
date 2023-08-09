@@ -134,9 +134,8 @@ func TestFindTTP(t *testing.T) {
 			if tc.expectLoadError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 
 			var result string
 			switch tc.searchType {
@@ -148,9 +147,9 @@ func TestFindTTP(t *testing.T) {
 			if tc.expectSearchError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+
+			require.NoError(t, err)
 			assert.Equal(t, tc.expectedSearchResult, result)
 		})
 	}

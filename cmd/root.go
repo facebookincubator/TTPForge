@@ -20,7 +20,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	_ "embed"
 	"errors"
 	"os"
 	"path/filepath"

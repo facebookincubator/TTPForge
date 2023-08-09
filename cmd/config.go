@@ -20,6 +20,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	// 'go lint': need blank import for embedding default config
 	_ "embed"
 	"os"
 	"path/filepath"
