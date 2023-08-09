@@ -21,10 +21,11 @@ package repos
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
 
@@ -38,8 +39,15 @@ const RepoConfigFileName = "ttpforge-repo-config.yaml"
 // in order to add a given repository folder to
 // the TTPForge search path for TTPs, templates, etc
 type Spec struct {
-	Name string `yaml:"name"`
-	Path string `yaml:"path"`
+	Name string     `yaml:"name"`
+	Path string     `yaml:"path"`
+	Git  *GitConfig `yaml:"git"`
+}
+
+// GitConfig provides instructions for cloning a repo
+type GitConfig struct {
+	URL           string `yaml:"url"`
+	ReferenceName string `yaml:"reference_name"`
 }
 
 type Repo interface {
@@ -53,7 +61,7 @@ type Repo interface {
 // The []Spec entry in the program-wide configuration tells
 // TTPForge which Config entries to create.
 type repo struct {
-	fsys                fs.StatFS
+	fsys                afero.Fs
 	basePath            string
 	TTPSearchPaths      []string `yaml:"ttp_search_paths"`
 	TemplateSearchPaths []string `yaml:"template_search_paths"`
@@ -85,10 +93,15 @@ func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
 
 // LoadConfigs searches the pat file the provided `specs`
 // for repository configuration files
-func (spec *Spec) Load(fsys fs.StatFS) (Repo, error) {
+func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
+
+	err := spec.ensurePresent(fsys)
+	if err != nil {
+		return nil, err
+	}
 
 	configPath := filepath.Join(spec.Path, RepoConfigFileName)
-	contents, err := fs.ReadFile(fsys, configPath)
+	contents, err := afero.ReadFile(fsys, configPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read repo config at path %v: %v", configPath, err)
 	}
@@ -100,4 +113,30 @@ func (spec *Spec) Load(fsys fs.StatFS) (Repo, error) {
 	r.fsys = fsys
 	r.basePath = spec.Path
 	return &r, nil
+}
+
+func (spec *Spec) ensurePresent(fsys afero.Fs) error {
+	// if repo is present we can return early
+	_, err := fsys.Stat(spec.Path)
+	if err == nil {
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return err
+	}
+
+	if spec.Git == nil {
+		return fmt.Errorf(
+			"repo at %v not found - clone manually or see docs for how to add git clone instructions",
+			spec.Path,
+		)
+	}
+
+	_, err = git.PlainClone(spec.Path, false, &git.CloneOptions{
+		URL: spec.Git.URL,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to clone repo to %v: %v", spec.Path, err)
+	}
+	return nil
 }

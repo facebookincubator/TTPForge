@@ -20,11 +20,11 @@ THE SOFTWARE.
 package repos_test
 
 import (
-	"io/fs"
+	"path/filepath"
 	"testing"
-	"testing/fstest"
 
 	"github.com/facebookincubator/ttpforge/pkg/repos"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,27 +36,34 @@ const (
 	stTemplate
 )
 
-func makeRepoTestFs() fs.StatFS {
-	return fstest.MapFS{
-		"repos/a/" + repos.RepoConfigFileName: &fstest.MapFile{
-			Data: []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
-		},
-		"repos/a/ttps/foo/bar/baz/wut.yaml": &fstest.MapFile{
-			Data: []byte("placeholder"),
-		},
-		"repos/a/more/ttps/absolute/victory.yaml": &fstest.MapFile{
-			Data: []byte("placeholder"),
-		},
-		"repos/invalid/" + repos.RepoConfigFileName: &fstest.MapFile{
-			Data: []byte("this: is: invalid: yaml"),
-		},
-		"repos/template-only/" + repos.RepoConfigFileName: &fstest.MapFile{
-			Data: []byte(`template_search_paths: ["some_templates", "more/templates"]`),
-		},
-		"repos/template-only/some_templates/my_template/ttp.yaml.tpl" + repos.RepoConfigFileName: &fstest.MapFile{
-			Data: []byte("placeholder"),
-		},
+func makeAferoTestFs(filesMap map[string][]byte) (afero.Fs, error) {
+	fsys := afero.NewMemMapFs()
+	for path, contents := range filesMap {
+		dirPath := filepath.Dir(path)
+		err := fsys.MkdirAll(dirPath, 0700)
+		if err != nil {
+			return nil, err
+		}
+		err = afero.WriteFile(fsys, path, contents, 0644)
+		if err != nil {
+			return nil, err
+		}
 	}
+	return fsys, nil
+}
+
+func makeRepoTestFs(t *testing.T) afero.Fs {
+	fsys, err := makeAferoTestFs(map[string][]byte{
+		"repos/a/" + repos.RepoConfigFileName:                                                    []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
+		"repos/a/ttps/foo/bar/baz/wut.yaml":                                                      []byte("placeholder"),
+		"repos/a/more/ttps/absolute/victory.yaml":                                                []byte("placeholder"),
+		"repos/invalid/" + repos.RepoConfigFileName:                                              []byte("this: is: invalid: yaml"),
+		"repos/template-only/" + repos.RepoConfigFileName:                                        []byte(`template_search_paths: ["some_templates", "more/templates"]`),
+		"repos/template-only/some_templates/my_template/ttp.yaml.tpl" + repos.RepoConfigFileName: []byte("placeholder"),
+	},
+	)
+	require.NoError(t, err)
+	return fsys
 }
 
 func TestFindTTP(t *testing.T) {
@@ -64,7 +71,7 @@ func TestFindTTP(t *testing.T) {
 	tests := []struct {
 		name                 string
 		spec                 repos.Spec
-		fsys                 fs.StatFS
+		fsys                 afero.Fs
 		expectLoadError      bool
 		searchType           searchType
 		searchQuery          string
@@ -77,7 +84,7 @@ func TestFindTTP(t *testing.T) {
 				Name: "default",
 				Path: "repos/a",
 			},
-			fsys:                 makeRepoTestFs(),
+			fsys:                 makeRepoTestFs(t),
 			searchType:           stTTP,
 			searchQuery:          "foo/bar/baz/wut.yaml",
 			expectedSearchResult: "repos/a/ttps/foo/bar/baz/wut.yaml",
@@ -88,7 +95,7 @@ func TestFindTTP(t *testing.T) {
 				Name: "default",
 				Path: "repos/a",
 			},
-			fsys:                 makeRepoTestFs(),
+			fsys:                 makeRepoTestFs(t),
 			searchType:           stTTP,
 			searchQuery:          "not gonna find this",
 			expectedSearchResult: "",
@@ -99,7 +106,7 @@ func TestFindTTP(t *testing.T) {
 				Name: "default",
 				Path: "repos/a",
 			},
-			fsys:                 makeRepoTestFs(),
+			fsys:                 makeRepoTestFs(t),
 			searchType:           stTTP,
 			searchQuery:          "absolute/victory.yaml",
 			expectedSearchResult: "repos/a/more/ttps/absolute/victory.yaml",
@@ -110,7 +117,7 @@ func TestFindTTP(t *testing.T) {
 				Name: "bad",
 				Path: "repos/invalid",
 			},
-			fsys:            makeRepoTestFs(),
+			fsys:            makeRepoTestFs(t),
 			expectLoadError: true,
 		},
 		{
@@ -119,7 +126,7 @@ func TestFindTTP(t *testing.T) {
 				Name: "templates",
 				Path: "repos/template-only",
 			},
-			fsys:                 makeRepoTestFs(),
+			fsys:                 makeRepoTestFs(t),
 			searchType:           stTemplate,
 			searchQuery:          "my_template",
 			expectedSearchResult: "repos/template-only/some_templates/my_template",
@@ -130,7 +137,7 @@ func TestFindTTP(t *testing.T) {
 				Name: "templates",
 				Path: "repos/template-only",
 			},
-			fsys:                 makeRepoTestFs(),
+			fsys:                 makeRepoTestFs(t),
 			searchType:           stTemplate,
 			searchQuery:          "foo",
 			expectedSearchResult: "",
