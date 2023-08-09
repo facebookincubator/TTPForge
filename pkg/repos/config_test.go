@@ -36,7 +36,22 @@ const (
 	stTemplate
 )
 
+func makeRepoTestFs() fs.StatFS {
+	return fstest.MapFS{
+		"repos/a/" + repos.RepoConfigFileName: &fstest.MapFile{
+			Data: []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
+		},
+		"repos/a/ttps/foo/bar/baz/wut.yaml": &fstest.MapFile{
+			Data: []byte("placeholder"),
+		},
+		"repos/a/more/ttps/absolute/victory.yaml": &fstest.MapFile{
+			Data: []byte("placeholder"),
+		},
+	}
+}
+
 func TestFindTTP(t *testing.T) {
+
 	tests := []struct {
 		name                 string
 		spec                 repos.Spec
@@ -48,22 +63,37 @@ func TestFindTTP(t *testing.T) {
 		expectedSearchResult string
 	}{
 		{
-			name: "Valid Repo (TTP Found)",
+			name: "Valid Repo (TTP Found in First Dir)",
 			spec: repos.Spec{
 				Name: "default",
 				Path: "repos/a",
 			},
-			fsys: fstest.MapFS{
-				"repos/a/" + repos.RepoConfigFileName: &fstest.MapFile{
-					Data: []byte(`ttp_search_paths: ["ttps_a"]`),
-				},
-				"repos/a/ttps_a/foo/bar/baz/wut.yaml": &fstest.MapFile{
-					Data: []byte("placeholder"),
-				},
-			},
+			fsys:                 makeRepoTestFs(),
 			searchType:           stTTP,
 			searchQuery:          "foo/bar/baz/wut.yaml",
-			expectedSearchResult: "repos/a/ttps_a/foo/bar/baz/wut.yaml",
+			expectedSearchResult: "repos/a/ttps/foo/bar/baz/wut.yaml",
+		},
+		{
+			name: "Valid Repo (TTP Not Found)",
+			spec: repos.Spec{
+				Name: "default",
+				Path: "repos/a",
+			},
+			fsys:                 makeRepoTestFs(),
+			searchType:           stTTP,
+			searchQuery:          "not gonna find this",
+			expectedSearchResult: "",
+		},
+		{
+			name: "Valid Repo (TTP Found in Second Dir)",
+			spec: repos.Spec{
+				Name: "default",
+				Path: "repos/a",
+			},
+			fsys:                 makeRepoTestFs(),
+			searchType:           stTTP,
+			searchQuery:          "absolute/victory.yaml",
+			expectedSearchResult: "repos/a/more/ttps/absolute/victory.yaml",
 		},
 	}
 
