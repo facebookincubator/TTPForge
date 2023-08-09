@@ -41,8 +41,7 @@ type Config struct {
 	InventoryPath  []string `mapstructure:"inventory"`
 	TTPSearchPaths []string `mapstructure:"ttp_search_paths"`
 
-	cfgFile    string
-	saveConfig string
+	cfgFile string
 }
 
 var (
@@ -58,14 +57,6 @@ var (
 TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
     `,
 		TraverseChildren: true,
-		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if Conf.saveConfig != "" {
-				// https://github.com/facebookincubator/ttpforge/issues/4
-				if err := WriteConfigToFile(Conf.saveConfig); err != nil {
-					logging.Logger.Error("failed to write config values", zap.Error(err))
-				}
-			}
-		},
 	}
 )
 
@@ -108,7 +99,6 @@ func init() {
 	// the Conf.* variables directly reference the unset values
 	// in the struct Config above.
 	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "config.yaml", "Config file (default is config.yaml)")
-	rootCmd.PersistentFlags().StringVar(&Conf.saveConfig, "save-config", "", "Writes values used in execution to the specified location")
 	rootCmd.PersistentFlags().StringArrayVar(&Conf.InventoryPath, "inventory", []string{"."}, "list of paths to search for ttps")
 	// Notice here that the values from the command line are not
 	// populated in this instance. This is because we are using viper in
