@@ -37,53 +37,6 @@ func init() {
 	logging.ToggleDebug()
 }
 
-// func TestExecuteSubTtpSearchPath(t *testing.T) {
-// 	step := blocks.SubTTPStep{
-// 		FileSystem: fstest.MapFS{
-// 			"ttps/test.yaml": &fstest.MapFile{
-// 				Data: []byte(`name: test
-// description: test sub ttp in search path
-// steps:
-//   - name: sub_step_1
-//     inline: echo sub_step_1_output
-//     cleanup:
-//       inline: echo cleanup_sub_step_1
-//   - name: sub_step_2
-//     inline: echo sub_step_2_output
-//     cleanup:
-//       inline: echo cleanup_sub_step_2`),
-// 			},
-// 		},
-// 	}
-
-// 	content := `
-// name: testing
-// ttp: test.yaml`
-
-// 	err := yaml.Unmarshal([]byte(content), &step)
-// 	require.NoError(t, err, "invalid sub ttp step format")
-
-// 	execCtx := blocks.TTPExecutionContext{
-// 		Cfg: blocks.TTPExecutionConfig{
-// 			TTPSearchPaths: []string{"ttps"},
-// 		},
-// 	}
-// 	err = step.Validate(execCtx)
-// 	require.NoError(t, err, "TTP failed to validate")
-
-// 	// execute the step
-// 	result, err := step.Execute(execCtx)
-// 	require.NoError(t, err)
-// 	assert.Equal(t, "sub_step_1_output\nsub_step_2_output\n", result.Stdout)
-
-// 	// cleanup the step
-// 	cleanups := step.GetCleanup()
-// 	require.NotNil(t, cleanups)
-// 	cleanupResult, err := cleanups[0].Cleanup(execCtx)
-// 	require.NoError(t, err)
-// 	assert.Equal(t, "cleanup_sub_step_2\ncleanup_sub_step_1\n", cleanupResult.Stdout)
-// }
-
 func makeTestFsForSubTTPs(t *testing.T) afero.Fs {
 	fsys, err := testutils.MakeAferoTestFs(map[string][]byte{
 		"repos/a/" + repos.RepoConfigFileName: []byte(`ttp_search_paths: ["myttps"]`),
@@ -104,6 +57,18 @@ steps:
 - name: testing_sub_ttp
   inline: |
     echo -n {{ .Args.arg_number_one}} {{ .Args.arg_number_two}} {{ .Args.arg_number_three }}`),
+		"repos/b/" + repos.RepoConfigFileName: []byte(`ttp_search_paths: ["ttps"]`),
+		"repos/b/ttps/with/cleanup.yaml": []byte(`name: with-cleanup
+description: test sub ttp with cleanup steps
+steps:
+  - name: sub_step_1
+    inline: echo sub_step_1_output
+    cleanup:
+      inline: echo cleanup_sub_step_1
+  - name: sub_step_2
+    inline: echo sub_step_2_output
+    cleanup:
+      inline: echo cleanup_sub_step_2`),
 	},
 	)
 	require.NoError(t, err)
@@ -113,12 +78,13 @@ steps:
 func TestSubTTPExecution(t *testing.T) {
 
 	tests := []struct {
-		name           string
-		spec           repos.Spec
-		fsys           afero.Fs
-		stepYAML       string
-		expectError    bool
-		expectedOutput string
+		name                  string
+		spec                  repos.Spec
+		fsys                  afero.Fs
+		stepYAML              string
+		expectError           bool
+		expectedOutput        string
+		expectedCleanupOutput string
 	}{
 		{
 			name: "Simple Sub TTP Execution",
@@ -145,6 +111,18 @@ args:
   arg_number_two: world`,
 			expectedOutput: "hello world victory",
 		},
+		{
+			name: "Sub TTP Execution with Cleanups",
+			spec: repos.Spec{
+				Name: "b",
+				Path: "repos/b",
+			},
+			fsys: makeTestFsForSubTTPs(t),
+			stepYAML: `name: with-cleanup
+ttp: with/cleanup.yaml`,
+			expectedOutput:        "sub_step_1_output\nsub_step_2_output\n",
+			expectedCleanupOutput: "cleanup_sub_step_2\ncleanup_sub_step_1\n",
+		},
 	}
 
 	for _, tc := range tests {
@@ -167,6 +145,14 @@ args:
 			result, err := step.Execute(execCtx)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedOutput, result.Stdout)
+
+			if tc.expectedCleanupOutput != "" {
+				cleanups := step.GetCleanup()
+				require.NotNil(t, cleanups)
+				cleanupResult, err := cleanups[0].Cleanup(execCtx)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedCleanupOutput, cleanupResult.Stdout)
+			}
 		})
 	}
 }
