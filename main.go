@@ -24,5 +24,7 @@ import (
 )
 
 func main() {
-	cmd.Execute()
+	cmd.Execute(cmd.ExecOptions{
+		AutoInitConfig: true,
+	})
 }

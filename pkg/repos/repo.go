@@ -22,9 +22,9 @@ package repos
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
@@ -46,8 +46,8 @@ type Spec struct {
 
 // GitConfig provides instructions for cloning a repo
 type GitConfig struct {
-	URL           string `yaml:"url"`
-	ReferenceName string `yaml:"reference_name"`
+	URL    string `yaml:"url"`
+	Branch string `yaml:"branch"`
 }
 
 type Repo interface {
@@ -117,12 +117,12 @@ func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
 
 func (spec *Spec) ensurePresent(fsys afero.Fs) error {
 	// if repo is present we can return early
-	_, err := fsys.Stat(spec.Path)
-	if err == nil {
-		return nil
-	}
-	if !os.IsNotExist(err) {
+	exists, err := afero.Exists(fsys, spec.Path)
+	if err != nil {
 		return err
+	}
+	if exists {
+		return nil
 	}
 
 	if spec.Git == nil {
@@ -132,9 +132,15 @@ func (spec *Spec) ensurePresent(fsys afero.Fs) error {
 		)
 	}
 
-	_, err = git.PlainClone(spec.Path, false, &git.CloneOptions{
-		URL: spec.Git.URL,
-	})
+	branchName := spec.Git.Branch
+	if branchName == "" {
+		branchName = "main"
+	}
+
+	gitCmd := exec.Command("git", "clone", "--single-branch", "--branch", branchName, spec.Git.URL, spec.Path)
+	gitCmd.Stdout = os.Stdout
+	gitCmd.Stderr = os.Stderr
+	err = gitCmd.Run()
 	if err != nil {
 		return fmt.Errorf("failed to clone repo to %v: %v", spec.Path, err)
 	}

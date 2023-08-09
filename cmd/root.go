@@ -20,14 +20,18 @@ THE SOFTWARE.
 package cmd
 
 import (
+	_ "embed"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"go.uber.org/zap"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,6 +44,9 @@ type Config struct {
 	InventoryPath  []string `mapstructure:"inventory"`
 	TTPSearchPaths []string `mapstructure:"ttp_search_paths"`
 
+	RepoSpecs []repos.Spec `mapstructure:"repos"`
+
+	repos   []repos.Repo
 	cfgFile string
 }
 
@@ -56,23 +63,35 @@ var (
 TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
     `,
 		TraverseChildren: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			initConfig()
+		},
 	}
 )
 
+// ExecOptions is used to control some high-level behaviors
+// like ~/.ttpforge/config.yaml auto-initialization.
+// These toggles are passed from main.go so that
+// it doesn't happen accidentally in unit tests
+type ExecOptions struct {
+	AutoInitConfig bool
+}
+
 // Execute adds child commands to the root
 // command and sets flags appropriately.
-func Execute() {
+func Execute(eo ExecOptions) {
+	autoInitConfig = eo.AutoInitConfig
 	cobra.CheckErr(rootCmd.Execute())
 }
 
 func init() {
 	Logger = logging.Logger
-	cobra.OnInitialize(initConfig)
+	// cobra.OnInitialize(initConfig)
 
 	// These flags are set using Cobra only, so we populate
 	// the Conf.* variables directly reference the unset values
 	// in the struct Config above.
-	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "config.yaml", "Config file (default is config.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "", "Config file")
 	rootCmd.PersistentFlags().StringArrayVar(&Conf.InventoryPath, "inventory", []string{"."}, "list of paths to search for ttps")
 	// Notice here that the values from the command line are not
 	// populated in this instance. This is because we are using viper in
@@ -109,20 +128,17 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if Conf.cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(Conf.cfgFile)
-	} else {
-		// Search config in current directory with name
-		// ".cobra" (without extension).
-		viper.AddConfigPath(".")
-		// Look for config folder
-		homedir, err := os.UserHomeDir()
+	if Conf.cfgFile == "" {
+		if !autoInitConfig {
+			err := errors.New("config auto-init disabled: you must specify a config file manually")
+			cobra.CheckErr(err)
+		}
+		// check default config location
+		defaultConfigPath, err := ensureDefaultConfig()
 		cobra.CheckErr(err)
-		viper.AddConfigPath(homedir)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("config")
+		Conf.cfgFile = defaultConfigPath
 	}
+	viper.SetConfigFile(Conf.cfgFile)
 
 	viper.AutomaticEnv()
 
@@ -149,6 +165,16 @@ func initConfig() {
 				Conf.TTPSearchPaths[idx] = filepath.Join(confDir, searchPath)
 			}
 		}
+	}
+
+	// ensure specified TTP repositories are present
+	cfgDir := filepath.Dir(Conf.cfgFile)
+	fsys := afero.NewOsFs()
+	for _, repoSpec := range Conf.RepoSpecs {
+		repoSpec.Path = filepath.Join(cfgDir, repoSpec.Path)
+		repo, err := repoSpec.Load(fsys)
+		Conf.repos = append(Conf.repos, repo)
+		cobra.CheckErr(err)
 	}
 
 	err = logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose)
