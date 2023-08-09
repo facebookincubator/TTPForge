@@ -44,6 +44,7 @@ type Spec struct {
 
 type Repo interface {
 	FindTTP(ttpPath string) (string, error)
+	FindTemplate(templatePath string) (string, error)
 }
 
 // Config contains all the fields
@@ -52,13 +53,18 @@ type Repo interface {
 // The []Spec entry in the program-wide configuration tells
 // TTPForge which Config entries to create.
 type repo struct {
-	fsys           fs.StatFS
-	basePath       string
-	TTPSearchPaths []string `yaml:"ttp_search_paths"`
+	fsys                fs.StatFS
+	basePath            string
+	TTPSearchPaths      []string `yaml:"ttp_search_paths"`
+	TemplateSearchPaths []string `yaml:"template_search_paths"`
 }
 
 func (r *repo) FindTTP(ttpPath string) (string, error) {
 	return r.search(r.TTPSearchPaths, ttpPath)
+}
+
+func (r *repo) FindTemplate(templatePath string) (string, error) {
+	return r.search(r.TemplateSearchPaths, templatePath)
 }
 
 func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {

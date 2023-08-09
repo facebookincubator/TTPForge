@@ -47,6 +47,15 @@ func makeRepoTestFs() fs.StatFS {
 		"repos/a/more/ttps/absolute/victory.yaml": &fstest.MapFile{
 			Data: []byte("placeholder"),
 		},
+		"repos/invalid/" + repos.RepoConfigFileName: &fstest.MapFile{
+			Data: []byte("this: is: invalid: yaml"),
+		},
+		"repos/template-only/" + repos.RepoConfigFileName: &fstest.MapFile{
+			Data: []byte(`template_search_paths: ["some_templates", "more/templates"]`),
+		},
+		"repos/template-only/some_templates/my_template/ttp.yaml.tpl" + repos.RepoConfigFileName: &fstest.MapFile{
+			Data: []byte("placeholder"),
+		},
 	}
 }
 
@@ -95,6 +104,37 @@ func TestFindTTP(t *testing.T) {
 			searchQuery:          "absolute/victory.yaml",
 			expectedSearchResult: "repos/a/more/ttps/absolute/victory.yaml",
 		},
+		{
+			name: "Invalid Repo (Corrupt Config)",
+			spec: repos.Spec{
+				Name: "bad",
+				Path: "repos/invalid",
+			},
+			fsys:            makeRepoTestFs(),
+			expectLoadError: true,
+		},
+		{
+			name: "Valid Repo (Template Found in First Dir)",
+			spec: repos.Spec{
+				Name: "templates",
+				Path: "repos/template-only",
+			},
+			fsys:                 makeRepoTestFs(),
+			searchType:           stTemplate,
+			searchQuery:          "my_template",
+			expectedSearchResult: "repos/template-only/some_templates/my_template",
+		},
+		{
+			name: "Valid Repo (Template Not Found)",
+			spec: repos.Spec{
+				Name: "templates",
+				Path: "repos/template-only",
+			},
+			fsys:                 makeRepoTestFs(),
+			searchType:           stTemplate,
+			searchQuery:          "foo",
+			expectedSearchResult: "",
+		},
 	}
 
 	for _, tc := range tests {
@@ -111,6 +151,8 @@ func TestFindTTP(t *testing.T) {
 			switch tc.searchType {
 			case stTTP:
 				result, err = repo.FindTTP(tc.searchQuery)
+			case stTemplate:
+				result, err = repo.FindTemplate(tc.searchQuery)
 			}
 			if tc.expectSearchError {
 				require.Error(t, err)
