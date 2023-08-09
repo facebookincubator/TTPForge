@@ -1,8 +1,0 @@
----
-name: my_sub_ttp_1
-description: called from subttp example
-steps:
-  - name: step_one
-    inline: echo hello
-    cleanup:
-      inline: echo cleanup my_sub_ttp_1
