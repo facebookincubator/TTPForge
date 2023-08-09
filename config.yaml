@@ -5,5 +5,4 @@ ttp_search_paths:
   - examples
 logfile: ""
 nocolor: false
-stacktrace: false
 verbose: false

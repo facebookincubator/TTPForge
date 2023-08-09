@@ -136,7 +136,6 @@ inventory:
   - ` + ttpDir + `
 logfile: ""
 nocolor: false
-stacktrace: false
 verbose: false
 `
 
