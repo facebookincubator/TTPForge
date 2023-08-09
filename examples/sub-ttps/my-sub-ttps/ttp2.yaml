@@ -5,6 +5,6 @@ args:
   - name: arg1
 steps:
   - name: step_one
-    inline: echo "you said {{args.arg1}}"
+    inline: echo "you said {{ .Args.arg1 }}"
     cleanup:
       inline: echo cleanup my_sub_ttp_2
