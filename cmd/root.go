@@ -26,7 +26,6 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
@@ -59,31 +58,6 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		TraverseChildren: true,
 	}
 )
-
-// WriteConfigToFile writes the configuration data to a YAML file at
-// the specified filepath. It uses the yaml.Marshal function to convert
-// the configuration struct into YAML format, and then writes the
-// resulting bytes to the file.
-//
-// This function is a custom alternative to Viper's built-in WriteConfig method
-// to provide better control over the formatting of the output YAML file.
-//
-// **Parameters:**
-// filepath: The path of the file where the configuration
-// data will be saved.
-//
-// **Returns:**
-//
-// error: An error if any issues occur during the marshaling or file
-// writing process, otherwise nil.
-func WriteConfigToFile(filepath string) error {
-	yamlBytes, err := yaml.Marshal(Conf)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filepath, yamlBytes, 0644)
-}
 
 // Execute adds child commands to the root
 // command and sets flags appropriately.
