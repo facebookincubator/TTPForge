@@ -22,8 +22,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -43,6 +46,7 @@ func RunTTPCmd() *cobra.Command {
 			// find the TTP file
 			relativeTTPPath := args[0]
 			var fullTTPPath string
+			var foundRepo repos.Repo
 			for _, repo := range Conf.repos {
 				foundPath, err := repo.FindTTP(relativeTTPPath)
 				if err != nil {
@@ -50,6 +54,7 @@ func RunTTPCmd() *cobra.Command {
 				}
 				if foundPath != "" {
 					fullTTPPath = foundPath
+					foundRepo = repo
 					break
 				}
 			}
@@ -59,7 +64,9 @@ func RunTTPCmd() *cobra.Command {
 
 			// load TTP and process argument values
 			// based on the TTPs argument value specifications
-			var c blocks.TTPExecutionConfig
+			c := blocks.TTPExecutionConfig{
+				Repo: foundRepo,
+			}
 			ttp, err := blocks.LoadTTP(fullTTPPath, nil, &c, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v: %v", relativeTTPPath, err)
@@ -76,4 +83,23 @@ func RunTTPCmd() *cobra.Command {
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
 
 	return runCmd
+}
+
+func findDirectPathToTTP(ttpPath string) (string, error) {
+	// if an existing absolute or relative TTP path was specified
+	// (meaning repository search is not necessary) then we just use that
+	// This would happen for example if you ran `ttpforge run ~/src/myrepo/ttp.yaml`
+	fsys := afero.NewOsFs()
+	exists, err := afero.Exists(fsys, ttpPath)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", nil
+	}
+	fullPath, err := filepath.Abs(ttpPath)
+	if err != nil {
+		return "", err
+	}
+	return fullPath, nil
 }

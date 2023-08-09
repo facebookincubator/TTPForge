@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/facebookincubator/ttpforge/pkg/repos"
 )
 
 const contextVariablePrefix = "$forge."
@@ -33,7 +35,7 @@ type TTPExecutionConfig struct {
 	NoCleanup           bool
 	CleanupDelaySeconds uint
 	Args                map[string]any
-	TTPSearchPaths      []string
+	Repo                repos.Repo
 }
 
 // TTPExecutionContext - holds config and context for the currently executing TTP

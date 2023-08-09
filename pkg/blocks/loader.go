@@ -30,6 +30,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
 
@@ -79,7 +80,7 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 //
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
+func LoadTTP(ttpFilePath string, system afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
 
 	ttpBytes, err := readTTPBytes(ttpFilePath, system)
 	if err != nil {
@@ -141,7 +142,7 @@ func LoadTTP(ttpFilePath string, system fs.StatFS, execCfg *TTPExecutionConfig, 
 	return ttp, nil
 }
 
-func readTTPBytes(ttpFilePath string, system fs.StatFS) ([]byte, error) {
+func readTTPBytes(ttpFilePath string, system afero.Fs) ([]byte, error) {
 	var file fs.File
 	var err error
 	if system == nil {

@@ -22,9 +22,6 @@ package blocks
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -37,7 +34,6 @@ type SubTTPStep struct {
 	TtpFile string            `yaml:"ttp"`
 	Args    map[string]string `yaml:"args"`
 
-	FileSystem fs.StatFS `yaml:"-,omitempty"`
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
 	ttp          *TTP
@@ -155,31 +151,10 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 
-	// search for the referenced TTP in the configured search paths
-	// and the current directory
-	augmentedSearchPaths := append([]string{"."}, execCtx.Cfg.TTPSearchPaths...)
-	var fullPath string
-	for _, searchPath := range augmentedSearchPaths {
-		fullPath = filepath.Join(searchPath, s.TtpFile)
-
-		var err error
-		if s.FileSystem != nil {
-			_, err = s.FileSystem.Stat(fullPath)
-		} else {
-			_, err = os.Stat(fullPath)
-		}
-
-		if err == nil {
-			// found
-			break
-		}
-		if errors.Is(err, os.ErrNotExist) {
-			continue
-		}
-		return fmt.Errorf("failed to check existence of file %v: %v", fullPath, err)
-	}
-	if fullPath == "" {
-		return fmt.Errorf("could not find TTP file in any configured search paths: %v", s.TtpFile)
+	repo := execCtx.Cfg.Repo
+	fullPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpFile)
+	if err != nil {
+		return err
 	}
 
 	subArgsKv, err := s.processSubTTPArgs(execCtx)
@@ -187,7 +162,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	ttps, err := LoadTTP(fullPath, s.FileSystem, &s.subExecCtx.Cfg, subArgsKv)
+	ttps, err := LoadTTP(fullPath, repo.GetFs(), &s.subExecCtx.Cfg, subArgsKv)
 	if err != nil {
 		return err
 	}
