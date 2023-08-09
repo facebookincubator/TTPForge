@@ -38,11 +38,10 @@ import (
 
 // Config maintains variables used throughout the TTPForge.
 type Config struct {
-	Verbose        bool     `mapstructure:"verbose"`
-	Logfile        string   `mapstructure:"logfile"`
-	NoColor        bool     `mapstructure:"nocolor"`
-	InventoryPath  []string `mapstructure:"inventory"`
-	TTPSearchPaths []string `mapstructure:"ttp_search_paths"`
+	Verbose       bool     `mapstructure:"verbose"`
+	Logfile       string   `mapstructure:"logfile"`
+	NoColor       bool     `mapstructure:"nocolor"`
+	InventoryPath []string `mapstructure:"inventory"`
 
 	RepoSpecs []repos.Spec `mapstructure:"repos"`
 
@@ -154,19 +153,6 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	// You should be able to write repo-relative paths
-	// in ttp_search_paths and have them expanded here
-	confAbsPath, err := filepath.Abs(viper.ConfigFileUsed())
-	cobra.CheckErr(err)
-	confDir := filepath.Dir(confAbsPath)
-	if len(Conf.TTPSearchPaths) > 0 {
-		for idx, searchPath := range Conf.TTPSearchPaths {
-			if !filepath.IsAbs(searchPath) {
-				Conf.TTPSearchPaths[idx] = filepath.Join(confDir, searchPath)
-			}
-		}
-	}
-
 	// ensure specified TTP repositories are present
 	cfgDir := filepath.Dir(Conf.cfgFile)
 	fsys := afero.NewOsFs()
@@ -177,7 +163,7 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	err = logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose)
+	err := logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose)
 	cobra.CheckErr(err)
 	Logger = logging.Logger
 }
