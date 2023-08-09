@@ -20,8 +20,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"strings"
-
 	"go.uber.org/zap"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -45,17 +43,6 @@ func RunTTPCmd() *cobra.Command {
 			// build config
 			relativeTTPPath := args[0]
 			ttpCfg.TTPSearchPaths = Conf.TTPSearchPaths
-
-			// Parse CLI inputs.
-			ttpCfg.Args = make(map[string]any)
-			for _, arg := range argsList {
-				keyVal := strings.Split(arg, "=")
-				if len(keyVal) != 2 {
-					Logger.Sugar().Errorw("Invalid argument format for '%s'. Expected format is 'key=value'.", arg)
-					return
-				}
-				ttpCfg.Args[keyVal[0]] = keyVal[1]
-			}
 
 			// run TTP
 			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg, argsList); err != nil {
