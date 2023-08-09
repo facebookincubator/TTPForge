@@ -68,14 +68,17 @@ type repo struct {
 	TemplateSearchPaths []string `yaml:"template_search_paths"`
 }
 
+// FindTTP locates a TTP if it exists in this repo
 func (r *repo) FindTTP(ttpPath string) (string, error) {
 	return r.search(r.TTPSearchPaths, ttpPath)
 }
 
+// FindTemplate locates a template if it exists in this repo
 func (r *repo) FindTemplate(templatePath string) (string, error) {
 	return r.search(r.TemplateSearchPaths, templatePath)
 }
 
+// GetFs is a convenience function principally used by SubTTPs
 func (r *repo) GetFs() afero.Fs {
 	return r.fsys
 }
