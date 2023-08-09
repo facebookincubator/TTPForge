@@ -1,7 +1,6 @@
 ---
 name: Pre-Commit
 on:
-  pull_request:
   push:
   # Run once a week (see https://crontab.guru)
   schedule:

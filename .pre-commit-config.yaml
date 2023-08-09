@@ -97,9 +97,9 @@ repos:
         language: script
         entry: .hooks/go-licenses.sh check_forbidden
 
-        # - id: generate-docs
-        #   name: Update package docs
-        #   language: script
-        #   entry: .hooks/generate-docs.sh
-        #   files: '\.go$'
-        #   stages: [commit]
+      - id: generate-docs
+        name: Update package docs
+        language: script
+        entry: .hooks/generate-docs.sh
+        files: '\.go$'
+        stages: [commit]

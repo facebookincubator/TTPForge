@@ -2,7 +2,7 @@
 name: Delete old workflow runs
 on:
   schedule:
-    - cron: '0 23 * * 6'
+    - cron: "0 23 * * 6"
   workflow_dispatch:
   pull_request:
     branches: ["main"]
