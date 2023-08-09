@@ -20,10 +20,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"go.uber.org/zap"
+	"errors"
+	"fmt"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/facebookincubator/ttpforge/pkg/files"
 	"github.com/spf13/cobra"
 )
 
@@ -39,15 +39,36 @@ func RunTTPCmd() *cobra.Command {
 		Use:   "run",
 		Short: "Run the TTP found in the specified YAML file.",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			// build config
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// find the TTP file
 			relativeTTPPath := args[0]
-			ttpCfg.TTPSearchPaths = Conf.TTPSearchPaths
-
-			// run TTP
-			if _, err := files.ExecuteYAML(relativeTTPPath, ttpCfg, argsList); err != nil {
-				Logger.Sugar().Errorw("failed to execute TTP", zap.Error(err))
+			var fullTTPPath string
+			for _, repo := range Conf.repos {
+				foundPath, err := repo.FindTTP(relativeTTPPath)
+				if err != nil {
+					return fmt.Errorf("failure in TTP search process: %v", err)
+				}
+				if foundPath != "" {
+					fullTTPPath = foundPath
+					break
+				}
 			}
+			if fullTTPPath == "" {
+				return errors.New("could not find TTP in any configured repositories")
+			}
+
+			// load TTP and process argument values
+			// based on the TTPs argument value specifications
+			var c blocks.TTPExecutionConfig
+			ttp, err := blocks.LoadTTP(fullTTPPath, nil, &c, argsList)
+			if err != nil {
+				return fmt.Errorf("could not load TTP at %v: %v", relativeTTPPath, err)
+			}
+
+			if _, err := ttp.RunSteps(c); err != nil {
+				return fmt.Errorf("failed to run TTP at %v: %v", fullTTPPath, err)
+			}
+			return nil
 		},
 	}
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging)")
