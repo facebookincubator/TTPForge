@@ -501,10 +501,10 @@ error: An error if the object cannot be encoded as JSON.
 
 ---
 
-### LoadTTP(string, fs.StatFS, *TTPExecutionConfig, []string)
+### LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string)
 
 ```go
-LoadTTP(string, fs.StatFS, *TTPExecutionConfig, []string) *TTP, error
+LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string) *TTP, error
 ```
 
 LoadTTP reads a TTP file and creates a TTP instance based on its contents.

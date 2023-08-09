@@ -40,32 +40,6 @@ error: An error if the directory could not be created.
 
 ---
 
-### ExecuteYAML(string, blocks.TTPExecutionConfig, []string)
-
-```go
-ExecuteYAML(string, blocks.TTPExecutionConfig, []string) *blocks.TTP, error
-```
-
-ExecuteYAML is the top-level function for executing a TTP defined
-in a YAML file. It is exported for testing purposes,
-and the returned TTP is required for assertion checks in tests.
-
-**Parameters:**
-
-yamlFile: A string representing the path to the YAML file containing
-the TTP definition.
-inventoryPaths: A slice of strings representing the inventory paths
-to search for the TTP.
-
-**Returns:**
-
-*blocks.TTP: A pointer to a TTP struct containing the executed TTP
-and its related information.
-
-error: An error if the TTP execution fails or if the TTP file cannot be found.
-
----
-
 ### ExpandHomeDir(string)
 
 ```go

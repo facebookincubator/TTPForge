@@ -1,6 +1,6 @@
-# TTPForge/cmd
+# TTPForge/testutils
 
-The `cmd` package is a part of the TTPForge.
+The `testutils` package is a part of the TTPForge.
 
 ---
 
@@ -17,34 +17,25 @@ The `cmd` package is a part of the TTPForge.
 
 ## Functions
 
-### Execute(ExecOptions)
+### MakeAferoTestFs(map[string][]byte)
 
 ```go
-Execute(ExecOptions)
+MakeAferoTestFs(map[string][]byte) afero.Fs, error
 ```
 
-Execute adds child commands to the root
-command and sets flags appropriately.
-
----
-
-### RunTTPCmd()
-
-```go
-RunTTPCmd() *cobra.Command
-```
-
-RunTTPCmd runs an input TTP.
+MakeAferoTestFs is a convenience function that lets you
+construct many directories and files in an afero in-memory filesystem
+by passing a single path->contents map
 
 ---
 
 ## Installation
 
-To use the TTPForge/cmd package, you first need to install it.
+To use the TTPForge/testutils package, you first need to install it.
 Follow the steps below to install via go get.
 
 ```bash
-go get github.com/facebookincubator/ttpforge/cmd
+go get github.com/facebookincubator/ttpforge/testutils
 ```
 
 ---
@@ -55,7 +46,7 @@ After installation, you can import the package in your Go project
 using the following import statement:
 
 ```go
-import "github.com/facebookincubator/ttpforge/cmd"
+import "github.com/facebookincubator/ttpforge/testutils"
 ```
 
 ---
@@ -63,7 +54,7 @@ import "github.com/facebookincubator/ttpforge/cmd"
 ## Tests
 
 To ensure the package is working correctly, run the following
-command to execute the tests for `TTPForge/cmd`:
+command to execute the tests for `TTPForge/testutils`:
 
 ```bash
 go test -v
