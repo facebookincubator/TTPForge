@@ -22,6 +22,7 @@ package repos
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
@@ -41,32 +42,56 @@ type Spec struct {
 	Path string `yaml:"path"`
 }
 
+type Repo interface {
+	FindTTP(ttpPath string) (string, error)
+}
+
 // Config contains all the fields
 // used by higher-level code to search this repository for
 // any items of interest.
 // The []Spec entry in the program-wide configuration tells
 // TTPForge which Config entries to create.
-type Config struct {
+type repo struct {
+	fsys           fs.StatFS
+	basePath       string
 	TTPSearchPaths []string `yaml:"ttp_search_paths"`
+}
+
+func (r *repo) FindTTP(ttpPath string) (string, error) {
+	return r.search(r.TTPSearchPaths, ttpPath)
+}
+
+func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
+	for _, dirToSearch := range dirsToSearch {
+		fullPath := filepath.Join(r.basePath, dirToSearch, relPath)
+		if _, err := r.fsys.Stat(fullPath); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			} else {
+				return "", err
+			}
+		} else {
+			return fullPath, nil
+		}
+	}
+	return "", nil
 }
 
 // LoadConfigs searches the pat file the provided `specs`
 // for repository configuration files
-func LoadConfigs(fsys fs.FS, specs []Spec) ([]Config, error) {
+func (spec *Spec) Load(fsys fs.StatFS) (Repo, error) {
 
-	var repoConfigs []Config
-	for _, spec := range specs {
-		configPath := filepath.Join(spec.Path, RepoConfigFileName)
-		contents, err := fs.ReadFile(fsys, configPath)
-		if err != nil {
-			return nil, fmt.Errorf("could not read repo config at path %v: %v", configPath, err)
-		}
-		var curRepoConfig Config
-		err = yaml.Unmarshal(contents, &curRepoConfig)
-		if err != nil {
-			return nil, fmt.Errorf("invalid config file found at %v: %v", configPath, err)
-		}
-		repoConfigs = append(repoConfigs, curRepoConfig)
+	configPath := filepath.Join(spec.Path, RepoConfigFileName)
+	contents, err := fs.ReadFile(fsys, configPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read repo config at path %v: %v", configPath, err)
 	}
-	return repoConfigs, nil
+	var r repo
+	err = yaml.Unmarshal(contents, &r)
+	if err != nil {
+		return nil, fmt.Errorf("invalid config file found at %v: %v", configPath, err)
+	}
+	r.fsys = fsys
+	r.basePath = spec.Path
+	return &r, nil
 }

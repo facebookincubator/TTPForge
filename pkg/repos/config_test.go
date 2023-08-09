@@ -29,60 +29,66 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadConfigs(t *testing.T) {
+type searchType int
+
+const (
+	stTTP searchType = iota
+	stTemplate
+)
+
+func TestFindTTP(t *testing.T) {
 	tests := []struct {
-		name           string
-		specs          []repos.Spec
-		fileSystem     fs.FS
-		correctConfigs []repos.Config
-		expectError    bool
+		name                 string
+		spec                 repos.Spec
+		fsys                 fs.StatFS
+		expectLoadError      bool
+		searchType           searchType
+		searchQuery          string
+		expectSearchError    bool
+		expectedSearchResult string
 	}{
 		{
-			name: "two valid configs",
-			specs: []repos.Spec{
-				{
-					Name: "default",
-					Path: "repos/a",
-				},
-				{
-					Name: "default",
-					Path: "repos/d",
-				},
+			name: "Valid Repo (TTP Found)",
+			spec: repos.Spec{
+				Name: "default",
+				Path: "repos/a",
 			},
-			fileSystem: fstest.MapFS{
+			fsys: fstest.MapFS{
 				"repos/a/" + repos.RepoConfigFileName: &fstest.MapFile{
 					Data: []byte(`ttp_search_paths: ["ttps_a"]`),
 				},
-				"repos/b/not-a-config": &fstest.MapFile{
-					Data: []byte("foo"),
-				},
-				"repos/c/also-not-a-config": &fstest.MapFile{
-					Data: []byte("bar"),
-				},
-				"repos/d/" + repos.RepoConfigFileName: &fstest.MapFile{
-					Data: []byte(`ttp_search_paths: ["ttps_d"]`),
+				"repos/a/ttps_a/foo/bar/baz/wut.yaml": &fstest.MapFile{
+					Data: []byte("placeholder"),
 				},
 			},
-			correctConfigs: []repos.Config{
-				{
-					TTPSearchPaths: []string{"ttps_a"},
-				},
-				{
-					TTPSearchPaths: []string{"ttps_d"},
-				},
-			},
+			searchType:           stTTP,
+			searchQuery:          "foo/bar/baz/wut.yaml",
+			expectedSearchResult: "repos/a/ttps_a/foo/bar/baz/wut.yaml",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			configs, err := repos.LoadConfigs(tc.fileSystem, tc.specs)
-			if tc.expectError {
+			repo, err := tc.spec.Load(tc.fsys)
+			if tc.expectLoadError {
 				require.Error(t, err)
+				return
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.correctConfigs, configs)
 			}
+
+			var result string
+			switch tc.searchType {
+			case stTTP:
+				result, err = repo.FindTTP(tc.searchQuery)
+			}
+			if tc.expectSearchError {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tc.expectedSearchResult, result)
 		})
 	}
 }
