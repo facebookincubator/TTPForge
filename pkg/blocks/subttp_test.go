@@ -170,39 +170,3 @@ args:
 		})
 	}
 }
-
-// func TestExecuteSubTtpWithArgs(t *testing.T) {
-
-// 	content := `name: testing
-// ttp: test.yaml
-// args:
-//   arg_number_one: hello
-//   arg_number_two: world`
-
-// 	err := yaml.Unmarshal([]byte(content), &step)
-// 	require.NoError(t, err)
-
-// 	var execCtx blocks.TTPExecutionContext
-// 	err = step.Validate(execCtx)
-// 	require.NoError(t, err)
-
-// 	result, err := step.Execute(execCtx)
-// 	require.NoError(t, err)
-// 	assert.Equal(t, "hello world victory", result.Stdout)
-// }
-
-// func TestUnmarshalSubTtpInvalid(t *testing.T) {
-// 	var ttps blocks.SubTTPStep
-// 	content := `
-// name: testing
-// ttp: bad.yaml
-//   `
-
-// 	if err := yaml.Unmarshal([]byte(content), &ttps); err != nil {
-// 		t.Error("unmarshalling will not check for existence quite yet, should not fail here")
-// 	}
-// 	var execCtx blocks.TTPExecutionContext
-// 	if err := ttps.Validate(execCtx); err == nil {
-// 		t.Error("failure should occur here as file does not exist")
-// 	}
-// }
