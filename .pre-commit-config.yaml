@@ -65,6 +65,12 @@ repos:
       - id: go-build
       - id: go-mod-tidy
 
+  - repo: https://github.com/tcort/markdown-link-check
+    rev: v3.11.2
+    hooks:
+      - id: markdown-link-check
+        args: [-q]
+
   - repo: local
     hooks:
       - id: go-no-replacement
