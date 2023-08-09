@@ -1,0 +1,24 @@
+---
+name: "Meta Sync labels"
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths: [".github/labels.yaml"]
+
+jobs:
+  labels:
+    name: Sync Labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up git repository
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          token: "${{ secrets.BOT_TOKEN }}"
+
+      - name: Sync Labels
+        uses: EndBug/label-sync@da00f2c11fdb78e4fae44adac2fdd713778ea3e8 # v2.3.2
+        with:
+          config-file: .github/labels.yaml
+          token: "${{ secrets.BOT_TOKEN }}"
+          delete-other-labels: true

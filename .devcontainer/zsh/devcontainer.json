@@ -1,0 +1,15 @@
+{
+  "name": "TTPForge ZSH Container",
+  "image": "ghcr.io/facebookincubator/ttpforge-zsh:latest",
+  "remoteUser": "ttpforge",
+  "extensions": [
+    // Go Extension
+    "golang.go",
+    // Python Extension
+    "ms-python.python",
+    // Bash IDE Extension
+    "mads-hartmann.bash-ide-vscode",
+    // YAML Extension
+    "redhat.vscode-yaml"
+  ]
+}

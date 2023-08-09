@@ -1,0 +1,17 @@
+---
+name: "Meta Labeler"
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  labeler:
+    name: Labeler
+    runs-on: ubuntu-latest
+    steps:
+      - name: Labeler
+        uses: actions/labeler@ac9175f8a1f3625fd0d4fb234536d26811351594 # v4.3.0
+        with:
+          configuration-path: .github/labeler.yaml
+          repo-token: "${{ secrets.BOT_TOKEN }}"
