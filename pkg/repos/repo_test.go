@@ -20,10 +20,10 @@ THE SOFTWARE.
 package repos_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/repos"
+	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,24 +36,8 @@ const (
 	stTemplate
 )
 
-func makeAferoTestFs(filesMap map[string][]byte) (afero.Fs, error) {
-	fsys := afero.NewMemMapFs()
-	for path, contents := range filesMap {
-		dirPath := filepath.Dir(path)
-		err := fsys.MkdirAll(dirPath, 0700)
-		if err != nil {
-			return nil, err
-		}
-		err = afero.WriteFile(fsys, path, contents, 0644)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return fsys, nil
-}
-
 func makeRepoTestFs(t *testing.T) afero.Fs {
-	fsys, err := makeAferoTestFs(map[string][]byte{
+	fsys, err := testutils.MakeAferoTestFs(map[string][]byte{
 		"repos/a/" + repos.RepoConfigFileName:                                                    []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
 		"repos/a/ttps/foo/bar/baz/wut.yaml":                                                      []byte("placeholder"),
 		"repos/a/more/ttps/absolute/victory.yaml":                                                []byte("placeholder"),

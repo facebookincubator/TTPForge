@@ -51,6 +51,7 @@ type GitConfig struct {
 }
 
 type Repo interface {
+	GetFs() afero.Fs
 	FindTTP(ttpPath string) (string, error)
 	FindTemplate(templatePath string) (string, error)
 }
@@ -73,6 +74,10 @@ func (r *repo) FindTTP(ttpPath string) (string, error) {
 
 func (r *repo) FindTemplate(templatePath string) (string, error) {
 	return r.search(r.TemplateSearchPaths, templatePath)
+}
+
+func (r *repo) GetFs() afero.Fs {
+	return r.fsys
 }
 
 func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
