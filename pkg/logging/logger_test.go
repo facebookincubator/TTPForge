@@ -34,7 +34,7 @@ func TestInitLog(t *testing.T) {
 		core, recordedLogs := observer.New(zapcore.InfoLevel)
 		Logger = zap.New(core)
 
-		if err := InitLog(true, "", false); err != nil {
+		if err := InitLog(true, "", false, false); err != nil {
 			t.Errorf("error running InitLog(): %v", err)
 		}
 
@@ -55,7 +55,7 @@ func TestInitLog(t *testing.T) {
 
 		defer os.Remove(tempFile.Name())
 
-		if err := InitLog(true, tempFile.Name(), false); err != nil {
+		if err := InitLog(true, tempFile.Name(), false, false); err != nil {
 			t.Errorf("error running InitLog(): %v", err)
 		}
 
@@ -76,7 +76,7 @@ func TestInitLog(t *testing.T) {
 		core, recordedLogs := observer.New(zapcore.DebugLevel)
 		Logger = zap.New(core)
 
-		if err := InitLog(true, "", true); err != nil {
+		if err := InitLog(true, "", true, true); err != nil {
 			t.Errorf("error running InitLog(): %v", err)
 		}
 

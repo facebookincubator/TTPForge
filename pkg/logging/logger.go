@@ -38,6 +38,7 @@ func init() {
 	// https://github.com/uber-go/zap/pull/307
 	AtomLevel = zap.NewAtomicLevel()
 	cfg = zap.NewDevelopmentConfig()
+	cfg.DisableStacktrace = true
 	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	cfg.Level = AtomLevel
 	// use sugared logger
@@ -49,7 +50,7 @@ func init() {
 }
 
 // InitLog initializes the TTPForge's log file.
-func InitLog(nocolor bool, logfile string, verbose bool) (err error) {
+func InitLog(nocolor bool, logfile string, verbose bool, stacktrace bool) (err error) {
 	if !nocolor {
 		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else {
@@ -70,6 +71,10 @@ func InitLog(nocolor bool, logfile string, verbose bool) (err error) {
 		AtomLevel.SetLevel(zap.DebugLevel)
 	}
 
+	if stacktrace {
+		cfg.DisableStacktrace = false
+	}
+
 	// use sugared logger
 	Logger, err = cfg.Build()
 	if err != nil {
@@ -85,5 +90,6 @@ func ToggleDebug() {
 		AtomLevel.SetLevel(zap.DebugLevel)
 	} else {
 		AtomLevel.SetLevel(zap.InfoLevel)
+		cfg.DisableStacktrace = true
 	}
 }

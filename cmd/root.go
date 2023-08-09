@@ -41,6 +41,7 @@ type Config struct {
 	Logfile       string   `mapstructure:"logfile"`
 	NoColor       bool     `mapstructure:"nocolor"`
 	InventoryPath []string `mapstructure:"inventory"`
+	StackTrace    bool     `mapstructure:"stacktrace"`
 
 	RepoSpecs []repos.Spec `mapstructure:"repos"`
 
@@ -90,6 +91,7 @@ func init() {
 	// the Conf.* variables directly reference the unset values
 	// in the struct Config above.
 	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "", "Config file")
+	rootCmd.PersistentFlags().BoolVar(&Conf.StackTrace, "stacktrace", false, "Show stacktrace when logging error")
 	rootCmd.PersistentFlags().StringArrayVar(&Conf.InventoryPath, "inventory", []string{"."}, "list of paths to search for ttps")
 	// Notice here that the values from the command line are not
 	// populated in this instance. This is because we are using viper in
@@ -107,6 +109,8 @@ func init() {
 	err = viper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
 	cobra.CheckErr(err)
 	err = viper.BindPFlag("inventory", rootCmd.PersistentFlags().Lookup("inventory"))
+	cobra.CheckErr(err)
+	err = viper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
 	cobra.CheckErr(err)
 
 	// Errors caught by this are not actioned upon.
@@ -162,7 +166,7 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	err := logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose)
+	err := logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose, Conf.StackTrace)
 	cobra.CheckErr(err)
 	Logger = logging.Logger
 }
