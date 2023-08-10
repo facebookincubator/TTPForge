@@ -3,6 +3,7 @@ coverage-all.out
 
 # Compiled binary
 ttpforge
+ttpforge-windows
 
 # vscode debugger
 __debug_bin

@@ -45,8 +45,8 @@ type Config struct {
 
 	RepoSpecs []repos.Spec `mapstructure:"repos"`
 
-	repos   []repos.Repo
-	cfgFile string
+	repoCollection repos.RepoCollection
+	cfgFile        string
 }
 
 var (
@@ -156,17 +156,17 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 
-	// ensure specified TTP repositories are present
+	// expand config-relative paths
 	cfgDir := filepath.Dir(Conf.cfgFile)
 	fsys := afero.NewOsFs()
-	for _, repoSpec := range Conf.RepoSpecs {
-		repoSpec.Path = filepath.Join(cfgDir, repoSpec.Path)
-		repo, err := repoSpec.Load(fsys)
-		Conf.repos = append(Conf.repos, repo)
-		cobra.CheckErr(err)
+	for specIdx, curSpec := range Conf.RepoSpecs {
+		Conf.RepoSpecs[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)
 	}
+	rc, err := repos.NewRepoCollection(fsys, Conf.RepoSpecs, true)
+	cobra.CheckErr(err)
+	Conf.repoCollection = rc
 
-	err := logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose, Conf.StackTrace)
+	err = logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose, Conf.StackTrace)
 	cobra.CheckErr(err)
 	Logger = logging.Logger
 }

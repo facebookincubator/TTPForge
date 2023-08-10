@@ -22,49 +22,32 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(RunTTPCmd())
-}
-
-// RunTTPCmd runs an input TTP.
-func RunTTPCmd() *cobra.Command {
-	var argsList []string
-	ttpCfg := blocks.TTPExecutionConfig{}
-	runCmd := &cobra.Command{
-		Use:   "run",
-		Short: "Run the TTP found in the specified YAML file.",
-		Args:  cobra.ExactArgs(1),
+var (
+	showTTPCmd = &cobra.Command{
+		Use:              "ttp",
+		Short:            "displays the contents of the TTP specified by the provided reference",
+		TraverseChildren: true,
+		Args:             cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ttpRef := args[0]
-			// find the TTP file
-			foundRepo, ttpAbsPath, err := Conf.repoCollection.ResolveTTPRef(ttpRef)
+			_, ttpAbsPath, err := Conf.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
 			}
-
-			// load TTP and process argument values
-			// based on the TTPs argument value specifications
-			c := blocks.TTPExecutionConfig{
-				Repo: foundRepo,
-			}
-			ttp, err := blocks.LoadTTP(ttpAbsPath, nil, &c, argsList)
+			contents, err := afero.ReadFile(afero.NewOsFs(), ttpAbsPath)
 			if err != nil {
-				return fmt.Errorf("could not load TTP at %v: %v", ttpAbsPath, err)
+				return fmt.Errorf("failed to read file %v: %v", ttpAbsPath, err)
 			}
-
-			if _, err := ttp.RunSteps(c); err != nil {
-				return fmt.Errorf("failed to run TTP at %v: %v", ttpAbsPath, err)
-			}
+			fmt.Print(string(contents))
 			return nil
 		},
 	}
-	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging)")
-	runCmd.PersistentFlags().UintVar(&ttpCfg.CleanupDelaySeconds, "cleanup-delay-seconds", 0, "Wait this long after TTP execution before starting cleanup")
-	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
+)
 
-	return runCmd
+func init() {
+	showCmd.AddCommand(showTTPCmd)
 }

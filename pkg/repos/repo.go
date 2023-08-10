@@ -20,19 +20,27 @@ THE SOFTWARE.
 package repos
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
 
-// RepoConfigFileName is the expected name of the configuration
-// file for a TTP repository such as ForgeArmory.
-// We export it for tests
-const RepoConfigFileName = "ttpforge-repo-config.yaml"
+const (
+	// RepoConfigFileName is the expected name of the configuration
+	// file for a TTP repository such as ForgeArmory.
+	// We export it for tests
+	RepoConfigFileName = "ttpforge-repo-config.yaml"
+
+	// RepoPrefixSep divides the repo name reference from the TTP/template/etc path
+	RepoPrefixSep = "//"
+)
 
 // Spec defines the fields that are expected
 // to be set in the program-wide configuration file
@@ -53,9 +61,11 @@ type GitConfig struct {
 // Repo provides an interface for finding TTPs and templates
 // from a repo such as ForgeArmory
 type Repo interface {
-	GetFs() afero.Fs
+	ListTTPs() ([]string, error)
 	FindTTP(ttpPath string) (string, error)
 	FindTemplate(templatePath string) (string, error)
+	GetFs() afero.Fs
+	GetName() string
 }
 
 // Config contains all the fields
@@ -66,8 +76,14 @@ type Repo interface {
 type repo struct {
 	fsys                afero.Fs
 	basePath            string
+	spec                *Spec
 	TTPSearchPaths      []string `yaml:"ttp_search_paths"`
 	TemplateSearchPaths []string `yaml:"template_search_paths"`
+}
+
+// ListsTTPs lists the TTPs in this repo
+func (r *repo) ListTTPs() ([]string, error) {
+	return r.list(r.TTPSearchPaths)
 }
 
 // FindTTP locates a TTP if it exists in this repo
@@ -85,6 +101,11 @@ func (r *repo) GetFs() afero.Fs {
 	return r.fsys
 }
 
+// GetName returns the repos name
+func (r *repo) GetName() string {
+	return r.spec.Name
+}
+
 func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
 	for _, dirToSearch := range dirsToSearch {
 		fullPath := filepath.Join(r.basePath, dirToSearch, relPath)
@@ -98,12 +119,46 @@ func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
 			return fullPath, nil
 		}
 	}
-	return "", nil
+	return "", fmt.Errorf("path %v not found in repo %v", relPath, r.spec.Name)
+}
+
+func (r *repo) list(dirsToList []string) ([]string, error) {
+	var allResults []string
+	splitOnSep := string(os.PathSeparator)
+	for _, dirToList := range dirsToList {
+		prefix := filepath.Join(r.basePath, dirToList)
+		err := afero.Walk(r.fsys, prefix, func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if strings.HasSuffix(path, ".yaml") {
+				trimmed := strings.TrimPrefix(path, prefix)
+				trimmedAgain := strings.TrimPrefix(trimmed, splitOnSep)
+				tokens := strings.Split(trimmedAgain, splitOnSep)
+				result := r.spec.Name + RepoPrefixSep + strings.Join(tokens, "/")
+				allResults = append(allResults, result)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	return allResults, nil
 }
 
 // Load will clone a repository if necessary and valdiate
 // its configuration, making it usable to lookup TTPs
 func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
+
+	// validate spec fields
+	if spec.Name == "" {
+		return nil, errors.New("repository field `name:` cannot be empty")
+	}
+	if spec.Path == "" {
+		return nil, errors.New("repository field `path:` cannot be empty")
+	}
 
 	err := spec.ensurePresent(fsys)
 	if err != nil {
@@ -122,6 +177,7 @@ func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
 	}
 	r.fsys = fsys
 	r.basePath = spec.Path
+	r.spec = spec
 	return &r, nil
 }
 
