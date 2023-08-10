@@ -236,6 +236,8 @@ to build a new base image or update the existing base zsh image.
    EOM
    ```
 
+1. Download [warpgate](https://github.com/CowDogMoo/warpgate/)
+
 1. Build the base image:
 
    ```bash
