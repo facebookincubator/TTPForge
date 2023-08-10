@@ -49,7 +49,7 @@ targets and mediums.
    # shellcheck source=/dev/null
    source "${bashutils_path}"
 
-   fetchFromGithub "facebookincubator" "TTPForge" "v0.0.5" ttpforge $GITHUB_TOKEN
+   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.0" ttpforge $GITHUB_TOKEN
    ```
 
    At this point, the latest `ttpforge` release should be in
