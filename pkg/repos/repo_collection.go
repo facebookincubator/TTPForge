@@ -84,8 +84,9 @@ func NewRepoCollection(fsys afero.Fs, specs []Spec, workdirSupport bool) (RepoCo
 // **Parameters:**
 //
 // ttpRef: one of two things:
-//  1. a reference of the form repo//path/to/ttp
-//  2. an absolute or relative file path
+//
+// 1. a reference of the form repo//path/to/ttp
+// 2. an absolute or relative file path
 //
 // **Returns:**
 //
