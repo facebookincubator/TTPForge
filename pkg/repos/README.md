@@ -17,6 +17,28 @@ The `repos` package is a part of the TTPForge.
 
 ## Functions
 
+### NewRepoCollection(afero.Fs, []Spec, bool)
+
+```go
+NewRepoCollection(afero.Fs, []Spec, bool) RepoCollection, error
+```
+
+NewRepoCollection validates the provided repo specs
+and assembles them into a RepoCollection
+
+**Parameters:**
+
+fsys: base file system (used for unit testing)
+specs: a list of repo.Spec entries (usually from the config file)
+workdirSupport: true if the provided fsys supports workdirs
+
+**Returns:**
+
+RepoCollection: assembled RepoCollection, or nil if there was an error
+error: an error if there is a problem
+
+---
+
 ### Spec.Load(afero.Fs)
 
 ```go
@@ -55,6 +77,64 @@ GetFs() afero.Fs
 ```
 
 GetFs is a convenience function principally used by SubTTPs
+
+---
+
+### repo.GetName()
+
+```go
+GetName() string
+```
+
+GetName returns the repos name
+
+---
+
+### repo.ListTTPs()
+
+```go
+ListTTPs() []string, error
+```
+
+ListsTTPs lists the TTPs in this repo
+
+---
+
+### repoCollection.ListTTPs()
+
+```go
+ListTTPs() []string, error
+```
+
+ListTTPs lists all TTPs in the RepoCollection
+
+**Returns:**
+
+[]string: the list of TTPs
+error: an error if there is a problem
+
+---
+
+### repoCollection.ResolveTTPRef(string)
+
+```go
+ResolveTTPRef(string) Repo, string, error
+```
+
+ResolveTTPRef turns a provided TTP reference into
+a Repo and absolute TTP file path
+
+**Parameters:**
+
+ttpRef: one of two things:
+ 1. a reference of the form repo//path/to/ttp
+ 2. an absolute or relative file path
+
+**Returns:**
+
+Repo: the located repo
+string: the absolute path to the specified TTP
+error: an error if there is a problem
 
 ---
 

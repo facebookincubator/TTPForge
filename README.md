@@ -25,6 +25,7 @@ targets and mediums.
 
 ## Getting started as a user
 
+Grab the latest [release]()
 1. Download and install the [gh cli tool](https://cli.github.com/):
 
    - [macOS](https://github.com/cli/cli#macos)
@@ -55,11 +56,38 @@ targets and mediums.
    At this point, the latest `ttpforge` release should be in
    `~/.local/bin/ttpforge` and subsequently, the `$USER`'s `$PATH`.
 
-1. Run a basic example:
+1. Initialize TTPForge configuration
+
+   This command will place a configuration file at the default location `~/.ttpforge/config.yaml` and
+   download the [ForgeArmory](https://github.com/facebookincubator/TTPForge) TTPs repository:
 
    ```bash
-   ./ttpforge -c config.yaml \
-     run examples/variadic-params/variadicParameterExample.yaml \
-     --arg name=jimbo \
-     --arg password=fakepassword123
+   ttpforge init
+   ```
+
+1. List available TTP repositories (should show `forgearmory`)
+
+   ```bash
+   ttpforge list repos
+   ```
+
+1. List available TTPs that you can run:
+
+   ```bash
+   ttpforge list ttps
+   ```
+
+1. Examine an example TTP:
+
+   ```bash
+   ttpforge show ttp forgearmory//examples/args/define-args.yaml
+   ```
+
+1. Run the specified example:
+
+   ```bash
+   ttpforge run \
+     forgearmory//examples/args/define-args.yaml \
+     --arg a_message="hello" \
+     --arg a_number=1337
    ```
