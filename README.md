@@ -51,7 +51,7 @@ Grab the latest [release]()
    # shellcheck source=/dev/null
    source "${bashutils_path}"
 
-   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.0" ttpforge $GITHUB_TOKEN
+   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.1" ttpforge $GITHUB_TOKEN
    ```
 
    At this point, the latest `ttpforge` release should be in
