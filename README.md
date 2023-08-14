@@ -27,8 +27,6 @@ targets and mediums.
 
 ## Getting started as a user
 
-Grab the latest [release]()
-
 1. Download and install the [gh cli tool](https://cli.github.com/):
 
 - [macOS](https://github.com/cli/cli#macos)
@@ -61,8 +59,10 @@ Grab the latest [release]()
 
 1. Initialize TTPForge configuration
 
-   This command will place a configuration file at the default location `~/.ttpforge/config.yaml` and
-   download the [ForgeArmory](https://github.com/facebookincubator/TTPForge) TTPs repository:
+   This command will place a configuration file at the default location
+   `~/.ttpforge/config.yaml` and download the
+   [ForgeArmory](https://github.com/facebookincubator/ForgeArmory)
+   TTPs repository:
 
    ```bash
    ttpforge init
