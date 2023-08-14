@@ -25,22 +25,15 @@ repos:
         files: \.(json|yaml|yml)$
         exclude: docs/container.md
 
-  - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: v0.9.0
-    hooks:
-      - id: shellcheck
-        exclude: >-
-          (?x)^templates/bash/bashTTP.bash.tmpl$
-
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
     hooks:
       - id: script-must-have-extension
         name: Ensure shell scripts end with .sh
         types: [shell]
-        exclude: ^templates/
+        exclude: .bats
+      - id: shellcheck
       - id: shfmt
-        exclude: ^templates/
       # Configuration in .mdlrc and .hooks/linters/mdstyle.rb
       - id: markdownlint
 
@@ -50,7 +43,7 @@ repos:
       - id: codespell
         entry: |
           codespell -q 3 -f
-          -S ".git,.github,README.md,docs/*,go.sum,*test.go"
+          -S ".git,.github,README.md,docs/*,go.*,magefiles/go.*,*test.go"
 
   - repo: https://github.com/dnephin/pre-commit-golang
     rev: v0.5.1
@@ -65,12 +58,6 @@ repos:
       - id: go-build
       - id: go-mod-tidy
 
-  - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.11.2
-    hooks:
-      - id: markdown-link-check
-        args: [-q]
-
   - repo: local
     hooks:
       - id: go-no-replacement
@@ -83,6 +70,12 @@ repos:
         name: Ensure all go files have the copyright header
         language: script
         entry: .hooks/go-copyright.sh
+        files: '\.go$'
+
+      - id: go-unit-tests
+        name: Go unit tests
+        language: script
+        entry: .hooks/run-go-tests.sh coverage
         files: '\.go$'
 
       - id: go-vet
@@ -107,5 +100,4 @@ repos:
         name: Update package docs
         language: script
         entry: .hooks/generate-docs.sh
-        files: '\.go$'
-        stages: [commit]
+        require_serial: true
