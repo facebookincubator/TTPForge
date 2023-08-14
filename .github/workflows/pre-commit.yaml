@@ -2,6 +2,7 @@
 name: Pre-Commit
 on:
   push:
+  pull_request:
   # Run once a week (see https://crontab.guru)
   schedule:
     - cron: "0 0 * * 0"
@@ -47,9 +48,12 @@ jobs:
 
       - name: Make sure docs have been generated prior to push
         run: bash .hooks/generate-docs.sh
+        working-directory: ${{ github.workspace }}
 
       - name: Install pre-commit dependencies
         run: mage installDeps
+        working-directory: ${{ github.workspace }}
 
       - name: Run pre-commit
         run: mage runPreCommit
+        working-directory: ${{ github.workspace }}
