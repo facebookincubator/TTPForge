@@ -29,9 +29,9 @@ Grab the latest [release]()
 
 1. Download and install the [gh cli tool](https://cli.github.com/):
 
-- [macOS](https://github.com/cli/cli#macos)
-- [Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
-- [Windows](https://github.com/cli/cli#windows)
+    - [macOS](https://github.com/cli/cli#macos)
+    - [Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+    - [Windows](https://github.com/cli/cli#windows)
 
 1. Get latest TTPForge release:
 
