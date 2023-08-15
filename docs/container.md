@@ -191,7 +191,8 @@ to build a new base image or update the existing base zsh image.
    gh repo clone CowDogMoo/ansible-zsh-vnc ~/ansible-zsh-vnc
    ```
 
-1. Clone and compile the [ttpforge](https://github.com/CowDogMoo/ttpforge) project:
+1. Clone and compile the
+   [ttpforge](https://github.com/facebookincubator/ttpforge) project:
 
    ```bash
    gh repo clone facebookincubator/TTPForge ~/ttpforge

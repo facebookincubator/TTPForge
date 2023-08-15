@@ -1,11 +1,12 @@
 ---
 name: Pre-Commit
 on:
-  pull_request:
   push:
+  pull_request:
   # Run once a week (see https://crontab.guru)
   schedule:
     - cron: "0 0 * * 0"
+  workflow_dispatch:
 
 jobs:
   pre-commit:
@@ -23,7 +24,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4
         with:
-          go-version: "1.20"
+          go-version: "1.21.0"
 
       - name: Install go module dependencies
         run: |
@@ -45,9 +46,6 @@ jobs:
           git add go.mod go.sum magefiles/go.mod magefiles/go.sum
           git diff --quiet && git diff --staged --quiet || \
             git commit -m "Update go.mod and go.sum"
-
-      - name: Make sure docs have been generated prior to push
-        run: bash .hooks/generate-docs.sh
 
       - name: Install pre-commit dependencies
         run: mage installDeps

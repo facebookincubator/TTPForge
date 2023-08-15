@@ -25,7 +25,7 @@ setup_language_if_requested() {
   local language="$1"
 
   # Check if the language is requested or if no language is specified
-  if [[ " $* " =~ " $language " ]] || [[ $# -eq 0 ]]; then
+  if [[ " $* " =~ ${language} ]] || [[ $# -eq 0 ]]; then
     # Setup the language
     setup_language "$language" "local"
   fi
