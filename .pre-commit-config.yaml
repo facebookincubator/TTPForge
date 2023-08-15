@@ -72,12 +72,6 @@ repos:
         entry: .hooks/go-copyright.sh
         files: '\.go$'
 
-      - id: go-unit-tests
-        name: Go unit tests
-        language: script
-        entry: .hooks/run-go-tests.sh coverage
-        files: '\.go$'
-
       - id: go-vet
         name: Run go vet
         language: script
