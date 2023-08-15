@@ -227,51 +227,6 @@ func TestFetchEnv(t *testing.T) {
 	}
 }
 
-func TestJSONString(t *testing.T) {
-	type TestStruct struct {
-		Field1 string `json:"field1"`
-		Field2 int    `json:"field2"`
-	}
-
-	tests := []struct {
-		name     string
-		input    any
-		expected string
-		wantErr  bool
-	}{
-		{
-			name: "Valid input",
-			input: TestStruct{
-				Field1: "test",
-				Field2: 123,
-			},
-			expected: "'{\"field1\":\"test\",\"field2\":123}'",
-			wantErr:  false,
-		},
-		{
-			name:     "Invalid input",
-			input:    make(chan int),
-			expected: "",
-			wantErr:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := blocks.JSONString(tt.input)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("error running JSONString(): %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if got != tt.expected {
-				t.Errorf("unexpected output from JSONString() got = %v, expected %v", got, tt.expected)
-			}
-		})
-	}
-}
-
 func TestContains(t *testing.T) {
 	tests := []struct {
 		name     string

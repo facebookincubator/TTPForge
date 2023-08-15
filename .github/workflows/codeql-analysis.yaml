@@ -10,7 +10,7 @@ on:
 
 jobs:
   codeql:
-    name: Compute Code Coverage
+    name: Run CodeQL Security Vulnerability Analysis
     runs-on: ubuntu-latest
 
     permissions:

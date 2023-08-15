@@ -481,26 +481,6 @@ returns it as a string.
 
 ---
 
-### JSONString(any)
-
-```go
-JSONString(any) string, error
-```
-
-JSONString returns a string representation of an object in JSON format.
-
-**Parameters:**
-
-in: An object of any type.
-
-**Returns:**
-
-string: A string representing the object in JSON format.
-
-error: An error if the object cannot be encoded as JSON.
-
----
-
 ### LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string)
 
 ```go
