@@ -13,7 +13,6 @@ complete development environment.
 - [Using on the Command Line Interface (CLI)](#using-on-the-command-line-interface-cli)
 - [Local Build Process](#local-build-process)
 - [Run container action locally](#run-container-action-locally)
-- [Build base zsh image](#build-base-zsh-image)
 
 ---
 
@@ -28,8 +27,6 @@ complete development environment.
       - `delete:packages`
 
 ## Using in VSCode
-
-**Please note: this functionality requires vanilla VSCode!**
 
 1. If you haven't already, install the
    [Remote - Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
@@ -62,49 +59,17 @@ and run the `Remote-Containers: Reopen Locally` command.
 
 1. Pull the latest image from ghcr:
 
-   - ZSH container:
+   ```bash
+   docker pull ghcr.io/facebookincubator/ttpforge:latest
+   ```
 
-      ```zsh
-      if [[ "$(uname -a | awk '{ print $NF }')" == "arm64" ]]; then
-         docker pull --platform linux/x86_64 ghcr.io/facebookincubator/ttpforge-zsh
-      else
-         docker pull ghcr.io/facebookincubator/ttpforge-zsh:latest
-      fi
-      ```
+1. Run container and mount local project directory:
 
-   - Bash Container:
-
-      ```bash
-      docker pull ghcr.io/facebookincubator/ttpforge-bash:latest
-      ```
-
-1. Run container and mount local project directory
-
-   - ZSH container:
-
-      ```zsh
-      docker run -it --rm \
-         -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
-         ghcr.io/facebookincubator/ttpforge-zsh:latest
-      ```
-
-   - ZSH container with custom dotfiles:
-
-      ```zsh
-      docker run -it --rm \
-         -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
-         -v "${HOME}/.zshrc:/home/ttpforge/.zshrc" \
-         -v "${HOME}/.dotfiles:/home/ttpforge/.dotfiles" \
-         ghcr.io/facebookincubator/ttpforge-zsh:latest
-      ```
-
-   - Bash Container:
-
-      ```bash
-      docker run -it --rm \
-         -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
-         ghcr.io/facebookincubator/ttpforge-bash:latest
-      ```
+   ```bash
+   docker run -it --rm \
+      -v "$(pwd)":/home/ttpforge/go/src/github.com/facebookincubator/ttpforge \
+      ghcr.io/facebookincubator/ttpforge:latest
+   ```
 
 ---
 
@@ -136,16 +101,10 @@ if [[ $ARCH == "arm64" ]]; then
       export DOCKER_DEFAULT_PLATFORM=linux/amd64
 fi
 
-# Build the ZSH Dockerfile with vncserver - can be used with guacamole
-docker build --build-arg USER_ID=$(id -u) \
-         --build-arg GROUP_ID=$(id -g) \
-         -t facebookincubator/ttpforge-zsh \
-         -f .devcontainer/zsh/Dockerfile .
-
 # Build the Bash Dockerfile
 docker build --build-arg USER_ID=$(id -u) \
          --build-arg GROUP_ID=$(id -g) \
-         -t facebookincubator/ttpforge-bash \
+         -t facebookincubator/ttpforge \
          -f .devcontainer/bash/Dockerfile .
 ```
 
@@ -174,73 +133,4 @@ docker build --build-arg USER_ID=$(id -u) \
    act -j "pre-commit" \
       --secret-file .secrets \
       --container-architecture linux/amd64
-   ```
-
----
-
-## Build base zsh image
-
-These instructions are only relevant for repo maintainers that need
-to build a new base image or update the existing base zsh image.
-
-1. Download and install the [gh cli tool](https://cli.github.com/).
-
-1. Clone the [ansible-vnc-zsh ansible playbook](https://github.com/CowDogMoo/ansible-vnc-zsh):
-
-   ```bash
-   gh repo clone CowDogMoo/ansible-zsh-vnc ~/ansible-zsh-vnc
-   ```
-
-1. Clone and compile the
-   [ttpforge](https://github.com/facebookincubator/ttpforge) project:
-
-   ```bash
-   gh repo clone facebookincubator/TTPForge ~/ttpforge
-   cd ~/ttpforge
-   go build -o wg
-   ```
-
-1. Update the existing `ansible-vnc-zsh` blueprint config:
-
-   ```bash
-   cat <<EOM > blueprints/ansible-vnc-zsh/config.yaml
-   ---
-   blueprint:
-     name: ansible-vnc-zsh
-
-   packer_templates:
-     - name: ubuntu-vnc-zsh.pkr.hcl
-       base:
-         name: ubuntu
-         version: latest
-       systemd: false
-       tag:
-         name: facebookincubator/pt-ubuntu-vnc-zsh
-         version: latest
-
-     - name: ubuntu-systemd-vnc-zsh.pkr.hcl
-       base:
-         name: geerlingguy/docker-ubuntu2204-ansible
-         version: latest
-       systemd: true
-       tag:
-         name: facebookincubator/pt-ubuntu-vnc-zsh-systemd
-         version: latest
-
-   container:
-     workdir: /home/ubuntu
-     entrypoint: "/run/docker-entrypoint.sh ; zsh"
-     user: ubuntu
-     registry:
-       server: ghcr.io
-       username: facebookincubator
-   EOM
-   ```
-
-1. Download [warpgate](https://github.com/CowDogMoo/warpgate/)
-
-1. Build the base image:
-
-   ```bash
-   ./wg imageBuilder -b ansible-vnc-zsh -p ~/ansible-vnc-zsh
    ```
