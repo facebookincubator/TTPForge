@@ -13,11 +13,10 @@ COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpfo
 
 # Create a virtual environment and install pre-commit
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-RUN python3 -m venv /opt/venv \
+RUN python3 -m venv /opt/venv || exit 1 \
     && . /opt/venv/bin/activate \
-    && pip install --upgrade pip \
-    && pip install --upgrade pre-commit \
-    && pre-commit install
+    && pip install --upgrade pre-commit || exit 1 \
+    && pre-commit install || exit 1
 
 ENV PATH="/opt/venv/bin:$PATH"
 
