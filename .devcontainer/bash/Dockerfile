@@ -6,7 +6,19 @@ ARG GROUP_ID=1000
 
 # Install necessary dependencies
 RUN DEBIAN_FRONTEND="noninteractive" apt-get update \
-    && apt-get install -y bison curl git python3 python3-pip ruby-full shellcheck unzip vim
+    && apt-get install -y bison curl git python3 python3-pip python3-venv ruby-full shellcheck unzip vim
+
+# Copy the codebase
+COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+
+# Create a virtual environment and install pre-commit
+WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+RUN python3 -m venv /opt/venv || exit 1 \
+    && . /opt/venv/bin/activate \
+    && pip install --upgrade pre-commit || exit 1 \
+    && pre-commit install || exit 1
+
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -23,20 +35,13 @@ RUN TERRAGRUNT_VERSION="0.45.2" \
 # Create the ttpforge user and change ownership of the necessary directories
 RUN useradd -m -s /bin/bash ttpforge \
     && mkdir -p /home/ttpforge/go/src/github.com/facebookincubator/TTPForge \
-    && chown -R ttpforge:ttpforge /home/ttpforge/go
-
-COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+    && chown -R ttpforge:ttpforge /home/ttpforge
 
 # Set the 'ttpforge' user as the default user
 USER ttpforge
 ENV GOPATH=/home/ttpforge/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-
-# Install pre-commit
-RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install --upgrade pre-commit \
-    && pre-commit install
 
 # Install go dependencies
 RUN /bin/bash -c " \

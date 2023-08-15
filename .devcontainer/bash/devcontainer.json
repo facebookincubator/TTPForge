@@ -1,15 +1,16 @@
 {
   "name": "TTPForge Bash Container",
-  "image": "ghcr.io/facebookincubator/ttpforge-bash:latest",
+  "image": "ghcr.io/facebookincubator/ttpforge:latest",
   "remoteUser": "ttpforge",
-  "extensions": [
-    // Go Extension
-    "golang.go",
-    // Python Extension
-    "ms-python.python",
-    // Bash IDE Extension
-    "mads-hartmann.bash-ide-vscode",
-    // YAML Extension
-    "redhat.vscode-yaml"
-  ]
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-python.python",
+        "mads-hartmann.bash-ide-vscode",
+        "redhat.vscode-yaml",
+        "hashicorp.terraform"
+      ]
+    }
+  }
 }
