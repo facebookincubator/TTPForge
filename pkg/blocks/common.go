@@ -20,7 +20,6 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -176,27 +175,6 @@ func FetchEnv(environ map[string]string) []string {
 	}
 
 	return envSlice
-}
-
-// JSONString returns a string representation of an object in JSON format.
-//
-// **Parameters:**
-//
-// in: An object of any type.
-//
-// **Returns:**
-//
-// string: A string representing the object in JSON format.
-//
-// error: An error if the object cannot be encoded as JSON.
-func JSONString(in any) (string, error) {
-	out, err := json.Marshal(in)
-	if err != nil {
-		logging.Logger.Sugar().Errorw(err.Error(), zap.Error(err))
-		return "", err
-	}
-
-	return fmt.Sprintf("'%s'", string(out)), nil
 }
 
 // Contains checks if a key exists in a map.
