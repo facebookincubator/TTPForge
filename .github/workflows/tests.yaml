@@ -2,8 +2,9 @@
 name: Tests
 on:
   pull_request:
-  push:
-
+    types:
+      - opened
+      - synchronize
 jobs:
   tests:
     name: Run tests - includes pre-commit hooks and determining code coverage %

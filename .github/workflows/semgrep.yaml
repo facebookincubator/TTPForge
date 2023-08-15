@@ -1,9 +1,10 @@
 ---
 name: 🚨 Semgrep Analysis
 on:
-  push:
   pull_request:
-
+    types:
+      - opened
+      - synchronize
 jobs:
   semgrep:
     name: Evaluate code for vulnerabilities
