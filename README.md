@@ -3,8 +3,10 @@
 [![License](https://img.shields.io/github/license/facebookincubator/TTPForge?label=License&style=flat&color=blue&logo=github)](https://github.com/facebookincubator/TTPForge/blob/main/LICENSE)
 [![Tests](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml)
 [![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml)
+[![🚨 CodeQL Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/codeql-analysis.yaml)
+[![🚨 Nancy 3p Vulnerability Scan](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml)
 [![Renovate](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml)
-[![Nancy 3p Vulnerability Scan](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/facebookincubator/TTPForge/badge.svg)](https://coveralls.io/github/facebookincubator/TTPForge)
 
 This repo hosts the TTPForge tool created by Meta's Purple Team.
 It is intended to provide an interface to execute TTPs across various
@@ -24,8 +26,6 @@ targets and mediums.
 ---
 
 ## Getting started as a user
-
-Grab the latest [release]()
 
 1. Download and install the [gh cli tool](https://cli.github.com/):
 
@@ -59,8 +59,10 @@ Grab the latest [release]()
 
 1. Initialize TTPForge configuration
 
-   This command will place a configuration file at the default location `~/.ttpforge/config.yaml` and
-   download the [ForgeArmory](https://github.com/facebookincubator/TTPForge) TTPs repository:
+   This command will place a configuration file at the default location
+   `~/.ttpforge/config.yaml` and download the
+   [ForgeArmory](https://github.com/facebookincubator/ForgeArmory)
+   TTPs repository:
 
    ```bash
    ttpforge init
