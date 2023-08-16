@@ -51,12 +51,6 @@ and run the `Remote-Containers: Reopen Locally` command.
 
 ## Using on the Command Line Interface (CLI)
 
-1. Login to ghcr:
-
-   ```bash
-   docker login ghcr.io -u $GITHUB_USERNAME -p $PAT
-   ```
-
 1. Pull the latest image from ghcr:
 
    ```bash
