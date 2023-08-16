@@ -1,4 +1,4 @@
-FROM golang:1.20.7
+FROM golang:1.20.7-alpine
 
 # Description of the image
 LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
@@ -8,39 +8,47 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 # Install dependencies
-RUN DEBIAN_FRONTEND="noninteractive" apt-get update \
-    && apt-get install -y \
+RUN apk add --no-cache \
+        bash \
+        binutils-gold \
         bison \
+        build-base \
         curl \
+        gcc \
         git \
-        shellcheck \
+        gpgme \
+        libc-dev \
+        make \
+        openssl-dev \
+        libtool \
+        openssl-dev \
+        patch \
+        python3 \
+        py3-pip \
+        readline-dev \
+        ruby-full \
+        sqlite-dev \
         unzip \
         vim \
-        autoconf \
-        automake \
-        libtool \
-        dirmngr \
-        gpg \
-        libreadline-dev \
-        libsqlite3-dev \
-        libssl-dev \
-        python3 \
-        python3-pip \
-        python3.11-venv \
-        zlib1g-dev \
-        libyaml-dev \
-        patch
+        yaml-dev \
+        zlib-dev
 
 # Create the ttpforge user and change ownership of the necessary directories
-RUN useradd -m -s /bin/bash ttpforge \
+RUN adduser -D -s /bin/sh ttpforge \
     && mkdir -p /home/ttpforge/go/src/github.com/facebookincubator/TTPForge \
     && chown -R ttpforge:ttpforge /home/ttpforge
 
 # Install GitHub CLI
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y gh
+RUN export ARCH="$(uname -m)" \
+    && case ${ARCH} in \
+       x86_64) ARCH='amd64' ;; \
+       aarch64) ARCH='arm64' ;; \
+       arm*) ARCH='armv6' ;; \
+       *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+       esac \
+    && curl -sSL "https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_${ARCH}.tar.gz" | tar xz \
+    && mv "gh_2.32.1_linux_${ARCH}/bin/gh" /usr/local/bin \
+    && gh --version
 
 # Switch to 'ttpforge' user
 USER ttpforge
@@ -48,12 +56,13 @@ ENV HOME /home/ttpforge
 ENV GOPATH=/home/ttpforge/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 
+ENV ASDF_DIR /home/ttpforge/.asdf
 # Install ASDF
-RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
-RUN echo '. $HOME/.asdf/asdf.sh' >> ~/.bashrc
+RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf
+RUN echo '. $HOME/.asdf/asdf.sh' >> $HOME/.bashrc
 
 # Install Ruby using ASDF
-RUN bash -c '\
+RUN /bin/sh -c '\
     . $HOME/.asdf/asdf.sh && \
     asdf plugin-add ruby https://github.com/asdf-vm/asdf-ruby.git && \
     asdf install ruby 3.2.2 && \
@@ -64,13 +73,16 @@ COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpfo
 
 # Create a virtual environment and install pre-commit
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-RUN bash -c '\
+RUN /bin/sh -c '\
     python3 -m venv $HOME/venv && \
     . $HOME/venv/bin/activate && \
+    pip3 install --upgrade pip && \
+    pip3 install "setuptools>=65.5.1" && \
     pip3 install --upgrade pre-commit && \
     pre-commit install'
 
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="/home/ttpforge/venv/bin:$PATH"
+
 
 # Set the 'ttpforge' user as the default user
 USER ttpforge
@@ -79,7 +91,7 @@ ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 
 # Install go dependencies
-RUN /bin/bash -c " \
+RUN /bin/sh -c " \
     go install github.com/magefile/mage@latest \
     && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
     && mage installDeps \
@@ -91,4 +103,4 @@ RUN /bin/bash -c " \
 # Remove the copied repository content
 RUN rm -rf /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 
-CMD ["bash"]
+CMD ["sh"]
