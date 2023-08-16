@@ -7,9 +7,22 @@ LABEL org.opencontainers.image.description="Dev Container with dependencies and 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-# Install necessary dependencies
+# Install dependencies required for RVM and Ruby
 RUN DEBIAN_FRONTEND="noninteractive" apt-get update \
-    && apt-get install -y bison curl git python3 python3-pip python3-venv ruby-full shellcheck unzip vim
+    && apt-get install -y bison curl git python3 python3-pip python3-venv shellcheck unzip vim \
+    gpg2 autoconf automake libtool
+
+# Install RVM
+RUN gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
+    && \curl -sSL https://get.rvm.io | bash -s stable
+
+# Use RVM to install Ruby 3.2.2
+RUN /bin/bash -l -c "rvm requirements" \
+    && /bin/bash -l -c "rvm install 3.2.2" \
+    && /bin/bash -l -c "rvm use 3.2.2 --default"
+
+# Ensure that the installed Ruby version is available system-wide
+ENV PATH /usr/local/rvm/rubies/ruby-3.2.2/bin:$PATH
 
 # Copy the codebase
 COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
