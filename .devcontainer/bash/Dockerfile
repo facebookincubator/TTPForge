@@ -11,7 +11,6 @@ ARG GROUP_ID=1000
 RUN apk add --no-cache \
         bash \
         binutils-gold \
-        bison \
         build-base \
         curl \
         gcc \
@@ -20,9 +19,6 @@ RUN apk add --no-cache \
         libc-dev \
         make \
         openssl-dev \
-        libtool \
-        openssl-dev \
-        patch \
         python3 \
         py3-pip \
         readline-dev \
