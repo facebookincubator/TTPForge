@@ -7,34 +7,34 @@ LABEL org.opencontainers.image.description="Dev Container with dependencies and 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-# Install dependencies required for RVM and Ruby
+# Install dependencies
 RUN DEBIAN_FRONTEND="noninteractive" apt-get update \
-    && apt-get install -y bison curl git python3 python3-pip python3-venv shellcheck unzip vim \
-    gpg2 autoconf automake libtool
+    && apt-get install -y \
+        bison \
+        curl \
+        git \
+        shellcheck \
+        unzip \
+        vim \
+        autoconf \
+        automake \
+        libtool \
+        dirmngr \
+        gpg \
+        libreadline-dev \
+        libsqlite3-dev \
+        libssl-dev \
+        python3 \
+        python3-pip \
+        python3.11-venv \
+        zlib1g-dev \
+        libyaml-dev \
+        patch
 
-# Install RVM
-RUN gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
-    && \curl -sSL https://get.rvm.io | bash -s stable
-
-# Use RVM to install Ruby 3.2.2
-RUN /bin/bash -l -c "rvm requirements" \
-    && /bin/bash -l -c "rvm install 3.2.2" \
-    && /bin/bash -l -c "rvm use 3.2.2 --default"
-
-# Ensure that the installed Ruby version is available system-wide
-ENV PATH /usr/local/rvm/rubies/ruby-3.2.2/bin:$PATH
-
-# Copy the codebase
-COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-
-# Create a virtual environment and install pre-commit
-WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-RUN python3 -m venv /opt/venv || exit 1 \
-    && . /opt/venv/bin/activate \
-    && pip install --upgrade pre-commit || exit 1 \
-    && pre-commit install || exit 1
-
-ENV PATH="/opt/venv/bin:$PATH"
+# Create the ttpforge user and change ownership of the necessary directories
+RUN useradd -m -s /bin/bash ttpforge \
+    && mkdir -p /home/ttpforge/go/src/github.com/facebookincubator/TTPForge \
+    && chown -R ttpforge:ttpforge /home/ttpforge
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -42,16 +42,35 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | g
     && apt-get update \
     && apt-get install -y gh
 
-# Install Terragrunt
-RUN TERRAGRUNT_VERSION="0.45.2" \
-    && curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_amd64 -o /tmp/terragrunt \
-    && install -o root -g root -m 0755 /tmp/terragrunt /usr/local/bin/terragrunt \
-    && rm /tmp/terragrunt
+# Switch to 'ttpforge' user
+USER ttpforge
+ENV HOME /home/ttpforge
+ENV GOPATH=/home/ttpforge/go
+ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 
-# Create the ttpforge user and change ownership of the necessary directories
-RUN useradd -m -s /bin/bash ttpforge \
-    && mkdir -p /home/ttpforge/go/src/github.com/facebookincubator/TTPForge \
-    && chown -R ttpforge:ttpforge /home/ttpforge
+# Install ASDF
+RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
+RUN echo '. $HOME/.asdf/asdf.sh' >> ~/.bashrc
+
+# Install Ruby using ASDF
+RUN bash -c '\
+    . $HOME/.asdf/asdf.sh && \
+    asdf plugin-add ruby https://github.com/asdf-vm/asdf-ruby.git && \
+    asdf install ruby 3.2.2 && \
+    asdf global ruby 3.2.2'
+
+# Copy the codebase
+COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+
+# Create a virtual environment and install pre-commit
+WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+RUN bash -c '\
+    python3 -m venv $HOME/venv && \
+    . $HOME/venv/bin/activate && \
+    pip3 install --upgrade pre-commit && \
+    pre-commit install'
+
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Set the 'ttpforge' user as the default user
 USER ttpforge
@@ -63,14 +82,10 @@ WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 RUN /bin/bash -c " \
     go install github.com/magefile/mage@latest \
     && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
-    # Install project dependencies
     && mage installDeps \
     && mage \
-    # Run go mod tidy and build the project
-    # to speed up builds
     && go mod tidy \
     && go build -o ttpforge \
-    # Clean up the compiled bin
     && rm ttpforge"
 
 # Remove the copied repository content
