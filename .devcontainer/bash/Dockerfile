@@ -1,5 +1,8 @@
 FROM golang:1.20.7
 
+# Description of the image
+LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
+
 # Set build-time arguments for user and group IDs
 ARG USER_ID=1000
 ARG GROUP_ID=1000
