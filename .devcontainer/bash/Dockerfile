@@ -3,10 +3,6 @@ FROM golang:1.20.7-alpine
 # Description of the image
 LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
 
-# Set build-time arguments for user and group IDs
-ARG USER_ID=1000
-ARG GROUP_ID=1000
-
 # Install dependencies
 RUN apk add --no-cache \
         bash \
@@ -52,18 +48,6 @@ ENV HOME /home/ttpforge
 ENV GOPATH=/home/ttpforge/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 
-ENV ASDF_DIR /home/ttpforge/.asdf
-# Install ASDF
-RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf
-RUN echo '. $HOME/.asdf/asdf.sh' >> $HOME/.bashrc
-
-# Install Ruby using ASDF
-RUN /bin/sh -c '\
-    . $HOME/.asdf/asdf.sh && \
-    asdf plugin-add ruby https://github.com/asdf-vm/asdf-ruby.git && \
-    asdf install ruby 3.2.2 && \
-    asdf global ruby 3.2.2'
-
 # Copy the codebase
 COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 
@@ -78,7 +62,6 @@ RUN /bin/sh -c '\
     pre-commit install'
 
 ENV PATH="/home/ttpforge/venv/bin:$PATH"
-
 
 # Set the 'ttpforge' user as the default user
 USER ttpforge
