@@ -97,11 +97,11 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	// Create a CleanupStep instance and add it to the FileStep instance.
-	logging.Logger.Sugar().Debugw("step", "name", tmpl.Name)
+	logging.L().Debugw("step", "name", tmpl.Name)
 	cleanup, err := f.MakeCleanupStep(&tmpl.CleanupStep)
-	logging.Logger.Sugar().Debugw("step", zap.Error(err))
+	logging.L().Debugw("step", zap.Error(err))
 	if err != nil {
-		logging.Logger.Sugar().Errorw("error creating cleanup step", zap.Error(err))
+		logging.L().Errorw("error creating cleanup step", zap.Error(err))
 		return err
 	}
 
@@ -167,16 +167,16 @@ func (f *FileStep) IsNil() bool {
 
 // Execute runs the FileStep and returns an error if any occur.
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
-	logging.Logger.Sugar().Info("========= Executing ==========")
+	logging.L().Info("========= Executing ==========")
 
 	if f.FilePath != "" {
 		if err := f.fileExec(execCtx); err != nil {
-			logging.Logger.Sugar().Error(zap.Error(err))
+			logging.L().Error(zap.Error(err))
 			return nil, err
 		}
 	}
 
-	logging.Logger.Sugar().Info("========= Result ==========")
+	logging.L().Info("========= Result ==========")
 
 	return &ExecutionResult{}, nil
 }
@@ -195,7 +195,7 @@ func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 		args := []string{f.FilePath}
 		args = append(args, expandedArgs...)
 
-		logging.Logger.Sugar().Debugw("command line execution:", "exec", f.Executor, "args", args)
+		logging.L().Debugw("command line execution:", "exec", f.Executor, "args", args)
 		cmd = exec.Command(f.Executor, args...)
 	}
 	envAsList := FetchEnv(f.Environment)
@@ -212,10 +212,10 @@ func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 	err = cmd.Run()
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	if err != nil {
-		logging.Logger.Sugar().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
+		logging.L().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
 		return err
 	}
-	logging.Logger.Sugar().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
+	logging.L().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
 
 	return nil
 }
@@ -237,34 +237,34 @@ func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 // error: An error if any validation checks fail.
 func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	if err := f.Act.Validate(); err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	if f.FilePath == "" {
 		err := errors.New("a TTP must include inline logic or path to a file with the logic")
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// If FilePath is set, ensure that the file exists.
 	fullpath, err := FindFilePath(f.FilePath, f.WorkDir, nil)
 	if err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Retrieve the absolute path to the file.
 	f.FilePath, err = FetchAbs(fullpath, f.WorkDir)
 	if err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Infer executor if it's not set.
 	if f.Executor == "" {
 		f.Executor = InferExecutor(f.FilePath)
-		logging.Logger.Sugar().Infow("executor set via extension", "exec", f.Executor)
+		logging.L().Infow("executor set via extension", "exec", f.Executor)
 	}
 
 	if f.Executor == ExecutorBinary {
@@ -272,17 +272,17 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	if _, err := exec.LookPath(f.Executor); err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	if f.CleanupStep != nil {
 		if err := f.CleanupStep.Validate(execCtx); err != nil {
-			logging.Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
+			logging.L().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
 	}
-	logging.Logger.Sugar().Debugw("command found in path", "executor", f.Executor)
+	logging.L().Debugw("command found in path", "executor", f.Executor)
 
 	return nil
 }
@@ -291,7 +291,7 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 // returns it as a string.
 func InferExecutor(filePath string) string {
 	ext := filepath.Ext(filePath)
-	logging.Logger.Sugar().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
+	logging.L().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
 	switch ext {
 	case ".sh":
 		return ExecutorSh

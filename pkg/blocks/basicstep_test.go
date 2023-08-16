@@ -23,16 +23,11 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/facebookincubator/ttpforge/pkg/logging"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	logging.ToggleDebug()
-}
 
 func TestUnmarshalBasic(t *testing.T) {
 	testCases := []struct {

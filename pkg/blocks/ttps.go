@@ -150,7 +150,7 @@ func (t *TTP) decodeSteps(steps []yaml.Node) error {
 				if decoded {
 					return fmt.Errorf("step #%v has ambiguous type", stepIdx+1)
 				}
-				logging.Logger.Sugar().Debugw("decoded step", "step", stepType)
+				logging.L().Debugw("decoded step", "step", stepType)
 				t.Steps = append(t.Steps, stepType)
 				decoded = true
 			}
@@ -196,30 +196,30 @@ func (t *TTP) setWorkingDirectory() error {
 //
 // error: An error if any step validation fails, otherwise nil.
 func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
-	logging.Logger.Sugar().Info("[*] Validating Steps")
+	logging.L().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
 		stepCopy := step
 		// pass in the directory
 		stepCopy.SetDir(t.WorkDir)
 		if err := stepCopy.Validate(execCtx); err != nil {
-			logging.Logger.Sugar().Errorw("failed to validate %s step: %v", step, zap.Error(err))
+			logging.L().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
 		}
 	}
-	logging.Logger.Sugar().Info("[+] Finished validating steps")
+	logging.L().Info("[+] Finished validating steps")
 	return nil
 }
 
 func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []CleanupAct, error) {
-	logging.Logger.Sugar().Infof("[+] Running current TTP: %s", t.Name)
+	logging.L().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()
 	execCtx.StepResults = stepResults
 	var cleanup []CleanupAct
 
 	for _, step := range t.Steps {
 		stepCopy := step
-		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
+		logging.L().Infof("[+] Running current step: %s", step.StepName())
 
 		execResult, err := stepCopy.Execute(execCtx)
 		if err != nil {
@@ -230,7 +230,7 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []C
 
 		// Enters in reverse order
 		cleanup = append(stepCopy.GetCleanup(), cleanup...)
-		logging.Logger.Sugar().Infof("[+] Finished running step: %s", step.StepName())
+		logging.L().Infof("[+] Finished running step: %s", step.StepName())
 	}
 	return stepResults, cleanup, nil
 }
@@ -260,25 +260,25 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	stepResults, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
 		// we need to run cleanup so we don't return here
-		logging.Logger.Sugar().Errorf("[*] Error executing TTP: %v", err)
+		logging.L().Errorf("[*] Error executing TTP: %v", err)
 	}
 
-	logging.Logger.Sugar().Info("[*] Completed TTP")
+	logging.L().Info("[*] Completed TTP")
 
 	if !execCtx.Cfg.NoCleanup {
 		if execCtx.Cfg.CleanupDelaySeconds > 0 {
-			logging.Logger.Sugar().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
+			logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
 			time.Sleep(time.Duration(execCtx.Cfg.CleanupDelaySeconds) * time.Second)
 		}
 		if len(cleanup) > 0 {
-			logging.Logger.Sugar().Info("[*] Beginning Cleanup")
+			logging.L().Info("[*] Beginning Cleanup")
 			if err := t.executeCleanupSteps(execCtx, cleanup, *stepResults); err != nil {
-				logging.Logger.Sugar().Errorw("error encountered in cleanup step: %v", err)
+				logging.L().Errorw("error encountered in cleanup step: %v", err)
 				return nil, err
 			}
-			logging.Logger.Sugar().Info("[*] Finished Cleanup")
+			logging.L().Info("[*] Finished Cleanup")
 		} else {
-			logging.Logger.Sugar().Info("[*] No Cleanup Steps Found")
+			logging.L().Info("[*] No Cleanup Steps Found")
 		}
 	}
 
@@ -291,7 +291,7 @@ func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []Cl
 
 		cleanupResult, err := stepCopy.Cleanup(execCtx)
 		if err != nil {
-			logging.Logger.Sugar().Errorw("error encountered in stepCopy cleanup: %v", err)
+			logging.L().Errorw("error encountered in stepCopy cleanup: %v", err)
 			return err
 		}
 		// since ByIndex and ByName both contain pointers to

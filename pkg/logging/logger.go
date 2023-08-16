@@ -26,70 +26,64 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Logger provides logging throughout the TTPForge.
-var Logger *zap.Logger
+// Config contains various formatting options for the global logger
+type Config struct {
+	Verbose    bool
+	LogFile    string
+	NoColor    bool
+	Stacktrace bool
+}
 
-// AtomLevel provides an atomically changeable, dynamic logging level.
-var AtomLevel zap.AtomicLevel
-var cfg zap.Config
+var logger *zap.SugaredLogger
 
 func init() {
-	// https://github.com/uber-go/zap/issues/648
-	// https://github.com/uber-go/zap/pull/307
-	AtomLevel = zap.NewAtomicLevel()
-	cfg = zap.NewDevelopmentConfig()
-	cfg.DisableStacktrace = true
-	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	cfg.Level = AtomLevel
-	// use sugared logger
-	var err error
-	Logger, err = cfg.Build()
+	// default logger - will be used in tests
+	err := InitLog(Config{})
 	if err != nil {
-		panic("failed to build logger")
+		// this should never fail - if it does
+		// something weird happened so we panic
+		panic(err)
 	}
 }
 
-// InitLog initializes the TTPForge's log file.
-func InitLog(nocolor bool, logfile string, verbose bool, stacktrace bool) (err error) {
-	if !nocolor {
-		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+// L returns the global logger for ttpforge
+func L() *zap.SugaredLogger {
+	return logger
+}
+
+// InitLog initializes TTPForge global logger
+func InitLog(config Config) (err error) {
+	zcfg := zap.NewDevelopmentConfig()
+	if config.NoColor {
+		zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	} else {
-		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+		zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
 
 	// setup Logger to write to file if provided
-	if logfile != "" {
-		var fullpath string
-		fullpath, err = filepath.Abs(logfile)
+	if config.LogFile != "" {
+		fullpath, err := filepath.Abs(config.LogFile)
 		if err != nil {
 			return err
 		}
-		cfg.OutputPaths = append(cfg.OutputPaths, fullpath)
+		zcfg.OutputPaths = append(zcfg.OutputPaths, fullpath)
 	}
 
-	if verbose {
-		AtomLevel.SetLevel(zap.DebugLevel)
+	if config.Verbose {
+		zcfg.Level.SetLevel(zap.DebugLevel)
+	} else {
+		zcfg.Level.SetLevel(zap.InfoLevel)
 	}
 
-	if stacktrace {
-		cfg.DisableStacktrace = false
+	if !config.Stacktrace {
+		zcfg.DisableStacktrace = true
 	}
 
 	// use sugared logger
-	Logger, err = cfg.Build()
+	baseLogger, err := zcfg.Build()
 	if err != nil {
 		return err
 	}
-
+	logger = baseLogger.Sugar()
 	return nil
-}
-
-// ToggleDebug is used to trigger debug logs.
-func ToggleDebug() {
-	if AtomLevel.Level() != zap.DebugLevel {
-		AtomLevel.SetLevel(zap.DebugLevel)
-	} else {
-		AtomLevel.SetLevel(zap.InfoLevel)
-		cfg.DisableStacktrace = true
-	}
 }

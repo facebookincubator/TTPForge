@@ -17,34 +17,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package logging
+package logging_test
 
 import (
 	"os"
-	"strings"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
 
 func TestInitLog(t *testing.T) {
-	t.Run("TestNoColor", func(t *testing.T) {
+	t.Run("TestStacktrace", func(t *testing.T) {
 		core, recordedLogs := observer.New(zapcore.InfoLevel)
-		Logger = zap.New(core)
 
-		if err := InitLog(true, "", false, false); err != nil {
-			t.Errorf("error running InitLog(): %v", err)
-		}
+		err := logging.InitLog(logging.Config{
+			Stacktrace: true,
+		})
+		require.NoError(t, err)
 
-		Logger = Logger.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+		logger := logging.L().WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
 
-		Logger.Info("Test message")
-		logs := recordedLogs.All()
-		if len(logs) != 1 || logs[0].Message != "Test message" {
-			t.Errorf("the Logger did not produce expected output: %+v", logs)
-		}
+		logger.Error("should produce a stack trace")
+
+		entries := recordedLogs.All()
+		require.Len(t, entries, 1)
+		assert.Contains(t, entries[0].Stack, "logger_test.go", "stack trace should contain the test log file")
 	})
 
 	t.Run("TestLogFile", func(t *testing.T) {
@@ -55,37 +57,38 @@ func TestInitLog(t *testing.T) {
 
 		defer os.Remove(tempFile.Name())
 
-		if err := InitLog(true, tempFile.Name(), false, false); err != nil {
-			t.Errorf("error running InitLog(): %v", err)
-		}
+		err = logging.InitLog(logging.Config{
+			LogFile: tempFile.Name(),
+		})
+		require.NoError(t, err)
 
 		testMessage := "Test log message"
-		Logger.Info(testMessage)
+		logging.L().Info(testMessage)
 
 		content, err := os.ReadFile(tempFile.Name())
-		if err != nil {
-			t.Errorf("failed to read log file: %v", err)
-		}
-
-		if !strings.Contains(string(content), testMessage) {
-			t.Errorf("log file does not contain expected message")
-		}
+		require.NoError(t, err)
+		assert.Contains(t, string(content), testMessage, "log file does not contain expected message")
 	})
 
 	t.Run("TestVerbose", func(t *testing.T) {
-		core, recordedLogs := observer.New(zapcore.DebugLevel)
-		Logger = zap.New(core)
-
-		if err := InitLog(true, "", true, true); err != nil {
-			t.Errorf("error running InitLog(): %v", err)
+		tempFile, err := os.CreateTemp("", "logfile")
+		if err != nil {
+			t.Fatalf("failed to create temp file: %v", err)
 		}
 
-		Logger = Logger.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+		defer os.Remove(tempFile.Name())
 
-		Logger.Debug("Test debug message")
-		logs := recordedLogs.All()
-		if len(logs) != 1 || logs[0].Message != "Test debug message" {
-			t.Errorf("the Logger did not produce expected debug output: %+v", logs)
-		}
+		err = logging.InitLog(logging.Config{
+			LogFile: tempFile.Name(),
+			Verbose: true,
+		})
+		require.NoError(t, err)
+
+		testMessage := "debug: should show up for verbose"
+		logging.L().Debug(testMessage)
+
+		content, err := os.ReadFile(tempFile.Name())
+		require.NoError(t, err)
+		assert.Contains(t, string(content), testMessage, "log file does not contain expected message")
 	})
 }

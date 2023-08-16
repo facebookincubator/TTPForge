@@ -51,7 +51,7 @@ import (
 func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	if path == "" {
 		err = errors.New("empty path provided")
-		logging.Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
+		logging.L().Errorw("failed to get fullpath", zap.Error(err))
 		return path, err
 	}
 
@@ -60,7 +60,7 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	case strings.HasPrefix(path, "~/"):
 		basePath, err = os.UserHomeDir()
 		if err != nil {
-			logging.Logger.Sugar().Errorw("failed to get home dir", zap.Error(err))
+			logging.L().Errorw("failed to get home dir", zap.Error(err))
 			return path, err
 		}
 		path = path[2:]
@@ -78,11 +78,11 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 
 	fullpath, err = filepath.Abs(filepath.Join(basePath, path))
 	if err != nil {
-		logging.Logger.Sugar().Errorw("failed to get fullpath", zap.Error(err))
+		logging.L().Errorw("failed to get fullpath", zap.Error(err))
 		return path, err
 	}
 
-	logging.Logger.Sugar().Debugw("Full path: ", "fullpath", fullpath)
+	logging.L().Debugw("Full path: ", "fullpath", fullpath)
 	return fullpath, nil
 }
 
@@ -106,20 +106,20 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 //
 // error: An error if the file cannot be found or if other errors occur.
 func FindFilePath(path string, workdir string, system fs.StatFS) (string, error) {
-	logging.Logger.Sugar().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
+	logging.L().Debugw("Attempting to find file path", "path", path, "workdir", workdir)
 
 	// Check if file exists using provided fs.StatFS
 	if system != nil {
 		fsPath := filepath.Join(workdir, path)
 		if _, err := system.Stat(fsPath); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				logging.Logger.Sugar().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
+				logging.L().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
 				return "", err
 			}
-			logging.Logger.Sugar().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
+			logging.L().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
 			return "", err
 		}
-		logging.Logger.Sugar().Debugw("File found using provided fs.StatFS", "path", path)
+		logging.L().Debugw("File found using provided fs.StatFS", "path", path)
 		return fsPath, nil
 
 	}
@@ -140,19 +140,19 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 	// Resolve the input path to an absolute path
 	absPath, err := FetchAbs(path, workdir)
 	if err != nil {
-		logging.Logger.Sugar().Errorw("failed to fetch absolute path", "path", path, "workdir", workdir, zap.Error(err))
+		logging.L().Errorw("failed to fetch absolute path", "path", path, "workdir", workdir, zap.Error(err))
 		return "", err
 	}
 
 	// Check if the absolute path exists
 	if _, err := os.Stat(absPath); !errors.Is(err, fs.ErrNotExist) {
-		logging.Logger.Sugar().Debugw("File found in absolute path", "absPath", absPath)
+		logging.L().Debugw("File found in absolute path", "absPath", absPath)
 		return absPath, nil
 	}
 
 	// If the file is not found in any of the locations, return an error
 	err = fmt.Errorf("invalid path %s provided", path)
-	logging.Logger.Sugar().Errorw("file not found in any location", "path", path, zap.Error(err))
+	logging.L().Errorw("file not found in any location", "path", path, zap.Error(err))
 	return "", err
 }
 

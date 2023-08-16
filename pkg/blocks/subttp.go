@@ -90,7 +90,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode(&substep); err != nil {
 		return err
 	}
-	logging.Logger.Sugar().Debugw("step found", "substep", substep)
+	logging.L().Debugw("step found", "substep", substep)
 
 	s.Act = &substep.Act
 	s.TtpFile = substep.TtpFile
@@ -115,13 +115,13 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
-	logging.Logger.Sugar().Infof("[*] Executing Sub TTP: %s", s.Name)
+	logging.L().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]Step)
 
 	var results []*ActResult
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
-		logging.Logger.Sugar().Infof("[+] Running current step: %s", step.StepName())
+		logging.L().Infof("[+] Running current step: %s", step.StepName())
 
 		result, err := stepCopy.Execute(s.subExecCtx)
 		if err != nil {
@@ -133,14 +133,14 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 
 		stepClean := stepCopy.GetCleanup()
 		if stepClean != nil {
-			logging.Logger.Sugar().Debugw("adding cleanup step", "cleanup", stepClean)
+			logging.L().Debugw("adding cleanup step", "cleanup", stepClean)
 			s.CleanupSteps = append(stepCopy.GetCleanup(), s.CleanupSteps...)
 		}
 
-		logging.Logger.Sugar().Infof("[+] Finished running step: %s", stepCopy.StepName())
+		logging.L().Infof("[+] Finished running step: %s", stepCopy.StepName())
 	}
 
-	logging.Logger.Sugar().Info("Finished execution of sub ttp file")
+	logging.L().Info("Finished execution of sub ttp file")
 
 	return &ExecutionResult{
 		ActResult: *aggregateResults(results),
@@ -169,14 +169,14 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 	s.ttp = ttps
 
 	// run validate to flesh out issues
-	logging.Logger.Sugar().Infof("[*] Validating Sub TTP: %s", s.Name)
+	logging.L().Infof("[*] Validating Sub TTP: %s", s.Name)
 	for _, step := range s.ttp.Steps {
 		stepCopy := step
 		if err := stepCopy.Validate(execCtx); err != nil {
 			return err
 		}
 	}
-	logging.Logger.Sugar().Infof("[*] Finished validating Sub TTP")
+	logging.L().Infof("[*] Finished validating Sub TTP")
 
 	return nil
 }
