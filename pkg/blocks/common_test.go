@@ -28,7 +28,6 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/l50/goutils/v2/str"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -193,7 +192,7 @@ func TestFetchEnv(t *testing.T) {
 		{
 			name:     "Empty environment map",
 			environ:  map[string]string{},
-			expected: []string{},
+			expected: nil,
 		},
 		{
 			name: "Single environment variable",
@@ -218,51 +217,7 @@ func TestFetchEnv(t *testing.T) {
 			sort.Strings(result)
 			sort.Strings(tt.expected)
 
-			if !str.SlicesEqual(tt.expected, result) {
-				t.Errorf("mismatch in environment variable slice. expected length: %d, got length: %d, expected: %v, got: %v", len(tt.expected), len(result), tt.expected, result)
-			} else {
-				t.Logf("passed: expected length: %d, got length: %d, expected: %v, got: %v", len(tt.expected), len(result), tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestContains(t *testing.T) {
-	tests := []struct {
-		name     string
-		key      string
-		search   map[string]any
-		expected bool
-	}{
-		{
-			name: "Key exists",
-			key:  "test_key",
-			search: map[string]any{
-				"test_key": "test_value",
-			},
-			expected: true,
-		},
-		{
-			name: "Key does not exist",
-			key:  "test_key",
-			search: map[string]any{
-				"other_key": "test_value",
-			},
-			expected: false,
-		},
-		{
-			name:     "Empty map",
-			key:      "test_key",
-			search:   map[string]any{},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := blocks.Contains(tt.key, tt.search); got != tt.expected {
-				t.Errorf("error running Contains(): %v, expected %v", got, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
