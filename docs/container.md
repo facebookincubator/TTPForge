@@ -75,31 +75,9 @@ locally, follow the steps below.
 Run the following commands to build the image locally:
 
 ```bash
-raw_arch=$(uname -m)
-case $raw_arch in
-   x86_64)
-         ARCH="amd64"
-         ;;
-   arm64)
-         ARCH="arm64"
-         ;;
-         *)
-         echo "Unsupported architecture: $raw_arch"
-         exit 1
-         ;;
-esac
-export ARCH
-
-# Change DOCKER_DEFAULT_PLATFORM if we're on an ARM-based system.
-if [[ $ARCH == "arm64" ]]; then
-      export DOCKER_DEFAULT_PLATFORM=linux/amd64
-fi
-
-# Build the Bash Dockerfile
-docker build --build-arg USER_ID=$(id -u) \
-         --build-arg GROUP_ID=$(id -g) \
-         -t facebookincubator/ttpforge \
-         -f .devcontainer/bash/Dockerfile .
+docker build \
+    -t ghcr.io/facebookincubator/ttpforge \
+    -f .devcontainer/bash/Dockerfile .
 ```
 
 ---
