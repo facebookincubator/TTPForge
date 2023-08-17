@@ -73,6 +73,10 @@ RUN python3 -m venv $HOME/venv \
 # Update PATH to include virtual environment
 ENV PATH=$HOME/venv/bin:$PATH
 
+# Run pre-commit install to initialize the hooks
+RUN . $HOME/venv/bin/activate \
+    && pre-commit install-hooks
+
 # Add the completion script to the user's .bashrc
 RUN echo '### Mage Autocomplete ###' >> $HOME/.bashrc \
     && echo '# This section will not run during a bats test.' >> $HOME/.bashrc \
