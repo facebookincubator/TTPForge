@@ -63,19 +63,24 @@ RUN echo "source /etc/bash_completion.d/mage_completion.sh" >> $HOME/.bashrc
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 COPY --chown=ttpforge . .
 
-# Setup Python environment
+# Setup Python environment, Go dependencies, and build
 RUN python3 -m venv $HOME/venv \
     && . $HOME/venv/bin/activate \
     && pip3 install --upgrade pip \
     "setuptools>=${SETUP_TOOLS_VER}" \
-    pre-commit
+    pre-commit \
+    && pre-commit install-hooks \
+    && go install github.com/magefile/mage@latest \
+    && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
+    && PATH=$HOME/venv/bin:$GOPATH/bin:$PATH \
+    && mage installDeps \
+    && mage \
+    && go mod tidy \
+    && go build -o ttpforge \
+    && rm ttpforge
 
-# Update PATH to include virtual environment
-ENV PATH=$HOME/venv/bin:$PATH
-
-# Run pre-commit install to initialize the hooks
-RUN . $HOME/venv/bin/activate \
-    && pre-commit install-hooks
+# Update PATH to include virtual environment and Go binaries
+ENV PATH=$HOME/venv/bin:$GOPATH/bin:$PATH
 
 # Add the completion script to the user's .bashrc
 RUN echo '### Mage Autocomplete ###' >> $HOME/.bashrc \
@@ -86,18 +91,5 @@ RUN echo '### Mage Autocomplete ###' >> $HOME/.bashrc \
     && echo '    __ltrim_colon_completions() { :; }' >> $HOME/.bashrc \
     && echo "    source \"/etc/bash_completion.d/mage_completion.sh\"" >> $HOME/.bashrc \
     && echo 'fi' >> $HOME/.bashrc
-
-# Install Go dependencies and build
-RUN go install github.com/magefile/mage@latest \
-    && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
-    && export PATH=$PATH:$GOPATH/bin \
-    && mage installDeps \
-    && mage \
-    && go mod tidy \
-    && go build -o ttpforge \
-    && rm ttpforge
-
-# Update PATH to include Go binaries
-ENV PATH=$GOPATH/bin:$PATH
 
 CMD ["bash"]
