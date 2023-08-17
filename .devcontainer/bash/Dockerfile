@@ -3,7 +3,7 @@ FROM golang:1.20.7-alpine
 LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
 
 ARG GITHUB_CLI_VERSION=2.32.1
-ARG SETUP_TOOLS_VER=65.5.1
+ARG SETUP_TOOLS_VER=65.5.1 # Necessary to remediate vulnerabilities in older versions
 
 # Install dependencies
 RUN apk add --no-cache \
@@ -16,11 +16,16 @@ RUN apk add --no-cache \
     gpgme \
     libc-dev \
     make \
+    nodejs \
+    npm \
     openssl-dev \
     python3 \
+    python3-dev \
     py3-pip \
     readline-dev \
+    ruby-dev \
     ruby-full \
+    shellcheck \
     sqlite-dev \
     unzip \
     vim \
@@ -49,14 +54,19 @@ ENV HOME=/home/ttpforge \
     GOPATH=/home/ttpforge/go \
     PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 
+
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 COPY --chown=ttpforge . .
 
 # Setup Python environment
 RUN python3 -m venv $HOME/venv \
     && . $HOME/venv/bin/activate \
-    && pip3 install --upgrade pip "setuptools>=${SETUP_TOOLS_VER}" pre-commit \
-    && pre-commit install
+    && pip3 install --upgrade pip \
+    "setuptools>=${SETUP_TOOLS_VER}" \
+    pre-commit
+
+# Update PATH to include virtual environment
+ENV PATH=$HOME/venv/bin:$PATH
 
 # Install Go dependencies and build
 RUN go install github.com/magefile/mage@latest \
@@ -67,5 +77,8 @@ RUN go install github.com/magefile/mage@latest \
     && go mod tidy \
     && go build -o ttpforge \
     && rm ttpforge
+
+# Update PATH to include Go binaries
+ENV PATH=$GOPATH/bin:$PATH
 
 CMD ["sh"]
