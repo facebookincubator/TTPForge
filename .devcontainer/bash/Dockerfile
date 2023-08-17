@@ -3,7 +3,7 @@ FROM golang:1.20.7-alpine
 LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
 
 ARG GITHUB_CLI_VERSION=2.32.1
-ARG SETUP_TOOLS_VER=65.5.1 # Necessary to remediate vulnerabilities in older versions
+ARG SETUP_TOOLS_VER=65.5.1 # Avoid vulnerable versions
 
 # Install dependencies
 RUN apk add --no-cache \
@@ -37,6 +37,9 @@ RUN adduser -D -s /bin/sh ttpforge \
     && mkdir -p /home/ttpforge/go/src/github.com/facebookincubator/TTPForge \
     && chown -R ttpforge:ttpforge /home/ttpforge
 
+# Copy mage_completion.sh
+COPY .devcontainer/bash/files/mage_completion.sh /etc/bash_completion.d/
+
 # Install GitHub CLI
 RUN export ARCH="$(uname -m)" \
     && case ${ARCH} in \
@@ -54,6 +57,8 @@ ENV HOME=/home/ttpforge \
     GOPATH=/home/ttpforge/go \
     PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
 
+# Add the completion script to the user's .bashrc
+RUN echo "source /etc/bash_completion.d/mage_completion.sh" >> $HOME/.bashrc
 
 WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
 COPY --chown=ttpforge . .
@@ -68,6 +73,16 @@ RUN python3 -m venv $HOME/venv \
 # Update PATH to include virtual environment
 ENV PATH=$HOME/venv/bin:$PATH
 
+# Add the completion script to the user's .bashrc
+RUN echo '### Mage Autocomplete ###' >> $HOME/.bashrc \
+    && echo '# This section will not run during a bats test.' >> $HOME/.bashrc \
+    && echo 'if [[ $RUNNING_BATS_TEST != 1 ]]; then' >> $HOME/.bashrc \
+    && echo '    # The functions below are required for mage autocomplete' >> $HOME/.bashrc \
+    && echo '    _get_comp_words_by_ref() { :; }' >> $HOME/.bashrc \
+    && echo '    __ltrim_colon_completions() { :; }' >> $HOME/.bashrc \
+    && echo "    source \"/etc/bash_completion.d/mage_completion.sh\"" >> $HOME/.bashrc \
+    && echo 'fi' >> $HOME/.bashrc
+
 # Install Go dependencies and build
 RUN go install github.com/magefile/mage@latest \
     && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
@@ -81,4 +96,4 @@ RUN go install github.com/magefile/mage@latest \
 # Update PATH to include Go binaries
 ENV PATH=$GOPATH/bin:$PATH
 
-CMD ["sh"]
+CMD ["bash"]
