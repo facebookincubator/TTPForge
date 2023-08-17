@@ -23,16 +23,11 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	logging.ToggleDebug()
-}
 
 // TestAmbiguousStepType verifies that we error
 // out appropriately when an ambiguously-typed

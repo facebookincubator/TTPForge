@@ -84,9 +84,9 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 		return nil
 	}
 
-	logging.Logger.Sugar().Debugw("step", "name", tmpl.Name)
+	logging.L().Debugw("step", "name", tmpl.Name)
 	cleanup, err := b.MakeCleanupStep(&tmpl.CleanupStep)
-	logging.Logger.Sugar().Debugw("step", "err", err)
+	logging.L().Debugw("step", "err", err)
 	if err != nil {
 		return err
 	}
@@ -146,20 +146,20 @@ func (b *BasicStep) IsNil() bool {
 func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	// Validate Act
 	if err := b.Act.Validate(); err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Check if Inline is provided
 	if b.Inline == "" {
 		err := errors.New("inline must be provided")
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Set Executor to "bash" if it is not provided
 	if b.Executor == "" && b.Inline != "" {
-		logging.Logger.Sugar().Debug("defaulting to bash since executor was not provided")
+		logging.L().Debug("defaulting to bash since executor was not provided")
 		b.Executor = "bash"
 	}
 
@@ -170,19 +170,19 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 
 	// Check if the executor is in the system path
 	if _, err := exec.LookPath(b.Executor); err != nil {
-		logging.Logger.Sugar().Error(zap.Error(err))
+		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Validate CleanupStep if it is not nil
 	if b.CleanupStep != nil {
 		if err := b.CleanupStep.Validate(execCtx); err != nil {
-			logging.Logger.Sugar().Errorw("error validating cleanup step", zap.Error(err))
+			logging.L().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
 	}
 
-	logging.Logger.Sugar().Debugw("command found in path", "executor", b.Executor)
+	logging.L().Debugw("command found in path", "executor", b.Executor)
 
 	return nil
 }
@@ -192,7 +192,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 
-	logging.Logger.Sugar().Info("========= Executing ==========")
+	logging.L().Info("========= Executing ==========")
 
 	if b.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
@@ -203,7 +203,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 		return nil, err
 	}
 
-	logging.Logger.Sugar().Info("========= Done ==========")
+	logging.L().Info("========= Done ==========")
 
 	return result, nil
 }

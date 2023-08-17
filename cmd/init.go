@@ -34,7 +34,7 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// initialization will be handled by config checking code
-			logging.Logger.Sugar().Infof("TTPForge Initialized. Now try `ttpforge run` :)")
+			logging.L().Infof("TTPForge Initialized. Now try `ttpforge run` :)")
 			return nil
 		},
 	}

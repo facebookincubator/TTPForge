@@ -17,23 +17,23 @@ The `logging` package is a part of the TTPForge.
 
 ## Functions
 
-### InitLog(bool, string, bool, bool)
+### InitLog(Config)
 
 ```go
-InitLog(bool, string, bool, bool) error
+InitLog(Config) error
 ```
 
-InitLog initializes the TTPForge's log file.
+InitLog initializes TTPForge global logger
 
 ---
 
-### ToggleDebug()
+### L()
 
 ```go
-ToggleDebug()
+L() *zap.SugaredLogger
 ```
 
-ToggleDebug is used to trigger debug logs.
+L returns the global logger for ttpforge
 
 ---
 

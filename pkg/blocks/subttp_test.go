@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
@@ -32,10 +31,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	logging.ToggleDebug()
-}
 
 func makeTestFsForSubTTPs(t *testing.T) afero.Fs {
 	fsys, err := testutils.MakeAferoTestFs(map[string][]byte{

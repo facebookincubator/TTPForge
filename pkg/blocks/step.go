@@ -224,18 +224,18 @@ func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
 
 	basic, berr := a.tryDecodeBasicStep(node)
 	if berr == nil && !basic.IsNil() {
-		logging.Logger.Sugar().Debugw("cleanup step found", "basicstep", basic)
+		logging.L().Debugw("cleanup step found", "basicstep", basic)
 		return basic, nil
 	}
 
 	file, ferr := a.tryDecodeFileStep(node)
 	if ferr == nil && !file.IsNil() {
-		logging.Logger.Sugar().Debugw("cleanup step found", "filestep", file)
+		logging.L().Debugw("cleanup step found", "filestep", file)
 		return file, nil
 	}
 
 	err := fmt.Errorf("invalid parameters for cleanup steps with basic [%v], file [%v]", berr, ferr)
-	logging.Logger.Sugar().Errorw(err.Error(), zap.Error(err))
+	logging.L().Errorw(err.Error(), zap.Error(err))
 	return nil, err
 }
 

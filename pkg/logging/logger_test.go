@@ -17,75 +17,102 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package logging
+package logging_test
 
 import (
 	"os"
-	"strings"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
 
+// TestInitLogStacktraceNoLogfile verifies that the stack trace
+// logging flag works correctly - it uses observer
+// rather than a log file to test the "no log file" branch as well,
+// which is why it is non-redundant with the file-based logging tests
+// found later in this file
+func TestInitLogStacktraceNoLogfile(t *testing.T) {
+	core, recordedLogs := observer.New(zapcore.InfoLevel)
+
+	err := logging.InitLog(logging.Config{
+		Stacktrace: true,
+	})
+	require.NoError(t, err)
+
+	logger := logging.L().WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+
+	logger.Error("should produce a stack trace")
+
+	entries := recordedLogs.All()
+	require.Len(t, entries, 1)
+	assert.Contains(t, entries[0].Stack, "logger_test.go", "stack trace should contain the test log file")
+}
+
+// TestInitLog verifies that the various logging flags work -
+// it uses a log file for all cases because
+// flags like Verbose are easier to check when the output
+// is sent to a file rather than through observer
 func TestInitLog(t *testing.T) {
-	t.Run("TestNoColor", func(t *testing.T) {
-		core, recordedLogs := observer.New(zapcore.InfoLevel)
-		Logger = zap.New(core)
 
-		if err := InitLog(true, "", false, false); err != nil {
-			t.Errorf("error running InitLog(): %v", err)
-		}
+	tests := []struct {
+		name      string
+		config    logging.Config
+		logFunc   func(t *testing.T, testLogger *zap.SugaredLogger)
+		checkFunc func(t *testing.T, logFileContents string)
+	}{
+		{
+			name: "verbose",
+			config: logging.Config{
+				Verbose: true,
+			},
+			logFunc: func(t *testing.T, testLogger *zap.SugaredLogger) {
+				testLogger.Debug("hello, world")
+			},
+			checkFunc: func(t *testing.T, logFileContents string) {
+				assert.Contains(t, logFileContents, "hello, world")
+			},
+		},
+		{
+			name: "no-color",
+			config: logging.Config{
+				NoColor: true,
+			},
+			logFunc: func(t *testing.T, testLogger *zap.SugaredLogger) {
+				testLogger.Info("no color")
+			},
+			checkFunc: func(t *testing.T, logFileContents string) {
+				// ANSI reset code
+				assert.NotContains(t, logFileContents, "\x1b[0m")
+			},
+		},
+	}
 
-		Logger = Logger.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// use a temporary log file for each test case
+			tempFile, err := os.CreateTemp("", "logger_test")
+			require.NoError(t, err)
+			logFile := tempFile.Name()
+			defer os.Remove(logFile)
+			cfg := tc.config
+			cfg.LogFile = logFile
 
-		Logger.Info("Test message")
-		logs := recordedLogs.All()
-		if len(logs) != 1 || logs[0].Message != "Test message" {
-			t.Errorf("the Logger did not produce expected output: %+v", logs)
-		}
-	})
+			// initialize the logger for this test case
+			err = logging.InitLog(cfg)
+			require.NoError(t, err)
 
-	t.Run("TestLogFile", func(t *testing.T) {
-		tempFile, err := os.CreateTemp("", "logfile")
-		if err != nil {
-			t.Fatalf("failed to create temp file: %v", err)
-		}
+			// actually create logs
+			tc.logFunc(t, logging.L())
 
-		defer os.Remove(tempFile.Name())
-
-		if err := InitLog(true, tempFile.Name(), false, false); err != nil {
-			t.Errorf("error running InitLog(): %v", err)
-		}
-
-		testMessage := "Test log message"
-		Logger.Info(testMessage)
-
-		content, err := os.ReadFile(tempFile.Name())
-		if err != nil {
-			t.Errorf("failed to read log file: %v", err)
-		}
-
-		if !strings.Contains(string(content), testMessage) {
-			t.Errorf("log file does not contain expected message")
-		}
-	})
-
-	t.Run("TestVerbose", func(t *testing.T) {
-		core, recordedLogs := observer.New(zapcore.DebugLevel)
-		Logger = zap.New(core)
-
-		if err := InitLog(true, "", true, true); err != nil {
-			t.Errorf("error running InitLog(): %v", err)
-		}
-
-		Logger = Logger.WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
-
-		Logger.Debug("Test debug message")
-		logs := recordedLogs.All()
-		if len(logs) != 1 || logs[0].Message != "Test debug message" {
-			t.Errorf("the Logger did not produce expected debug output: %+v", logs)
-		}
-	})
+			// read back result
+			content, err := os.ReadFile(logFile)
+			require.NoError(t, err)
+			tc.checkFunc(t, string(content))
+		})
+	}
 }

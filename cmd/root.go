@@ -23,37 +23,28 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
-	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-// Config maintains variables used throughout the TTPForge.
+// Config stores the variables from the TTPForge global config file
 type Config struct {
-	Verbose       bool     `mapstructure:"verbose"`
-	Logfile       string   `mapstructure:"logfile"`
-	NoColor       bool     `mapstructure:"nocolor"`
-	InventoryPath []string `mapstructure:"inventory"`
-	StackTrace    bool     `mapstructure:"stacktrace"`
-
-	RepoSpecs []repos.Spec `mapstructure:"repos"`
+	RepoSpecs []repos.Spec `yaml:"repos"`
 
 	repoCollection repos.RepoCollection
 	cfgFile        string
 }
 
 var (
-	// Logger is used to facilitate logging throughout TTPForge.
-	Logger *zap.Logger
 	// Conf refers to the configuration used throughout TTPForge.
 	Conf = &Config{}
+
+	logConfig logging.Config
 
 	rootCmd = &cobra.Command{
 		Use:   "ttpforge",
@@ -84,52 +75,17 @@ func Execute(eo ExecOptions) {
 }
 
 func init() {
-	Logger = logging.Logger
-	// cobra.OnInitialize(initConfig)
-
-	// These flags are set using Cobra only, so we populate
-	// the Conf.* variables directly reference the unset values
-	// in the struct Config above.
+	// shared flags across commands - mostly logging
 	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "", "Config file")
-	rootCmd.PersistentFlags().BoolVar(&Conf.StackTrace, "stacktrace", false, "Show stacktrace when logging error")
-	rootCmd.PersistentFlags().StringArrayVar(&Conf.InventoryPath, "inventory", []string{"."}, "list of paths to search for ttps")
-	// Notice here that the values from the command line are not
-	// populated in this instance. This is because we are using viper in
-	// addition to cobra to manage these values - Cobra will look for these
-	// values on the command line. If the values are not present,
-	// then Viper uses values found in the config file (if present).
-	_ = rootCmd.PersistentFlags().Bool("nocolor", false, "disable colored output")
-	_ = rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose logging")
-	_ = rootCmd.PersistentFlags().StringP("logfile", "l", "", "Enable logging to file.")
-
-	err := viper.BindPFlag("nocolor", rootCmd.PersistentFlags().Lookup("nocolor"))
-	cobra.CheckErr(err)
-	err = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
-	cobra.CheckErr(err)
-	err = viper.BindPFlag("logfile", rootCmd.PersistentFlags().Lookup("logfile"))
-	cobra.CheckErr(err)
-	err = viper.BindPFlag("inventory", rootCmd.PersistentFlags().Lookup("inventory"))
-	cobra.CheckErr(err)
-	err = viper.BindPFlag("stacktrace", rootCmd.PersistentFlags().Lookup("stacktrace"))
-	cobra.CheckErr(err)
-
-	// Errors caught by this are not actioned upon.
-	// The decision making for that is documented
-	// [here](https://github.com/facebookincubator/TTPForge/issues/55)
-	if err := rootCmd.PersistentFlags().Parse(os.Args); err != nil {
-		logging.Logger.Sugar().Debugw("failed to parse os args", os.Args, err)
-	}
-
-	verbose, err := strconv.ParseBool(rootCmd.PersistentFlags().Lookup("verbose").Value.String())
-	cobra.CheckErr(err)
-
-	if verbose {
-		logging.ToggleDebug()
-	}
+	rootCmd.PersistentFlags().BoolVar(&logConfig.Stacktrace, "stack-trace", false, "Show stacktrace when logging error")
+	rootCmd.PersistentFlags().BoolVar(&logConfig.NoColor, "no-color", false, "disable colored output")
+	rootCmd.PersistentFlags().BoolVarP(&logConfig.Verbose, "verbose", "v", false, "verbose logging")
+	rootCmd.PersistentFlags().StringVarP(&logConfig.LogFile, "logfile", "l", "", "Enable logging to file.")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// find config file
 	if Conf.cfgFile == "" {
 		if !autoInitConfig {
 			err := errors.New("config auto-init disabled: you must specify a config file manually")
@@ -140,21 +96,13 @@ func initConfig() {
 		cobra.CheckErr(err)
 		Conf.cfgFile = defaultConfigPath
 	}
-	viper.SetConfigFile(Conf.cfgFile)
 
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		logging.Logger.Sugar().Infof("Using config file: %s", viper.ConfigFileUsed())
-	} else {
-		cobra.CheckErr(err)
-	}
-
-	if err := viper.Unmarshal(Conf, func(config *mapstructure.DecoderConfig) {
-		config.IgnoreUntaggedFields = true
-	}); err != nil {
-		cobra.CheckErr(err)
-	}
+	// load config file
+	logging.L().Infof("Using config file: %s", Conf.cfgFile)
+	cfgContents, err := os.ReadFile(Conf.cfgFile)
+	cobra.CheckErr(err)
+	err = yaml.Unmarshal(cfgContents, Conf)
+	cobra.CheckErr(err)
 
 	// expand config-relative paths
 	cfgDir := filepath.Dir(Conf.cfgFile)
@@ -166,7 +114,6 @@ func initConfig() {
 	cobra.CheckErr(err)
 	Conf.repoCollection = rc
 
-	err = logging.InitLog(Conf.NoColor, Conf.Logfile, Conf.Verbose, Conf.StackTrace)
+	err = logging.InitLog(logConfig)
 	cobra.CheckErr(err)
-	Logger = logging.Logger
 }
