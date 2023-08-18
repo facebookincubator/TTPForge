@@ -214,26 +214,6 @@ Validate validates the BasicStep, checking for the necessary attributes and depe
 
 ---
 
-### Contains(string, map[string]any)
-
-```go
-Contains(string, map[string]any) bool
-```
-
-Contains checks if a key exists in a map.
-
-**Parameters:**
-
-key: A string representing the key to search for.
-
-search: A map of keys and values.
-
-**Returns:**
-
-bool: A boolean value indicating if the key was found in the map.
-
----
-
 ### EditStep.Execute(TTPExecutionContext)
 
 ```go
