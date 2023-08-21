@@ -63,3 +63,18 @@ and follow along.
    ```bash
    go build -o ttpforge
    ```
+
+## Uninstall pre-commit
+
+If you want to hold off on pre-commit until your code is at a certain point,
+you can disable it locally:
+
+```bash
+pre-commit uninstall
+```
+
+Once you want to get feedback from pre-commit, reinstall it with:
+
+```bash
+pre-commit install
+```

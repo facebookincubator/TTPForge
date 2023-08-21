@@ -1,63 +1,95 @@
-FROM golang:1.20.7
+FROM golang:1.20.7-alpine
 
-# Set build-time arguments for user and group IDs
-ARG USER_ID=1000
-ARG GROUP_ID=1000
+LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
 
-# Install necessary dependencies
-RUN DEBIAN_FRONTEND="noninteractive" apt-get update \
-    && apt-get install -y bison curl git python3 python3-pip python3-venv ruby-full shellcheck unzip vim
+ARG GITHUB_CLI_VERSION=2.32.1
+ARG SETUP_TOOLS_VER=65.5.1 # Avoid vulnerable versions
 
-# Copy the codebase
-COPY --chown=ttpforge . /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-
-# Create a virtual environment and install pre-commit
-WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
-RUN python3 -m venv /opt/venv || exit 1 \
-    && . /opt/venv/bin/activate \
-    && pip install --upgrade pre-commit || exit 1 \
-    && pre-commit install || exit 1
-
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Install GitHub CLI
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y gh
-
-# Install Terragrunt
-RUN TERRAGRUNT_VERSION="0.45.2" \
-    && curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_amd64 -o /tmp/terragrunt \
-    && install -o root -g root -m 0755 /tmp/terragrunt /usr/local/bin/terragrunt \
-    && rm /tmp/terragrunt
+# Install dependencies
+RUN apk add --no-cache \
+    bash \
+    binutils-gold \
+    build-base \
+    curl \
+    gcc \
+    git \
+    gpgme \
+    libc-dev \
+    make \
+    nodejs \
+    npm \
+    openssl-dev \
+    python3 \
+    python3-dev \
+    py3-pip \
+    readline-dev \
+    ruby-dev \
+    ruby-full \
+    shellcheck \
+    sqlite-dev \
+    unzip \
+    vim \
+    yaml-dev \
+    zlib-dev
 
 # Create the ttpforge user and change ownership of the necessary directories
-RUN useradd -m -s /bin/bash ttpforge \
+RUN adduser -D -s /bin/sh ttpforge \
     && mkdir -p /home/ttpforge/go/src/github.com/facebookincubator/TTPForge \
     && chown -R ttpforge:ttpforge /home/ttpforge
 
-# Set the 'ttpforge' user as the default user
-USER ttpforge
-ENV GOPATH=/home/ttpforge/go
-ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
-WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+# Copy mage_completion.sh
+COPY .devcontainer/bash/files/mage_completion.sh /etc/bash_completion.d/
 
-# Install go dependencies
-RUN /bin/bash -c " \
-    go install github.com/magefile/mage@latest \
+# Install GitHub CLI
+RUN export ARCH="$(uname -m)" \
+    && case ${ARCH} in \
+       x86_64) ARCH='amd64' ;; \
+       aarch64) ARCH='arm64' ;; \
+       arm*) ARCH='armv6' ;; \
+       *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+       esac \
+    && curl -sSL "https://github.com/cli/cli/releases/download/v${GITHUB_CLI_VERSION}/gh_${GITHUB_CLI_VERSION}_linux_${ARCH}.tar.gz" | tar xz \
+    && mv "gh_${GITHUB_CLI_VERSION}_linux_${ARCH}/bin/gh" /usr/local/bin \
+    && gh --version
+
+USER ttpforge
+ENV HOME=/home/ttpforge \
+    GOPATH=/home/ttpforge/go \
+    PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:/home/ttpforge/.local/bin
+
+# Add the completion script to the user's .bashrc
+RUN echo "source /etc/bash_completion.d/mage_completion.sh" >> $HOME/.bashrc
+
+WORKDIR /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+COPY --chown=ttpforge . .
+
+# Setup Python environment, Go dependencies, and build
+RUN python3 -m venv $HOME/venv \
+    && . $HOME/venv/bin/activate \
+    && pip3 install --upgrade pip \
+    "setuptools>=${SETUP_TOOLS_VER}" \
+    pre-commit \
+    && pre-commit install-hooks \
+    && go install github.com/magefile/mage@latest \
     && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
-    # Install project dependencies
+    && PATH=$HOME/venv/bin:$GOPATH/bin:$PATH \
     && mage installDeps \
     && mage \
-    # Run go mod tidy and build the project
-    # to speed up builds
     && go mod tidy \
     && go build -o ttpforge \
-    # Clean up the compiled bin
-    && rm ttpforge"
+    && rm ttpforge
 
-# Remove the copied repository content
-RUN rm -rf /home/ttpforge/go/src/github.com/facebookincubator/ttpforge
+# Update PATH to include virtual environment and Go binaries
+ENV PATH=$HOME/venv/bin:$GOPATH/bin:$PATH
+
+# Add the completion script to the user's .bashrc
+RUN echo '### Mage Autocomplete ###' >> $HOME/.bashrc \
+    && echo '# This section will not run during a bats test.' >> $HOME/.bashrc \
+    && echo 'if [[ $RUNNING_BATS_TEST != 1 ]]; then' >> $HOME/.bashrc \
+    && echo '    # The functions below are required for mage autocomplete' >> $HOME/.bashrc \
+    && echo '    _get_comp_words_by_ref() { :; }' >> $HOME/.bashrc \
+    && echo '    __ltrim_colon_completions() { :; }' >> $HOME/.bashrc \
+    && echo "    source \"/etc/bash_completion.d/mage_completion.sh\"" >> $HOME/.bashrc \
+    && echo 'fi' >> $HOME/.bashrc
 
 CMD ["bash"]
