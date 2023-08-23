@@ -30,19 +30,14 @@ targets and mediums.
 1. Get latest TTPForge release:
 
    ```bash
-   # Download utility functions
    bashutils_url="https://raw.githubusercontent.com/l50/dotfiles/main/bashutils"
 
-   # Define the local path of bashutils.sh
    bashutils_path="/tmp/bashutils"
 
    if [[ ! -f "${bashutils_path}" ]]; then
-      # bashutils.sh doesn't exist locally, so download it
       curl -s "${bashutils_url}" -o "${bashutils_path}"
    fi
 
-   # Source bashutils
-   # shellcheck source=/dev/null
    source "${bashutils_path}"
 
    fetchFromGithub "facebookincubator" "TTPForge" "v1.0.3" ttpforge
