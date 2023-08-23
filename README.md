@@ -27,12 +27,6 @@ targets and mediums.
 
 ## Getting started as a user
 
-1. Download and install the [gh cli tool](https://cli.github.com/):
-
-- [macOS](https://github.com/cli/cli#macos)
-- [Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
-- [Windows](https://github.com/cli/cli#windows)
-
 1. Get latest TTPForge release:
 
    ```bash
@@ -59,6 +53,13 @@ targets and mediums.
 
    At this point, the latest `ttpforge` release should be in
    `~/.local/bin/ttpforge` and subsequently, the `$USER`'s `$PATH`.
+
+   If running in a stripped down system, you can add TTPForge to your `$PATH`
+   with the following command:
+
+   ```bash
+   export PATH=$HOME/.local/bin:$PATH
+   ```
 
 1. Initialize TTPForge configuration
 
