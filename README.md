@@ -27,35 +27,34 @@ targets and mediums.
 
 ## Getting started as a user
 
-1. Download and install the [gh cli tool](https://cli.github.com/):
-
-- [macOS](https://github.com/cli/cli#macos)
-- [Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
-- [Windows](https://github.com/cli/cli#windows)
-
 1. Get latest TTPForge release:
 
    ```bash
-   # Download utility functions
    bashutils_url="https://raw.githubusercontent.com/l50/dotfiles/main/bashutils"
 
-   # Define the local path of bashutils.sh
    bashutils_path="/tmp/bashutils"
 
    if [[ ! -f "${bashutils_path}" ]]; then
-      # bashutils.sh doesn't exist locally, so download it
       curl -s "${bashutils_url}" -o "${bashutils_path}"
    fi
 
-   # Source bashutils
-   # shellcheck source=/dev/null
    source "${bashutils_path}"
 
-   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.1" ttpforge $GITHUB_TOKEN
+   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.3" ttpforge
+
+   # Optionally, if you are using the `gh` cli:
+   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.3" ttpforge $GITHUB_TOKEN
    ```
 
    At this point, the latest `ttpforge` release should be in
    `~/.local/bin/ttpforge` and subsequently, the `$USER`'s `$PATH`.
+
+   If running in a stripped down system, you can add TTPForge to your `$PATH`
+   with the following command:
+
+   ```bash
+   export PATH=$HOME/.local/bin:$PATH
+   ```
 
 1. Initialize TTPForge configuration
 
