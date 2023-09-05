@@ -56,6 +56,8 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
 		},
+		// we will print our own errors with pretty formatting
+		SilenceErrors: true,
 	}
 )
 
@@ -67,11 +69,17 @@ type ExecOptions struct {
 	AutoInitConfig bool
 }
 
-// Execute adds child commands to the root
-// command and sets flags appropriately.
-func Execute(eo ExecOptions) {
+// Execute sets up runtime configuration for the root command
+// and adds formatted error handling
+func Execute(eo ExecOptions) error {
 	autoInitConfig = eo.AutoInitConfig
-	cobra.CheckErr(rootCmd.Execute())
+	if err := rootCmd.Execute(); err != nil {
+		// we want our own log formatting (for pretty colors)
+		// so we don't use cobra.CheckErr
+		logging.L().Errorf("failed to run command: %v", err)
+		return err
+	}
+	return nil
 }
 
 func init() {

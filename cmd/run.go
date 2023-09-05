@@ -46,6 +46,9 @@ func RunTTPCmd() *cobra.Command {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
 			}
 
+			// don't want confusing usage display for errors past this point
+			cmd.SilenceUsage = true
+
 			// load TTP and process argument values
 			// based on the TTPs argument value specifications
 			c := blocks.TTPExecutionConfig{
