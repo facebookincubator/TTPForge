@@ -56,7 +56,7 @@ func RunTTPCmd() *cobra.Command {
 			}
 			ttp, err := blocks.LoadTTP(ttpAbsPath, nil, &c, argsList)
 			if err != nil {
-				return fmt.Errorf("could not load TTP at %v: %v", ttpAbsPath, err)
+				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}
 
 			if _, err := ttp.RunSteps(c); err != nil {
