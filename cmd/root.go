@@ -76,7 +76,7 @@ func Execute(eo ExecOptions) error {
 	if err := rootCmd.Execute(); err != nil {
 		// we want our own log formatting (for pretty colors)
 		// so we don't use cobra.CheckErr
-		logging.L().Errorf("failed to run command: %v", err)
+		logging.L().Errorf("failed to run command:\n\t%v", err)
 		return err
 	}
 	return nil
@@ -106,7 +106,7 @@ func initConfig() {
 	}
 
 	// load config file
-	logging.L().Infof("Using config file: %s", Conf.cfgFile)
+	logging.L().Debugf("Using config file: %s", Conf.cfgFile)
 	cfgContents, err := os.ReadFile(Conf.cfgFile)
 	cobra.CheckErr(err)
 	err = yaml.Unmarshal(cfgContents, Conf)
