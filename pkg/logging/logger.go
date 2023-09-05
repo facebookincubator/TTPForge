@@ -73,6 +73,9 @@ func InitLog(config Config) (err error) {
 		zcfg.Level.SetLevel(zap.DebugLevel)
 	} else {
 		zcfg.Level.SetLevel(zap.InfoLevel)
+		// hide fields that will confuse users during simple user errors
+		zcfg.EncoderConfig.CallerKey = zapcore.OmitKey
+		zcfg.EncoderConfig.TimeKey = zapcore.OmitKey
 	}
 
 	if !config.Stacktrace {

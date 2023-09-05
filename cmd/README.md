@@ -20,11 +20,11 @@ The `cmd` package is a part of the TTPForge.
 ### Execute(ExecOptions)
 
 ```go
-Execute(ExecOptions)
+Execute(ExecOptions) error
 ```
 
-Execute adds child commands to the root
-command and sets flags appropriately.
+Execute sets up runtime configuration for the root command
+and adds formatted error handling
 
 ---
 
