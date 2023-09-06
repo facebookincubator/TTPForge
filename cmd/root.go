@@ -125,7 +125,9 @@ func initConfig() {
 	cobra.CheckErr(err)
 
 	// expand config-relative paths
-	cfgDir := filepath.Dir(Conf.cfgFile)
+	cfgFileAbsPath, err := filepath.Abs(Conf.cfgFile)
+	cobra.CheckErr(err)
+	cfgDir := filepath.Dir(cfgFileAbsPath)
 	fsys := afero.NewOsFs()
 	for specIdx, curSpec := range Conf.RepoSpecs {
 		Conf.RepoSpecs[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)

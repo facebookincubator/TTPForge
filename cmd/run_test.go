@@ -28,7 +28,6 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	// testResourcesTTPsDir := filepath.Join("test-resources", "ttps")
 	testConfigFilePath := filepath.Join("test-resources", "test-config.yaml")
 	testCases := []struct {
 		name      string

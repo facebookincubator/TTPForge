@@ -49,7 +49,7 @@ func buildRunCommand() *cobra.Command {
 			c := blocks.TTPExecutionConfig{
 				Repo: foundRepo,
 			}
-			ttp, err := blocks.LoadTTP(ttpAbsPath, nil, &c, argsList)
+			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &c, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}
