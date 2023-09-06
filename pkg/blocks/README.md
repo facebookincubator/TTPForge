@@ -472,7 +472,7 @@ If the file is empty or contains invalid data, it returns an error.
 
 **Parameters:**
 
-ttpAbsPath: the absolute or relative path to the TTP YAML file.
+ttpFilePath: the absolute or relative path to the TTP YAML file.
 fsys: an afero.Fs that contains the specified TTP file path
 
 **Returns:**
