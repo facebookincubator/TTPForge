@@ -26,8 +26,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	showTTPCmd = &cobra.Command{
+func buildShowTTPCommand() *cobra.Command {
+
+	return &cobra.Command{
 		Use:              "ttp",
 		Short:            "displays the contents of the TTP specified by the provided reference",
 		TraverseChildren: true,
@@ -46,8 +47,4 @@ var (
 			return nil
 		},
 	}
-)
-
-func init() {
-	showCmd.AddCommand(showTTPCmd)
 }

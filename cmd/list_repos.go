@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	listReposCmd = &cobra.Command{
+func buildListReposCommand() *cobra.Command {
+	return &cobra.Command{
 		Use:              "repos",
 		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
 		TraverseChildren: true,
@@ -37,8 +37,4 @@ var (
 			return nil
 		},
 	}
-)
-
-func init() {
-	listCmd.AddCommand(listReposCmd)
 }

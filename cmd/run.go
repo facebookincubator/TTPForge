@@ -26,12 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(RunTTPCmd())
-}
-
-// RunTTPCmd runs an input TTP.
-func RunTTPCmd() *cobra.Command {
+func buildRunCommand() *cobra.Command {
 	var argsList []string
 	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{

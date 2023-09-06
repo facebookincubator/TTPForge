@@ -45,20 +45,6 @@ var (
 	Conf = &Config{}
 
 	logConfig logging.Config
-
-	rootCmd = &cobra.Command{
-		Use:   "ttpforge",
-		Short: "Execute TTPs.",
-		Long: `
-TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
-    `,
-		TraverseChildren: true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			initConfig()
-		},
-		// we will print our own errors with pretty formatting
-		SilenceErrors: true,
-	}
 )
 
 // ExecOptions is used to control some high-level behaviors
@@ -73,6 +59,7 @@ type ExecOptions struct {
 // and adds formatted error handling
 func Execute(eo ExecOptions) error {
 	autoInitConfig = eo.AutoInitConfig
+	rootCmd := BuildRootCommand()
 	if err := rootCmd.Execute(); err != nil {
 		// we want our own log formatting (for pretty colors)
 		// so we don't use cobra.CheckErr
@@ -82,13 +69,38 @@ func Execute(eo ExecOptions) error {
 	return nil
 }
 
-func init() {
+// BuildRootCommand constructs a fully-initialized root cobra
+// command including all flags and sub-commands.
+// This function is principally used for tests.
+func BuildRootCommand() *cobra.Command {
+
+	// setup root command and flags
+	rootCmd := &cobra.Command{
+		Use:   "ttpforge",
+		Short: "Execute TTPs.",
+		Long: `
+TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
+    `,
+		TraverseChildren: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			initConfig()
+		},
+		// we will print our own errors with pretty formatting
+		SilenceErrors: true,
+	}
 	// shared flags across commands - mostly logging
 	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "", "Config file")
 	rootCmd.PersistentFlags().BoolVar(&logConfig.Stacktrace, "stack-trace", false, "Show stacktrace when logging error")
 	rootCmd.PersistentFlags().BoolVar(&logConfig.NoColor, "no-color", false, "disable colored output")
 	rootCmd.PersistentFlags().BoolVarP(&logConfig.Verbose, "verbose", "v", false, "verbose logging")
 	rootCmd.PersistentFlags().StringVarP(&logConfig.LogFile, "logfile", "l", "", "Enable logging to file.")
+
+	// add sub commands
+	rootCmd.AddCommand(buildInitCommand())
+	rootCmd.AddCommand(buildListCommand())
+	rootCmd.AddCommand(buildShowCommand())
+	rootCmd.AddCommand(buildRunCommand())
+	return rootCmd
 }
 
 // initConfig reads in config file and ENV variables if set.

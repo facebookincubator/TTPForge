@@ -17,6 +17,18 @@ The `cmd` package is a part of the TTPForge.
 
 ## Functions
 
+### BuildRootCommand()
+
+```go
+BuildRootCommand() *cobra.Command
+```
+
+BuildRootCommand constructs a fully-initialized root cobra
+command including all flags and sub-commands.
+This function is principally used for tests.
+
+---
+
 ### Execute(ExecOptions)
 
 ```go
@@ -25,16 +37,6 @@ Execute(ExecOptions) error
 
 Execute sets up runtime configuration for the root command
 and adds formatted error handling
-
----
-
-### RunTTPCmd()
-
-```go
-RunTTPCmd() *cobra.Command
-```
-
-RunTTPCmd runs an input TTP.
 
 ---
 

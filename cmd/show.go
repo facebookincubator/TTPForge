@@ -23,15 +23,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	showCmd = &cobra.Command{
+func buildShowCommand() *cobra.Command {
+	showCmd := &cobra.Command{
 		Use:              "show",
 		Short:            "displays the contents of a ttpforge resource",
 		Long:             "Use this command to show TTP text, config files, etc",
 		TraverseChildren: true,
 	}
-)
-
-func init() {
-	rootCmd.AddCommand(showCmd)
+	showCmd.AddCommand(buildShowTTPCommand())
+	return showCmd
 }
