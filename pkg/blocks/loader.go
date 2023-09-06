@@ -73,7 +73,7 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 //
 // **Parameters:**
 //
-// ttpAbsPath: the absolute or relative path to the TTP YAML file.
+// ttpFilePath: the absolute or relative path to the TTP YAML file.
 // fsys: an afero.Fs that contains the specified TTP file path
 //
 // **Returns:**
