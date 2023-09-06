@@ -152,7 +152,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 
 	repo := execCtx.Cfg.Repo
-	fullPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpFile)
+	subTTPAbsPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpFile)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	ttps, err := LoadTTP(fullPath, repo.GetFs(), &s.subExecCtx.Cfg, subArgsKv)
+	ttps, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &s.subExecCtx.Cfg, subArgsKv)
 	if err != nil {
 		return err
 	}

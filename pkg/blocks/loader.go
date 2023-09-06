@@ -73,16 +73,16 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 //
 // **Parameters:**
 //
-// ttpFilePath: the absolute or relative path to the TTP file.
-// system: An optional fs.StatFS from which to load the TTP
+// ttpFilePath: the absolute or relative path to the TTP YAML file.
+// fsys: an afero.Fs that contains the specified TTP file path
 //
 // **Returns:**
 //
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string, system afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
+func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
 
-	ttpBytes, err := readTTPBytes(ttpFilePath, system)
+	ttpBytes, err := readTTPBytes(ttpFilePath, fsys)
 	if err != nil {
 		return nil, err
 	}
@@ -115,19 +115,23 @@ func LoadTTP(ttpFilePath string, system afero.Fs, execCfg *TTPExecutionConfig, a
 	}
 
 	// embedded fs has no notion of workdirs
-	if system == nil {
+	// so we should only set workdir to the TTP's directory
+	// if we are using an OsFs
+	switch fsys.(type) {
+	case *afero.OsFs:
 		absPath, err := filepath.Abs(ttpFilePath)
 		if err != nil {
 			return nil, err
 		}
 		ttp.WorkDir = filepath.Dir(absPath)
-	} else {
+	default:
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, err
 		}
 		ttp.WorkDir = wd
 	}
+
 	// TODO: refactor directory handling - this is in-elegant
 	// but has less bugs than previous way
 	for _, step := range ttp.Steps {

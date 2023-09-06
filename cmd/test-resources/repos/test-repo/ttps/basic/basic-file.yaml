@@ -1,0 +1,7 @@
+---
+name: basic_file
+description: |
+  Verifies that working directories function correctly
+steps:
+  - name: execute_file
+    file: hello-world.sh

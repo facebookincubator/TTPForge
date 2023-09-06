@@ -26,12 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(RunTTPCmd())
-}
-
-// RunTTPCmd runs an input TTP.
-func RunTTPCmd() *cobra.Command {
+func buildRunCommand() *cobra.Command {
 	var argsList []string
 	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{
@@ -54,7 +49,7 @@ func RunTTPCmd() *cobra.Command {
 			c := blocks.TTPExecutionConfig{
 				Repo: foundRepo,
 			}
-			ttp, err := blocks.LoadTTP(ttpAbsPath, nil, &c, argsList)
+			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &c, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}

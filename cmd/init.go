@@ -24,8 +24,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	initCmd = &cobra.Command{
+func buildInitCommand() *cobra.Command {
+	return &cobra.Command{
 		Use:   "init",
 		Short: "Initialize TTPForge and Pull Down ForgeArmory",
 		Long: `
@@ -38,8 +38,4 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 			return nil
 		},
 	}
-)
-
-func init() {
-	rootCmd.AddCommand(initCmd)
 }

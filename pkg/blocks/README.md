@@ -472,8 +472,8 @@ If the file is empty or contains invalid data, it returns an error.
 
 **Parameters:**
 
-ttpFilePath: the absolute or relative path to the TTP file.
-system: An optional fs.StatFS from which to load the TTP
+ttpFilePath: the absolute or relative path to the TTP YAML file.
+fsys: an afero.Fs that contains the specified TTP file path
 
 **Returns:**
 

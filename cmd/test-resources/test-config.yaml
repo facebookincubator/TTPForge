@@ -1,0 +1,4 @@
+---
+repos:
+  - name: test-repo
+    path: repos/test-repo

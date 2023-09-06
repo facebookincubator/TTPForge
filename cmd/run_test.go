@@ -17,19 +17,39 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package cmd
+package cmd_test
 
 import (
-	"github.com/spf13/cobra"
+	"path/filepath"
+	"testing"
+
+	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/stretchr/testify/require"
 )
 
-func buildShowCommand() *cobra.Command {
-	showCmd := &cobra.Command{
-		Use:              "show",
-		Short:            "displays the contents of a ttpforge resource",
-		Long:             "Use this command to show TTP text, config files, etc",
-		TraverseChildren: true,
+func TestRun(t *testing.T) {
+	testConfigFilePath := filepath.Join("test-resources", "test-config.yaml")
+	testCases := []struct {
+		name      string
+		ttpRef    string
+		wantError bool
+	}{
+		{
+			name:   "basic-file",
+			ttpRef: "test-repo//basic/basic-file.yaml",
+		},
 	}
-	showCmd.AddCommand(buildShowTTPCommand())
-	return showCmd
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rc := cmd.BuildRootCommand()
+			rc.SetArgs([]string{"run", "-c", testConfigFilePath, tc.ttpRef})
+			err := rc.Execute()
+			if tc.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
