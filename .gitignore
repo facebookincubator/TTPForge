@@ -10,6 +10,3 @@ __debug_bin
 
 # Container
 .secrets
-
-# Imported TTPs
-ttps
