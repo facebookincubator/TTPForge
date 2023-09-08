@@ -20,27 +20,19 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"os"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
-// ExecOptions is used to control some high-level behaviors
-// like ~/.ttpforge/config.yaml auto-initialization.
-// These toggles are passed from main.go so that
-// it doesn't happen accidentally in unit tests
-type ExecOptions struct {
-	AutoInitConfig bool
-}
-
 // Execute sets up runtime configuration for the root command
 // and adds formatted error handling
-func Execute(eo ExecOptions) error {
-	autoInitConfig = eo.AutoInitConfig
+func Execute() error {
 	rootCmd := BuildRootCommand()
 	if err := rootCmd.Execute(); err != nil {
 		// we want our own log formatting (for pretty colors)
@@ -64,8 +56,11 @@ func BuildRootCommand() *cobra.Command {
 TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
     `,
 		TraverseChildren: true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			initConfig()
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if cmd.CalledAs() != "init" {
+				return initConfig()
+			}
+			return nil
 		},
 		// we will print our own errors with pretty formatting
 		SilenceErrors: true,
@@ -87,29 +82,40 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() {
+func initConfig() error {
 	// find config file
 	if Conf.cfgFile == "" {
-		if !autoInitConfig {
-			err := errors.New("config auto-init disabled: you must specify a config file manually")
-			cobra.CheckErr(err)
+		defaultConfigFilePath, err := getDefaultConfigFilePath()
+		if err != nil {
+			return fmt.Errorf("could not lookup default config file path: %v", err)
 		}
-		// check default config location
-		defaultConfigPath, err := ensureDefaultConfig()
-		cobra.CheckErr(err)
-		Conf.cfgFile = defaultConfigPath
+		exists, err := afero.Exists(afero.NewOsFs(), defaultConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("could not check existence of file %v: %v", defaultConfigFilePath, err)
+		}
+		if exists {
+			Conf.cfgFile = defaultConfigFilePath
+		} else {
+			logging.L().Warn("No config file specified and default configuration file not found!")
+			logging.L().Warn("You probably want to run `ttpforge init`!")
+			logging.L().Warn("However, if you know what you are doing, then carry on :)")
+			return nil
+		}
 	}
 
 	// load config file
 	logging.L().Debugf("Using config file: %s", Conf.cfgFile)
 	cfgContents, err := os.ReadFile(Conf.cfgFile)
-	cobra.CheckErr(err)
-	err = yaml.Unmarshal(cfgContents, Conf)
-	cobra.CheckErr(err)
+	if err != nil {
+		return err
+	}
+	if err = yaml.Unmarshal(cfgContents, Conf); err != nil {
+		return err
+	}
+	if Conf.repoCollection, err = Conf.loadRepoCollection(); err != nil {
+		return err
+	}
 
-	Conf.repoCollection, err = Conf.loadRepoCollection()
-	cobra.CheckErr(err)
-
-	err = logging.InitLog(logConfig)
-	cobra.CheckErr(err)
+	// setup loggign
+	return logging.InitLog(logConfig)
 }

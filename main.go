@@ -26,10 +26,7 @@ import (
 )
 
 func main() {
-	err := cmd.Execute(cmd.ExecOptions{
-		AutoInitConfig: true,
-	})
-	if err != nil {
+	if err := cmd.Execute(); err != nil {
 		// cobra won't set the right exit code unless
 		// you use cobra.CheckErr, which we don't want to do for
 		// formatting reasons
