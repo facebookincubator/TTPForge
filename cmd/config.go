@@ -21,12 +21,27 @@ package cmd
 
 import (
 	// 'go lint': need blank import for embedding default config
+	"bytes"
+	// needed for embedded filesystem
 	_ "embed"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/spf13/afero"
+	"gopkg.in/yaml.v3"
 )
+
+// Config stores the variables from the TTPForge global config file
+type Config struct {
+	RepoSpecs []repos.Spec `yaml:"repos"`
+
+	repoCollection repos.RepoCollection
+	cfgFile        string
+}
 
 var (
 	autoInitConfig bool
@@ -34,6 +49,11 @@ var (
 	defaultConfigContents string
 	defaultConfigFileName = "config.yaml"
 	defaultResourceDir    = ".ttpforge"
+
+	// Conf refers to the configuration used throughout TTPForge.
+	Conf = &Config{}
+
+	logConfig logging.Config
 )
 
 func ensureDefaultConfig() (string, error) {
@@ -61,4 +81,42 @@ func ensureDefaultConfig() (string, error) {
 		return "", err
 	}
 	return defaultConfigPath, nil
+}
+
+// loadRepoCollection verifies that all repositories specified
+// in the configuration file are present on the filesystem
+// and clones missing ones if needed
+func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
+	// locate our config file directory to expend config-relative paths
+	cfgFileAbsPath, err := filepath.Abs(cfg.cfgFile)
+	if err != nil {
+		return nil, err
+	}
+	cfgDir := filepath.Dir(cfgFileAbsPath)
+	fsys := afero.NewOsFs()
+
+	// note: we don't want to actually write
+	// new values of Conf.RepoSpecs[specIdx].Path
+	// because it will mess up the `install` command
+	repoSpecsWithFullPaths := make([]repos.Spec, len(cfg.RepoSpecs))
+	copy(repoSpecsWithFullPaths, cfg.RepoSpecs)
+	for specIdx, curSpec := range cfg.RepoSpecs {
+		repoSpecsWithFullPaths[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)
+	}
+	return repos.NewRepoCollection(fsys, repoSpecsWithFullPaths, true)
+}
+
+// save() writes the current config back to its file - used by `install“ command
+func (cfg *Config) save() error {
+	var b bytes.Buffer
+	yamlEncoder := yaml.NewEncoder(&b)
+	yamlEncoder.SetIndent(2)
+	err := yamlEncoder.Encode(&cfg)
+	if err != nil {
+		return fmt.Errorf("marshalling config failed: %v", err)
+	}
+	// YAML won't add this stylistic choice so we do it ourselves
+	cfgStr := "---\n" + b.String()
+	err = ioutil.WriteFile(cfg.cfgFile, []byte(cfgStr), 0)
+	return err
 }

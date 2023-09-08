@@ -22,29 +22,11 @@ package cmd
 import (
 	"errors"
 	"os"
-	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"gopkg.in/yaml.v3"
 
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-)
-
-// Config stores the variables from the TTPForge global config file
-type Config struct {
-	RepoSpecs []repos.Spec `yaml:"repos"`
-
-	repoCollection repos.RepoCollection
-	cfgFile        string
-}
-
-var (
-	// Conf refers to the configuration used throughout TTPForge.
-	Conf = &Config{}
-
-	logConfig logging.Config
 )
 
 // ExecOptions is used to control some high-level behaviors
@@ -100,6 +82,7 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 	rootCmd.AddCommand(buildListCommand())
 	rootCmd.AddCommand(buildShowCommand())
 	rootCmd.AddCommand(buildRunCommand())
+	rootCmd.AddCommand(buildInstallCommand())
 	return rootCmd
 }
 
@@ -124,17 +107,8 @@ func initConfig() {
 	err = yaml.Unmarshal(cfgContents, Conf)
 	cobra.CheckErr(err)
 
-	// expand config-relative paths
-	cfgFileAbsPath, err := filepath.Abs(Conf.cfgFile)
+	Conf.repoCollection, err = Conf.loadRepoCollection()
 	cobra.CheckErr(err)
-	cfgDir := filepath.Dir(cfgFileAbsPath)
-	fsys := afero.NewOsFs()
-	for specIdx, curSpec := range Conf.RepoSpecs {
-		Conf.RepoSpecs[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)
-	}
-	rc, err := repos.NewRepoCollection(fsys, Conf.RepoSpecs, true)
-	cobra.CheckErr(err)
-	Conf.repoCollection = rc
 
 	err = logging.InitLog(logConfig)
 	cobra.CheckErr(err)
