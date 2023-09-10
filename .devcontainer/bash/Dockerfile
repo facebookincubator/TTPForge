@@ -1,4 +1,4 @@
-FROM golang:1.20.7-alpine
+FROM golang:1.21.1-alpine
 
 LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
 
