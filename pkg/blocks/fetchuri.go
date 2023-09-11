@@ -217,11 +217,11 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 		proxyURI, err := url.Parse(f.Proxy)
 		if err != nil {
 			return err
-		} else if proxyUrl.Host == "" || proxyUrl.Scheme == "" {
+		} else if proxyURI.Host == "" || proxyURI.Scheme == "" {
 			return fmt.Errorf("Invalid URI given for Proxy: %s", f.Proxy)
 		}
 		tr := &http.Transport{
-			Proxy: http.ProxyURL(proxyUrl),
+			Proxy: http.ProxyURL(proxyURI),
 		}
 		client = &http.Client{Transport: tr}
 	}
