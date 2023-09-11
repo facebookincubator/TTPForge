@@ -76,15 +76,7 @@ func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
 	cfgDir := filepath.Dir(cfgFileAbsPath)
 	fsys := afero.NewOsFs()
 
-	// note: we don't want to actually write
-	// new values of Conf.RepoSpecs[specIdx].Path
-	// because it will mess up the `install` command
-	repoSpecsWithFullPaths := make([]repos.Spec, len(cfg.RepoSpecs))
-	copy(repoSpecsWithFullPaths, cfg.RepoSpecs)
-	for specIdx, curSpec := range cfg.RepoSpecs {
-		repoSpecsWithFullPaths[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)
-	}
-	return repos.NewRepoCollection(fsys, repoSpecsWithFullPaths)
+	return repos.NewRepoCollection(fsys, cfg.RepoSpecs, cfgDir)
 }
 
 // save() writes the current config back to its file - used by `install“ command

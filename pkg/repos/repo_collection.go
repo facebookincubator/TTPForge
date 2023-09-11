@@ -54,14 +54,14 @@ type repoCollection struct {
 //
 // RepoCollection: assembled RepoCollection, or nil if there was an error
 // error: an error if there is a problem
-func NewRepoCollection(fsys afero.Fs, specs []Spec) (RepoCollection, error) {
+func NewRepoCollection(fsys afero.Fs, specs []Spec, basePath string) (RepoCollection, error) {
 	// load all repos
 	rc := repoCollection{
 		fsys:        fsys,
 		reposByName: make(map[string]Repo),
 	}
 	for _, spec := range specs {
-		r, err := spec.Load(fsys)
+		r, err := spec.Load(fsys, basePath)
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +198,7 @@ func (rc *repoCollection) findParentRepo(absPath string) (Repo, error) {
 		Name: repoName,
 		Path: repoPath,
 	}
-	r, err := spec.Load(rc.fsys)
+	r, err := spec.Load(rc.fsys, "")
 	if err != nil {
 		return nil, err
 	}

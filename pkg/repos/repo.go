@@ -75,7 +75,7 @@ type Repo interface {
 // TTPForge which Config entries to create.
 type repo struct {
 	fsys                afero.Fs
-	basePath            string
+	fullPath            string
 	spec                *Spec
 	TTPSearchPaths      []string `yaml:"ttp_search_paths"`
 	TemplateSearchPaths []string `yaml:"template_search_paths"`
@@ -108,7 +108,7 @@ func (r *repo) GetName() string {
 
 func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
 	for _, dirToSearch := range dirsToSearch {
-		fullPath := filepath.Join(r.basePath, dirToSearch, relPath)
+		fullPath := filepath.Join(r.fullPath, dirToSearch, relPath)
 		if _, err := r.fsys.Stat(fullPath); err != nil {
 			if os.IsNotExist(err) {
 				continue
@@ -126,7 +126,7 @@ func (r *repo) list(dirsToList []string) ([]string, error) {
 	var allResults []string
 	splitOnSep := string(os.PathSeparator)
 	for _, dirToList := range dirsToList {
-		prefix := filepath.Join(r.basePath, dirToList)
+		prefix := filepath.Join(r.fullPath, dirToList)
 		err := afero.Walk(r.fsys, prefix, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -150,7 +150,7 @@ func (r *repo) list(dirsToList []string) ([]string, error) {
 
 // Load will clone a repository if necessary and valdiate
 // its configuration, making it usable to lookup TTPs
-func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
+func (spec *Spec) Load(fsys afero.Fs, basePath string) (Repo, error) {
 
 	// validate spec fields
 	if spec.Name == "" {
@@ -160,12 +160,12 @@ func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
 		return nil, errors.New("repository field `path:` cannot be empty")
 	}
 
-	err := spec.ensurePresent(fsys)
+	err := spec.ensurePresent(fsys, basePath)
 	if err != nil {
 		return nil, err
 	}
 
-	configPath := filepath.Join(spec.Path, RepoConfigFileName)
+	configPath := filepath.Join(basePath, spec.Path, RepoConfigFileName)
 	contents, err := afero.ReadFile(fsys, configPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read repo config at path %v: %v", configPath, err)
@@ -176,14 +176,15 @@ func (spec *Spec) Load(fsys afero.Fs) (Repo, error) {
 		return nil, fmt.Errorf("invalid config file found at %v: %v", configPath, err)
 	}
 	r.fsys = fsys
-	r.basePath = spec.Path
+	r.fullPath = filepath.Join(basePath, spec.Path)
 	r.spec = spec
 	return &r, nil
 }
 
-func (spec *Spec) ensurePresent(fsys afero.Fs) error {
+func (spec *Spec) ensurePresent(fsys afero.Fs, basePath string) error {
 	// if repo is present we can return early
-	exists, err := afero.Exists(fsys, spec.Path)
+	p := filepath.Join(basePath, spec.Path)
+	exists, err := afero.Exists(fsys, p)
 	if err != nil {
 		return err
 	}
@@ -194,7 +195,7 @@ func (spec *Spec) ensurePresent(fsys afero.Fs) error {
 	if spec.Git == nil {
 		return fmt.Errorf(
 			"repo at %v not found - clone manually or see docs for how to add git clone instructions",
-			spec.Path,
+			p,
 		)
 	}
 
@@ -203,12 +204,12 @@ func (spec *Spec) ensurePresent(fsys afero.Fs) error {
 		branchName = "main"
 	}
 
-	gitCmd := exec.Command("git", "clone", "--single-branch", "--branch", branchName, spec.Git.URL, spec.Path)
+	gitCmd := exec.Command("git", "clone", "--single-branch", "--branch", branchName, spec.Git.URL, p)
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	err = gitCmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to clone repo to %v: %v", spec.Path, err)
+		return fmt.Errorf("failed to clone repo to %v: %v", p, err)
 	}
 	return nil
 }

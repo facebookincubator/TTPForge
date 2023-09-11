@@ -201,7 +201,7 @@ func TestResolveTTPRef(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rc, err := repos.NewRepoCollection(tc.fsys, tc.specs)
+			rc, err := repos.NewRepoCollection(tc.fsys, tc.specs, "")
 			if tc.expectLoadError {
 				require.Error(t, err)
 				return
