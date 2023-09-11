@@ -126,7 +126,7 @@ ttp: with/cleanup.yaml`,
 			err := yaml.Unmarshal([]byte(tc.stepYAML), &step)
 			require.NoError(t, err, "step YAML should unmarshal safely")
 
-			repo, err := tc.spec.Load(tc.fsys)
+			repo, err := tc.spec.Load(tc.fsys, "")
 			require.NoError(t, err)
 
 			execCtx := blocks.TTPExecutionContext{

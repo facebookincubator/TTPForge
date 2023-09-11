@@ -17,19 +17,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package main
+package cmd
 
 import (
-	"os"
+	"fmt"
+	"strings"
 
-	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	if err := cmd.Execute(); err != nil {
-		// cobra won't set the right exit code unless
-		// you use cobra.CheckErr, which we don't want to do for
-		// formatting reasons
-		os.Exit(1)
+func buildListTTPsCommand() *cobra.Command {
+	var repoFilter string
+	listTTPsCommand := &cobra.Command{
+		Use:              "ttps",
+		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
+		TraverseChildren: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ttpRefs, err := Conf.repoCollection.ListTTPs()
+			if err != nil {
+				return err
+			}
+			for _, ttpRef := range ttpRefs {
+				if repoFilter != "" && !strings.HasPrefix(ttpRef, repoFilter+"//") {
+					continue
+				}
+				fmt.Println(ttpRef)
+			}
+			return nil
+		},
 	}
+	listTTPsCommand.PersistentFlags().StringVar(&repoFilter, "repo", "", "Show TTPs from only the specified repository")
+	return listTTPsCommand
 }

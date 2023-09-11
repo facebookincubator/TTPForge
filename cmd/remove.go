@@ -17,19 +17,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package main
+package cmd
 
 import (
-	"os"
-
-	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	if err := cmd.Execute(); err != nil {
-		// cobra won't set the right exit code unless
-		// you use cobra.CheckErr, which we don't want to do for
-		// formatting reasons
-		os.Exit(1)
+func buildRemoveCommand() *cobra.Command {
+	removeCmd := &cobra.Command{
+		Use:              "remove",
+		Short:            "remove (uninstall) various types of resources used by TTPForge",
+		Long:             "For now, you just want to use the 'ttpforge remove repo' subcommand",
+		TraverseChildren: true,
 	}
+	removeCmd.AddCommand(buildRemoveRepoCommand())
+	return removeCmd
 }

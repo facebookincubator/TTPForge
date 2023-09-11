@@ -2,3 +2,5 @@
 repos:
   - name: test-repo
     path: repos/test-repo
+  - name: another-repo
+    path: repos/another-repo

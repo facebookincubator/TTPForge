@@ -130,7 +130,7 @@ func TestFindTTP(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			repo, err := tc.spec.Load(tc.fsys)
+			repo, err := tc.spec.Load(tc.fsys, "")
 			if tc.expectLoadError {
 				require.Error(t, err)
 				return

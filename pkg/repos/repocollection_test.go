@@ -47,6 +47,7 @@ func TestResolveTTPRef(t *testing.T) {
 
 	tests := []struct {
 		name               string
+		description        string
 		specs              []repos.Spec
 		fsys               afero.Fs
 		expectLoadError    bool
@@ -182,6 +183,14 @@ func TestResolveTTPRef(t *testing.T) {
 			expectedPath:     "repos/b/even/more/ttps/attempt/again.yaml",
 		},
 		{
+			name:             "Valid TTP Path (No Repos in Collection)",
+			description:      "This case verifies that regular paths still resolve even if the collection is empty",
+			fsys:             makeRepoCollectionTestFs(t),
+			ttpRef:           "repos/b/even/more/ttps/attempt/again.yaml",
+			expectedRepoName: "b",
+			expectedPath:     "repos/b/even/more/ttps/attempt/again.yaml",
+		},
+		{
 			name: "Invalid TTP path (parent directory does not contain config)",
 			specs: []repos.Spec{
 				{
@@ -201,7 +210,7 @@ func TestResolveTTPRef(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rc, err := repos.NewRepoCollection(tc.fsys, tc.specs, false)
+			rc, err := repos.NewRepoCollection(tc.fsys, tc.specs, "")
 			if tc.expectLoadError {
 				require.Error(t, err)
 				return

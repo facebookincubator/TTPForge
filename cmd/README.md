@@ -29,10 +29,10 @@ This function is principally used for tests.
 
 ---
 
-### Execute(ExecOptions)
+### Execute()
 
 ```go
-Execute(ExecOptions) error
+Execute() error
 ```
 
 Execute sets up runtime configuration for the root command
