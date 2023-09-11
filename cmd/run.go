@@ -30,19 +30,19 @@ func buildRunCommand() *cobra.Command {
 	var argsList []string
 	ttpCfg := blocks.TTPExecutionConfig{}
 	runCmd := &cobra.Command{
-		Use:   "run",
+		Use:   "run [repo_name//path/to/ttp]",
 		Short: "Run the TTP found in the specified YAML file.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// don't want confusing usage display for errors past this point
+			cmd.SilenceUsage = true
+
 			ttpRef := args[0]
 			// find the TTP file
 			foundRepo, ttpAbsPath, err := Conf.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
 			}
-
-			// don't want confusing usage display for errors past this point
-			cmd.SilenceUsage = true
 
 			// load TTP and process argument values
 			// based on the TTPs argument value specifications

@@ -32,7 +32,7 @@ import (
 func buildInstallRepoCommand() *cobra.Command {
 	var newRepoSpec repos.Spec
 	installRepoCommand := &cobra.Command{
-		Use:              "repo",
+		Use:              "repo --name repo_name [repo_url]",
 		Short:            "install a new repository of TTPs for use by TTPForge",
 		TraverseChildren: true,
 		Args:             cobra.ExactArgs(1),

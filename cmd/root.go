@@ -100,19 +100,20 @@ func initConfig() error {
 			logging.L().Warn("No config file specified and default configuration file not found!")
 			logging.L().Warn("You probably want to run `ttpforge init`!")
 			logging.L().Warn("However, if you know what you are doing, then carry on :)")
-			return nil
 		}
 	}
 
-	// load config file
-	logging.L().Debugf("Using config file: %s", Conf.cfgFile)
-	cfgContents, err := os.ReadFile(Conf.cfgFile)
-	if err != nil {
-		return err
+	// load config file if we found one
+	if Conf.cfgFile != "" {
+		cfgContents, err := os.ReadFile(Conf.cfgFile)
+		if err != nil {
+			return err
+		}
+		if err = yaml.Unmarshal(cfgContents, Conf); err != nil {
+			return err
+		}
 	}
-	if err = yaml.Unmarshal(cfgContents, Conf); err != nil {
-		return err
-	}
+	var err error
 	if Conf.repoCollection, err = Conf.loadRepoCollection(); err != nil {
 		return err
 	}
