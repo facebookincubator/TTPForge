@@ -17,10 +17,10 @@ The `repos` package is a part of the TTPForge.
 
 ## Functions
 
-### NewRepoCollection(afero.Fs, []Spec, bool)
+### NewRepoCollection(afero.Fs, []Spec, string)
 
 ```go
-NewRepoCollection(afero.Fs, []Spec, bool) RepoCollection, error
+NewRepoCollection(afero.Fs, []Spec, string) RepoCollection, error
 ```
 
 NewRepoCollection validates the provided repo specs
@@ -30,7 +30,6 @@ and assembles them into a RepoCollection
 
 fsys: base file system (used for unit testing)
 specs: a list of repo.Spec entries (usually from the config file)
-workdirSupport: true if the provided fsys supports workdirs
 
 **Returns:**
 
@@ -39,10 +38,10 @@ error: an error if there is a problem
 
 ---
 
-### Spec.Load(afero.Fs)
+### Spec.Load(afero.Fs, string)
 
 ```go
-Load(afero.Fs) Repo, error
+Load(afero.Fs, string) Repo, error
 ```
 
 Load will clone a repository if necessary and valdiate
@@ -80,6 +79,18 @@ GetFs is a convenience function principally used by SubTTPs
 
 ---
 
+### repo.GetFullPath()
+
+```go
+GetFullPath() string
+```
+
+GetFullPath returns the repos full path
+including the basePath that was passed
+when it was constructed
+
+---
+
 ### repo.GetName()
 
 ```go
@@ -97,6 +108,28 @@ ListTTPs() []string, error
 ```
 
 ListsTTPs lists the TTPs in this repo
+
+---
+
+### repoCollection.GetRepo(string)
+
+```go
+GetRepo(string) Repo, error
+```
+
+GetRepo retrieves a Repo reference
+for a repo of the specified name,
+or returns an error
+if the repo is not in this collection
+
+**Parameters:**
+
+repoName: the repoistory name
+
+**Returns:**
+
+Repo: the located repo
+error: an error if there is a problem
 
 ---
 

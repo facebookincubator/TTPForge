@@ -225,6 +225,7 @@ func (rc *repoCollection) resolveAbsPath(path string) (string, error) {
 			return "", err
 		}
 		return fullPath, nil
+	default:
+		return path, nil
 	}
-	return path, nil
 }
