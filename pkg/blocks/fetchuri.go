@@ -214,7 +214,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 
 	client := http.DefaultClient
 	if f.Proxy != "" {
-		proxyUrl, err := url.Parse(f.Proxy)
+		proxyURI, err := url.Parse(f.Proxy)
 		if err != nil {
 			return err
 		} else if proxyUrl.Host == "" || proxyUrl.Scheme == "" {
@@ -295,7 +295,7 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 	_, err = os.Stat(absLocal)
 	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
 		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
-		return errors.New("File exists at location specified. Remove and retry.")
+		return errors.New("file exists at location specified, remove and retry.")
 	}
 
 	if f.CleanupStep != nil {
