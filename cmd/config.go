@@ -25,7 +25,6 @@ import (
 	// needed for embedded filesystem
 	_ "embed"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -92,6 +91,6 @@ func (cfg *Config) save() error {
 	}
 	// YAML won't add this stylistic choice so we do it ourselves
 	cfgStr := "---\n" + b.String()
-	err = ioutil.WriteFile(cfg.cfgFile, []byte(cfgStr), 0)
+	err = os.WriteFile(cfg.cfgFile, []byte(cfgStr), 0)
 	return err
 }
