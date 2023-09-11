@@ -84,7 +84,7 @@ func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
 	for specIdx, curSpec := range cfg.RepoSpecs {
 		repoSpecsWithFullPaths[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)
 	}
-	return repos.NewRepoCollection(fsys, repoSpecsWithFullPaths, true)
+	return repos.NewRepoCollection(fsys, repoSpecsWithFullPaths)
 }
 
 // save() writes the current config back to its file - used by `install“ command
