@@ -47,15 +47,15 @@ const (
 // in order to add a given repository folder to
 // the TTPForge search path for TTPs, templates, etc
 type Spec struct {
-	Name string     `yaml:"name"`
-	Path string     `yaml:"path"`
-	Git  *GitConfig `yaml:"git"`
+	Name string    `yaml:"name"`
+	Path string    `yaml:"path"`
+	Git  GitConfig `yaml:"git"`
 }
 
 // GitConfig provides instructions for cloning a repo
 type GitConfig struct {
 	URL    string `yaml:"url"`
-	Branch string `yaml:"branch"`
+	Branch string `yaml:"branch,omitempty"`
 }
 
 // Repo provides an interface for finding TTPs and templates
@@ -77,7 +77,7 @@ type Repo interface {
 type repo struct {
 	fsys                afero.Fs
 	fullPath            string
-	spec                *Spec
+	spec                Spec
 	TTPSearchPaths      []string `yaml:"ttp_search_paths"`
 	TemplateSearchPaths []string `yaml:"template_search_paths"`
 }
@@ -185,7 +185,7 @@ func (spec *Spec) Load(fsys afero.Fs, basePath string) (Repo, error) {
 	}
 	r.fsys = fsys
 	r.fullPath = filepath.Join(basePath, spec.Path)
-	r.spec = spec
+	r.spec = *spec
 	return &r, nil
 }
 
@@ -200,7 +200,7 @@ func (spec *Spec) ensurePresent(fsys afero.Fs, basePath string) error {
 		return nil
 	}
 
-	if spec.Git == nil {
+	if spec.Git.URL == "" {
 		return fmt.Errorf(
 			"repo at %v not found - clone manually or see docs for how to add git clone instructions",
 			p,

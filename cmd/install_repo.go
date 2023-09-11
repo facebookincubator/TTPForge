@@ -41,9 +41,7 @@ func buildInstallRepoCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("argument must be a valid URL - '%v' is not", args[0])
 			}
-			newRepoSpec.Git = &repos.GitConfig{
-				URL: u.String(),
-			}
+			newRepoSpec.Git.URL = u.String()
 			newRepoSpec.Path = filepath.Join("repos", newRepoSpec.Name)
 			Conf.RepoSpecs = append(Conf.RepoSpecs, newRepoSpec)
 			_, err = Conf.loadRepoCollection()
@@ -58,7 +56,7 @@ func buildInstallRepoCommand() *cobra.Command {
 			logging.L().Infof("New repository successfully installed!")
 			logging.L().Infof("Name: %v", newRepoSpec.Name)
 			logging.L().Infof("Path: %v", newRepoSpec.Path)
-			logging.L().Infof("List TTPs from your new repository with the command: ttpforge list ttps --repo %v")
+			logging.L().Infof("List TTPs from your new repository with the command:")
 			logging.L().Infof("\tttpforge list ttps --repo %v", newRepoSpec.Name)
 			return nil
 		},

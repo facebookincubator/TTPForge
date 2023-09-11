@@ -22,6 +22,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -36,12 +37,14 @@ func buildRemoveRepoCommand() *cobra.Command {
 		Args:             cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repoToRemove := args[0]
+			logging.L().Infof("will attempt to delete repo: %v", repoToRemove)
 			r, err := Conf.repoCollection.GetRepo(repoToRemove)
 			if err != nil {
 				return err
 			}
 
 			// delete the repo files
+			logging.L().Infof("deleting repo files", repoToRemove)
 			fp := r.GetFullPath()
 			err = afero.NewOsFs().RemoveAll(fp)
 			if err != nil {
@@ -57,10 +60,12 @@ func buildRemoveRepoCommand() *cobra.Command {
 				newRepoSpecs = append(newRepoSpecs, spec)
 			}
 			Conf.RepoSpecs = newRepoSpecs
+			logging.L().Infof("writing updated configuration...", repoToRemove)
 			err = Conf.save()
 			if err != nil {
 				return fmt.Errorf("failed to save updated configuration: %v", err)
 			}
+			logging.L().Infof("repo %v deleted successfully", repoToRemove)
 
 			// remove the repo reference from the configuration file
 			return nil
