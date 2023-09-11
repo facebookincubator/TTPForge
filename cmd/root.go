@@ -123,6 +123,6 @@ func initConfig() error {
 		return err
 	}
 
-	// setup loggign
+	// setup logging
 	return logging.InitLog(logConfig)
 }
