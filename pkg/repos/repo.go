@@ -66,6 +66,7 @@ type Repo interface {
 	FindTemplate(templatePath string) (string, error)
 	GetFs() afero.Fs
 	GetName() string
+	GetFullPath() string
 }
 
 // Config contains all the fields
@@ -106,17 +107,24 @@ func (r *repo) GetName() string {
 	return r.spec.Name
 }
 
+// GetFullPath returns the repos full path
+// including the basePath that was passed
+// when it was constructed
+func (r *repo) GetFullPath() string {
+	return r.fullPath
+}
+
 func (r *repo) search(dirsToSearch []string, relPath string) (string, error) {
 	for _, dirToSearch := range dirsToSearch {
-		fullPath := filepath.Join(r.fullPath, dirToSearch, relPath)
-		if _, err := r.fsys.Stat(fullPath); err != nil {
+		candidateFullPath := filepath.Join(r.fullPath, dirToSearch, relPath)
+		if _, err := r.fsys.Stat(candidateFullPath); err != nil {
 			if os.IsNotExist(err) {
 				continue
 			} else {
 				return "", err
 			}
 		} else {
-			return fullPath, nil
+			return candidateFullPath, nil
 		}
 	}
 	return "", fmt.Errorf("path %v not found in repo %v", relPath, r.spec.Name)
