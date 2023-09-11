@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestListRepos(t *testing.T) {
+func TestListTTPs(t *testing.T) {
 	testConfigFilePath := filepath.Join("test-resources", "test-config.yaml")
 	testCases := []struct {
 		name      string
