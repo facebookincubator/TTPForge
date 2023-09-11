@@ -209,7 +209,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 
 	if ok, _ := afero.Exists(appFs, absLocal); ok && !f.Overwrite {
 		logging.L().Errorw("location exists, remove and retry", "location", absLocal)
-		return fmt.Errorf("Location [%s] exists and overwrite is set to false. remove and retry", f.Location)
+		return fmt.Errorf("location [%s] exists and overwrite is set to false. remove and retry", f.Location)
 	}
 
 	client := http.DefaultClient
@@ -218,7 +218,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 		if err != nil {
 			return err
 		} else if proxyURI.Host == "" || proxyURI.Scheme == "" {
-			return fmt.Errorf("Invalid URI given for Proxy: %s", f.Proxy)
+			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
 		}
 		tr := &http.Transport{
 			Proxy: http.ProxyURL(proxyURI),
@@ -265,13 +265,13 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	if f.FetchURI == "" {
-		err := errors.New("Require FetchURI to be set with fetchURI")
+		err := errors.New("require FetchURI to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	if f.Location == "" {
-		err := errors.New("Require Location to be set with fetchURI")
+		err := errors.New("require Location to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
@@ -281,7 +281,7 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 		if err != nil {
 			return err
 		} else if uri.Host == "" || uri.Scheme == "" {
-			return fmt.Errorf("Invalid URI given for Proxy: %s", f.Proxy)
+			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
 		}
 	}
 
@@ -295,7 +295,7 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 	_, err = os.Stat(absLocal)
 	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
 		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
-		return errors.New("file exists at location specified, remove and retry.")
+		return errors.New("file exists at location specified, remove and retry")
 	}
 
 	if f.CleanupStep != nil {
