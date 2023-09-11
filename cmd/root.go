@@ -84,6 +84,11 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() error {
+	// this eventually needs to be de-global'd but for now we'll at east zero it out
+	// between test cases
+	Conf = &Config{
+		cfgFile: Conf.cfgFile,
+	}
 	// find config file
 	if Conf.cfgFile == "" {
 		defaultConfigFilePath, err := getDefaultConfigFilePath()

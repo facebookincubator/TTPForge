@@ -69,14 +69,16 @@ func getDefaultConfigFilePath() (string, error) {
 // and clones missing ones if needed
 func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
 	// locate our config file directory to expend config-relative paths
-	cfgFileAbsPath, err := filepath.Abs(cfg.cfgFile)
-	if err != nil {
-		return nil, err
+	var basePath string
+	if cfg.cfgFile != "" {
+		cfgFileAbsPath, err := filepath.Abs(cfg.cfgFile)
+		if err != nil {
+			return nil, err
+		}
+		basePath = filepath.Dir(cfgFileAbsPath)
 	}
-	cfgDir := filepath.Dir(cfgFileAbsPath)
 	fsys := afero.NewOsFs()
-
-	return repos.NewRepoCollection(fsys, cfg.RepoSpecs, cfgDir)
+	return repos.NewRepoCollection(fsys, cfg.RepoSpecs, basePath)
 }
 
 // save() writes the current config back to its file - used by `install“ command
