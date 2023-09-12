@@ -311,6 +311,112 @@ and their values.
 
 ---
 
+### FetchURIStep.Cleanup(TTPExecutionContext)
+
+```go
+Cleanup(TTPExecutionContext) *ActResult, error
+```
+
+Cleanup is a method to establish a link with the Cleanup interface.
+Assumes that the type is the cleanup step and is invoked by
+f.CleanupStep.Cleanup.
+
+---
+
+### FetchURIStep.Execute(TTPExecutionContext)
+
+```go
+Execute(TTPExecutionContext) *ExecutionResult, error
+```
+
+Execute runs the FetchURIStep and returns an error if any occur.
+
+---
+
+### FetchURIStep.ExplainInvalid()
+
+```go
+ExplainInvalid() error
+```
+
+ExplainInvalid returns an error message explaining why the FetchURIStep
+is invalid.
+
+**Returns:**
+
+error: An error message explaining why the FetchURIStep is invalid.
+
+---
+
+### FetchURIStep.GetCleanup()
+
+```go
+GetCleanup() []CleanupAct
+```
+
+GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
+
+---
+
+### FetchURIStep.GetType()
+
+```go
+GetType() StepType
+```
+
+GetType returns the type of the step as StepType.
+
+---
+
+### FetchURIStep.IsNil()
+
+```go
+IsNil() bool
+```
+
+IsNil checks if the FetchURIStep is nil or empty and returns a boolean value.
+
+---
+
+### FetchURIStep.UnmarshalYAML(*yaml.Node)
+
+```go
+UnmarshalYAML(*yaml.Node) error
+```
+
+UnmarshalYAML decodes a YAML node into a FetchURIStep instance. It uses
+the provided struct as a template for the YAML data, and initializes the
+FetchURIStep instance with the decoded values.
+
+**Parameters:**
+
+node: A pointer to a yaml.Node representing the YAML data to decode.
+
+**Returns:**
+
+error: An error if there is a problem decoding the YAML data.
+
+---
+
+### FetchURIStep.Validate(TTPExecutionContext)
+
+```go
+Validate(TTPExecutionContext) error
+```
+
+Validate validates the FetchURIStep. It checks that the
+Act field is valid, Location is set with
+a valid file path, and Uri is set.
+
+If Location is set, it ensures that the path exists and retrieves
+its absolute path.
+
+**Returns:**
+
+error: An error if any validation checks fail.
+
+---
+
 ### FileStep.Cleanup(TTPExecutionContext)
 
 ```go
@@ -499,6 +605,16 @@ NewEditStep() *EditStep
 ```
 
 NewEditStep creates a new EditStep instance with an initialized Act struct.
+
+---
+
+### NewFetchURIStep()
+
+```go
+NewFetchURIStep() *FetchURIStep
+```
+
+NewFetchURIStep creates a new FetchURIStep instance and returns a pointer to it.
 
 ---
 

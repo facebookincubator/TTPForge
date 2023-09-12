@@ -47,12 +47,13 @@ type StepType string
 
 // Constants for defining the types of steps available.
 const (
-	StepUnset   = "unsetStep"
-	StepFile    = "fileStep"
-	StepBasic   = "basicStep"
-	StepSubTTP  = "subTTPStep"
-	StepCleanup = "cleanupStep"
-	StepEdit    = "editStep"
+	StepUnset    = "unsetStep"
+	StepFile     = "fileStep"
+	StepFetchURI = "fetchURIStep"
+	StepBasic    = "basicStep"
+	StepSubTTP   = "subTTPStep"
+	StepCleanup  = "cleanupStep"
+	StepEdit     = "editStep"
 )
 
 // Act represents a single action within a TTP (Tactics, Techniques,
