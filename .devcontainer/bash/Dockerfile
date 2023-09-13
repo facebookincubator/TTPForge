@@ -76,7 +76,7 @@ RUN python3 -m venv $HOME/venv \
     && mage installDeps \
     && mage \
     && go mod tidy \
-    && pushd magefiles; go mod tidy; popd \
+    && cd magefiles; go mod tidy; cd - \
     && go build -o ttpforge \
     && rm ttpforge
 
