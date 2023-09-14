@@ -30,7 +30,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.BOT_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and export to Docker (Test Image)
         uses: docker/build-push-action@0a97817b6ade9f46837855d676c4cca3a2471fc9 # v4
