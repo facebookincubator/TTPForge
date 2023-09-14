@@ -33,14 +33,38 @@ import (
 
 // TTP represents the top-level structure for a TTP
 // (Tactics, Techniques, and Procedures) object.
+//
+// **Attributes:**
+//
+// Name: The name of the TTP.
+// Description: A description of the TTP.
+// MitreAttackMapping: A MitreAttack object containing mappings to the MITRE ATT&CK framework.
+// Environment: A map of environment variables to be set for the TTP.
+// Steps: An slice of steps to be executed for the TTP.
+// ArgSpecs: An slice of argument specifications for the TTP.
+// WorkDir: The working directory for the TTP.
 type TTP struct {
-	Name        string            `yaml:"name,omitempty"`
-	Description string            `yaml:"description"`
-	Environment map[string]string `yaml:"env,flow,omitempty"`
-	Steps       []Step            `yaml:"steps,omitempty,flow"`
-	ArgSpecs    []args.Spec       `yaml:"args,omitempty,flow"`
+	Name               string            `yaml:"name,omitempty"`
+	Description        string            `yaml:"description"`
+	MitreAttackMapping MitreAttack       `yaml:"mitre,omitempty"`
+	Environment        map[string]string `yaml:"env,flow,omitempty"`
+	Steps              []Step            `yaml:"steps,omitempty,flow"`
+	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
+}
+
+// MitreAttack represents mappings to the MITRE ATT&CK framework.
+//
+// **Attributes:**
+//
+// Tactics: A string slice containing the MITRE ATT&CK tactic(s) associated with the TTP.
+// Techniques: A string slice containing the MITRE ATT&CK technique(s) associated with the TTP.
+// SubTechniques: A string slice containing the MITRE ATT&CK sub-technique(s) associated with the TTP.
+type MitreAttack struct {
+	Tactics       []string `yaml:"tactics,omitempty"`
+	Techniques    []string `yaml:"techniques,omitempty"`
+	SubTechniques []string `yaml:"subtechniques,omitempty"`
 }
 
 // MarshalYAML is a custom marshalling implementation for the TTP structure.
@@ -50,7 +74,6 @@ type TTP struct {
 // **Returns:**
 //
 // interface{}: The formatted YAML string representing the TTP object.
-//
 // error: An error if the encoding process fails.
 func (t *TTP) MarshalYAML() (interface{}, error) {
 	marshaled, err := yaml.Marshal(*t)
@@ -127,6 +150,26 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Environment = tmpl.Environment
 	t.ArgSpecs = tmpl.ArgSpecs
 
+	// Check for and handle a mitre node
+	var mitreNode *yaml.Node
+	for i := 0; i < len(node.Content)-1; i += 2 {
+		keyNode := node.Content[i]
+		if keyNode.Value == "mitre" {
+			mitreNode = node.Content[i+1]
+			break
+		}
+	}
+
+	if mitreNode != nil {
+		if err := mitreNode.Decode(&t.MitreAttackMapping); err != nil {
+			return err
+		}
+		// if we have a MitreAttackMapping, ensure there's a tactic
+		if len(t.MitreAttackMapping.Tactics) == 0 {
+			return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", t.Name)
+		}
+	}
+
 	return t.decodeSteps(tmpl.Steps)
 }
 
@@ -192,6 +235,10 @@ func (t *TTP) setWorkingDirectory() error {
 // method. If any step fails validation, the method returns an error.
 // If all steps are successfully validated, the method returns nil.
 //
+// **Parameters:**
+//
+// execCtx: The TTPExecutionContext for the current TTP.
+//
 // **Returns:**
 //
 // error: An error if any step validation fails, otherwise nil.
@@ -239,10 +286,11 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []C
 //
 // **Parameters:**
 //
-// t: The TTP to execute the steps for.
+// execCfg: The TTPExecutionConfig for the current TTP.
 //
 // **Returns:**
 //
+// *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	if err := t.setWorkingDirectory(); err != nil {
