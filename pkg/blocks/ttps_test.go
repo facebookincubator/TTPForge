@@ -478,24 +478,27 @@ targets:
 			},
 		},
 		{
-			name: "Invalid targets with missing cloud",
+			name: "Valid cloud-only targets",
 			content: `
 ---
-name: missing-cloud
-description: Missing cloud target
+name: cloud-only
+description: Cloud-only target
 targets:
-  os:
-    - windows
-  arch:
-    - x86_64
+  cloud:
+    - provider: "aws"
+      region: "us-west-1"
 `,
 			wantError: false,
 			expectedTTP: blocks.TTP{
-				Name:        "missing-cloud",
-				Description: "Missing cloud target",
+				Name:        "cloud-only",
+				Description: "Cloud-only target",
 				Targets: blocks.Targets{
-					OS:   []string{"windows"},
-					Arch: []string{"x86_64"},
+					Cloud: []blocks.Cloud{
+						{
+							Provider: "aws",
+							Region:   "us-west-1",
+						},
+					},
 				},
 				Steps:    nil,
 				ArgSpecs: nil,
@@ -513,7 +516,7 @@ targets:
 			} else {
 				assert.NoError(t, err)
 			}
-			require.Equal(t, tc.expectedTTP, ttp, "Parsed TTP struct does not match expected")
+			require.Equal(t, tc.expectedTTP, ttp, "Parsed Cloud-only TTP struct does not match expected")
 		})
 	}
 }
