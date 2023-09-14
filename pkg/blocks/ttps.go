@@ -27,6 +27,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/targets"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -34,24 +35,23 @@ import (
 // TTP represents the top-level structure for a TTP
 // (Tactics, Techniques, and Procedures) object.
 //
-// **Attributes:**
-//
+// Attributes:
 // Name: The name of the TTP.
-// Description: A description of the TTP.
-// MitreAttackMapping: A MitreAttack object containing mappings to the MITRE ATT&CK framework.
-// Environment: A map of environment variables to be set for the TTP.
-// Targets: A map of targets to be set for the TTP.
-// Steps: An slice of steps to be executed for the TTP.
-// ArgSpecs: An slice of argument specifications for the TTP.
-// WorkDir: The working directory for the TTP.
+// Description: A brief description of the TTP.
+// MitreAttackMapping: Mappings to the MITRE ATT&CK framework.
+// Environment: Environment variables for the TTP.
+// TargetSpec: Specifications for valid targets (like OS, Architecture, etc.) for the TTP.
+// Steps: An ordered list of steps that the TTP will execute.
+// ArgSpecs: Specifications for the arguments that the TTP accepts.
+// WorkDir: (Unexported) Specifies the working directory where the TTP should operate, primarily used in testing.
 type TTP struct {
-	Name               string            `yaml:"name,omitempty"`
-	Description        string            `yaml:"description"`
-	MitreAttackMapping MitreAttack       `yaml:"mitre,omitempty"`
-	Environment        map[string]string `yaml:"env,flow,omitempty"`
-	Targets            Targets           `yaml:"targets,flow,omitempty"`
-	Steps              []Step            `yaml:"steps,omitempty,flow"`
-	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
+	Name               string             `yaml:"name,omitempty"`
+	Description        string             `yaml:"description"`
+	MitreAttackMapping MitreAttack        `yaml:"mitre,omitempty"`
+	Environment        map[string]string  `yaml:"env,flow,omitempty"`
+	TargetSpec         targets.TargetSpec `yaml:"targets,flow,omitempty"`
+	Steps              []Step             `yaml:"steps,omitempty,flow"`
+	ArgSpecs           []args.Spec        `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
 }
@@ -159,12 +159,12 @@ func reduceIndentation(b []byte, n int) []byte {
 // error: An error if the decoding process fails or if the TTP structure contains invalid steps.
 func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	type TTPTmpl struct {
-		Name        string            `yaml:"name,omitempty"`
-		Description string            `yaml:"description"`
-		Environment map[string]string `yaml:"env,flow,omitempty"`
-		Targets     Targets           `yaml:"targets,flow,omitempty"`
-		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
-		ArgSpecs    []args.Spec       `yaml:"args,omitempty,flow"`
+		Name        string             `yaml:"name,omitempty"`
+		Description string             `yaml:"description"`
+		Environment map[string]string  `yaml:"env,flow,omitempty"`
+		TargetSpec  targets.TargetSpec `yaml:"targets,flow,omitempty"`
+		Steps       []yaml.Node        `yaml:"steps,omitempty,flow"`
+		ArgSpecs    []args.Spec        `yaml:"args,omitempty,flow"`
 	}
 
 	var tmpl TTPTmpl
@@ -175,7 +175,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Name = tmpl.Name
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
-	t.Targets = tmpl.Targets
+	t.TargetSpec = tmpl.TargetSpec
 	t.ArgSpecs = tmpl.ArgSpecs
 
 	// Check for and handle a mitre node

@@ -35,6 +35,7 @@ type TTPExecutionConfig struct {
 	NoCleanup           bool
 	CleanupDelaySeconds uint
 	Args                map[string]any
+	Targets             map[string]any
 	Repo                repos.Repo
 }
 

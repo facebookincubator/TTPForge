@@ -2,8 +2,8 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Mage GeneratePackageDocs",
       "type": "go",
+      "name": "Mage GeneratePackageDocs",
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/magefiles/mage_output_file.go",
@@ -24,6 +24,14 @@
         "run",
         "examples/variadic-params/variadicParameterExample.yaml"
       ]
+    },
+    {
+      "type": "go",
+      "request": "launch",
+      "name": "Debug targets example TTP",
+      "mode": "debug",
+      "program": "${workspaceRoot}",
+      "args": ["run", "forgearmory//examples/targets/os-and-arch-target.yaml"]
     },
     {
       "name": "Test Current File",

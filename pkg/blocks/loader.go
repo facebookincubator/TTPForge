@@ -30,6 +30,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
+	"github.com/facebookincubator/ttpforge/pkg/targets"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
@@ -69,19 +70,21 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 }
 
 // LoadTTP reads a TTP file and creates a TTP instance based on its contents.
+// It processes the targets and arguments present in the file, validates them,
+// and populates the appropriate fields in the provided TTPExecutionConfig.
 // If the file is empty or contains invalid data, it returns an error.
 //
-// **Parameters:**
-//
+// Parameters:
 // ttpFilePath: the absolute or relative path to the TTP YAML file.
-// fsys: an afero.Fs that contains the specified TTP file path
+// fsys: an afero.Fs that contains the specified TTP file path.
+// execCfg: Configuration containing execution details which will be populated based on parsed targets and arguments.
+// argsKvStrs: Key-value strings for argument specifications.
+// targetsKvStrs: Key-value strings for target specifications (Currently unused but may be required for future extensions).
 //
-// **Returns:**
-//
+// Returns:
 // ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
-
+func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string, targetsKvStrs []string) (*TTP, error) {
 	ttpBytes, err := readTTPBytes(ttpFilePath, fsys)
 	if err != nil {
 		return nil, err
@@ -94,14 +97,24 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 
 	// linting above establishes that the TTP yaml will be
 	// compatible with our rendering process
-	type ArgSpecContainer struct {
-		ArgSpecs []args.Spec `yaml:"args"`
+	type ArgAndTargetSpecContainer struct {
+		ArgSpecs   []args.Spec        `yaml:"args"`
+		TargetSpec targets.TargetSpec `yaml:"targets"`
 	}
-	var tmpContainer ArgSpecContainer
+
+	var tmpContainer ArgAndTargetSpecContainer
 	err = yaml.Unmarshal(result.PreambleBytes, &tmpContainer)
 	if err != nil {
 		return nil, err
 	}
+
+	// Parse and validate the provided TargetSpec (if applicable)
+	targetValues, err := targets.ParseAndValidateTargets(tmpContainer.TargetSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse and validate targets: %v", err)
+	}
+
+	execCfg.Targets = targetValues
 
 	argValues, err := args.ParseAndValidate(tmpContainer.ArgSpecs, argsKvStrs)
 	if err != nil {

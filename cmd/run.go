@@ -29,6 +29,7 @@ import (
 func buildRunCommand() *cobra.Command {
 	var argsList []string
 	var ttpCfg blocks.TTPExecutionConfig
+	var targetsList []string
 	runCmd := &cobra.Command{
 		Use:   "run [repo_name//path/to/ttp]",
 		Short: "Run the TTP found in the specified YAML file.",
@@ -48,7 +49,7 @@ func buildRunCommand() *cobra.Command {
 			// based on the TTPs argument value specifications
 			ttpCfg.Repo = foundRepo
 
-			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList)
+			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList, targetsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}
@@ -62,6 +63,7 @@ func buildRunCommand() *cobra.Command {
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging and daisy-chaining TTPs)")
 	runCmd.PersistentFlags().UintVar(&ttpCfg.CleanupDelaySeconds, "cleanup-delay-seconds", 0, "Wait this long after TTP execution before starting cleanup")
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
+	runCmd.Flags().StringArrayVarP(&targetsList, "target", "t", []string{}, "variable input mapping to specify targets")
 
 	return runCmd
 }
