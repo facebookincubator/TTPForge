@@ -774,7 +774,6 @@ indentation and structure of the output YAML.
 **Returns:**
 
 interface{}: The formatted YAML string representing the TTP object.
-
 error: An error if the encoding process fails.
 
 ---
@@ -789,10 +788,11 @@ RunSteps executes all of the steps in the given TTP.
 
 **Parameters:**
 
-t: The TTP to execute the steps for.
+execCfg: The TTPExecutionConfig for the current TTP.
 
 **Returns:**
 
+*StepResultsRecord: A StepResultsRecord containing the results of each step.
 error: An error if any of the steps fail to execute.
 
 ---
@@ -828,6 +828,10 @@ ValidateSteps iterates through each step in the TTP and validates it.
 It sets the working directory for each step before calling its Validate
 method. If any step fails validation, the method returns an error.
 If all steps are successfully validated, the method returns nil.
+
+**Parameters:**
+
+execCtx: The TTPExecutionContext for the current TTP.
 
 **Returns:**
 
