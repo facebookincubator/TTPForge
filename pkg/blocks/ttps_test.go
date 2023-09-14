@@ -153,6 +153,76 @@ steps:
 `,
 			wantError: false,
 		},
+		{
+			name: "Valid targets and steps",
+			content: `
+---
+name: enumerate-creds-lazagne
+description: |
+  Employ [LaZagne](https://github.com/AlessandroZ/LaZagne) for
+  extracting credentials stored on disk and in memory of a target system.
+args:
+  - name: lazagne-path
+
+steps:
+  - name: setup
+    inline: |
+      if ! command -v python3 &> /dev/null; then
+          echo "Error: Python3 is not installed on the current system, cannot run LaZagne"
+          exit 1
+      fi
+
+      if ! command -v pip3 &> /dev/null; then
+          echo "Error: pip3 is not installed on the current system, cannot run LaZagne"
+          exit 1
+      fi
+
+      if ! command -v git &> /dev/null; then
+          echo "Error: git is not installed on the current system, cannot run LaZagne"
+          exit 1
+      fi
+
+      if [[ -d "{{ .Args.lazagne-path }}" ]]; then
+          echo "Info: LaZagne already present on the current system"
+      else
+          git clone https://github.com/AlessandroZ/LaZagne.git {{ .Args.lazagne-path }}
+      fi
+
+      echo "Info: Ensuring the latest LaZagne dependencies are installed and up-to-date"
+      cd {{ .Args.lazagne-path }} && pip3 install -r requirements.txt
+
+  - name: run-lazagne
+    inline: |
+      set -e
+
+      # Determine the operating system
+      OS=$(uname)
+      if [[ "$OS" == "Darwin" ]]; then
+          export TARGET_OS="Mac"
+      elif [[ "$OS" == "Linux" ]]; then
+          export TARGET_OS="Linux"
+      else
+          echo "Unsupported operating system."
+          exit 1
+      fi
+
+      echo "Running LaZagne"
+      cd {{ .Args.lazagne-path }} && python3 ${TARGET_OS}/laZagne.py all
+
+    cleanup:
+      inline: |
+        set -e
+
+        echo "Uninstalling Python packages..."
+        cd {{ .Args.lazagne-path }} && pip3 uninstall -y -r requirements.txt
+
+        if [[ -d "{{ .Args.lazagne-path }}" ]]; then
+            echo "Cleaning up LaZagne repository..."
+            rm -rf {{ .Args.lazagne-path }}
+        fi
+`,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -348,6 +418,102 @@ mitre:
 				assert.NoError(t, err)
 				assert.NotNil(t, ttp.MitreAttackMapping.Tactics)
 			}
+		})
+	}
+}
+
+func TestUnmarshalTargetsAndCloud(t *testing.T) {
+	testCases := []struct {
+		name        string
+		content     string
+		wantError   bool
+		expectedTTP blocks.TTP
+	}{
+		{
+			name: "Valid targets with cloud",
+			content: `
+---
+name: cloud-target
+description: Test cloud targeting
+targets:
+  os:
+    - linux
+    - windows
+  arch:
+    - x86_64
+    - arm64
+  cloud:
+    - provider: "aws"
+      region: "us-west-1"
+    - provider: "gcp"
+      region: "us-central1"
+    - provider: "azure"
+      region: "eastus"
+`,
+			wantError: false,
+			expectedTTP: blocks.TTP{
+				Name:        "cloud-target",
+				Description: "Test cloud targeting",
+				Targets: blocks.Targets{
+					OS:   []string{"linux", "windows"},
+					Arch: []string{"x86_64", "arm64"},
+					Cloud: []blocks.Cloud{
+						{
+							Provider: "aws",
+							Region:   "us-west-1",
+						},
+						{
+							Provider: "gcp",
+							Region:   "us-central1",
+						},
+						{
+							Provider: "azure",
+							Region:   "eastus",
+						},
+					},
+				},
+				Steps:    nil,
+				ArgSpecs: nil,
+				WorkDir:  "",
+			},
+		},
+		{
+			name: "Invalid targets with missing cloud",
+			content: `
+---
+name: missing-cloud
+description: Missing cloud target
+targets:
+  os:
+    - windows
+  arch:
+    - x86_64
+`,
+			wantError: false,
+			expectedTTP: blocks.TTP{
+				Name:        "missing-cloud",
+				Description: "Missing cloud target",
+				Targets: blocks.Targets{
+					OS:   []string{"windows"},
+					Arch: []string{"x86_64"},
+				},
+				Steps:    nil,
+				ArgSpecs: nil,
+				WorkDir:  "",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			require.Equal(t, tc.expectedTTP, ttp, "Parsed TTP struct does not match expected")
 		})
 	}
 }

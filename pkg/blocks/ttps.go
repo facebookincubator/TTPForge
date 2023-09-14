@@ -40,6 +40,7 @@ import (
 // Description: A description of the TTP.
 // MitreAttackMapping: A MitreAttack object containing mappings to the MITRE ATT&CK framework.
 // Environment: A map of environment variables to be set for the TTP.
+// Targets: A map of targets to be set for the TTP.
 // Steps: An slice of steps to be executed for the TTP.
 // ArgSpecs: An slice of argument specifications for the TTP.
 // WorkDir: The working directory for the TTP.
@@ -48,6 +49,7 @@ type TTP struct {
 	Description        string            `yaml:"description"`
 	MitreAttackMapping MitreAttack       `yaml:"mitre,omitempty"`
 	Environment        map[string]string `yaml:"env,flow,omitempty"`
+	Targets            Targets           `yaml:"targets,flow,omitempty"`
 	Steps              []Step            `yaml:"steps,omitempty,flow"`
 	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
@@ -65,6 +67,30 @@ type MitreAttack struct {
 	Tactics       []string `yaml:"tactics,omitempty"`
 	Techniques    []string `yaml:"techniques,omitempty"`
 	SubTechniques []string `yaml:"subtechniques,omitempty"`
+}
+
+// Targets represents the targets structure for a TTP.
+//
+// **Attributes:**
+//
+// Name: The name of the target.
+// Description: A description of the target.
+// Targets: A map of targets to be set for the TTP.
+type Targets struct {
+	OS    []string `yaml:"os,omitempty"`
+	Arch  []string `yaml:"arch,omitempty"`
+	Cloud []Cloud  `yaml:"cloud,omitempty"`
+}
+
+// Cloud represents the cloud provider structure for a TTP.
+//
+// **Attributes:**
+//
+// Provider: The name of the cloud provider to be targeted.
+// Region: The name of the cloud region to be targeted.
+type Cloud struct {
+	Provider string `yaml:"provider,omitempty"`
+	Region   string `yaml:"region,omitempty"`
 }
 
 // MarshalYAML is a custom marshalling implementation for the TTP structure.
@@ -136,6 +162,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 		Name        string            `yaml:"name,omitempty"`
 		Description string            `yaml:"description"`
 		Environment map[string]string `yaml:"env,flow,omitempty"`
+		Targets     Targets           `yaml:"targets,flow,omitempty"`
 		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
 		ArgSpecs    []args.Spec       `yaml:"args,omitempty,flow"`
 	}
@@ -148,6 +175,7 @@ func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
 	t.Name = tmpl.Name
 	t.Description = tmpl.Description
 	t.Environment = tmpl.Environment
+	t.Targets = tmpl.Targets
 	t.ArgSpecs = tmpl.ArgSpecs
 
 	// Check for and handle a mitre node
