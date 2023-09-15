@@ -67,14 +67,14 @@ steps:
 	}
 }
 
-func TestUnmarshalScenario(t *testing.T) {
+func TestUnmarshalYAML(t *testing.T) {
 	testCases := []struct {
 		name      string
 		content   string
 		wantError bool
 	}{
 		{
-			name: "Hello World scenario",
+			name: "File scenario",
 			content: `
 ---
 name: Hello World
@@ -93,12 +93,36 @@ steps:
 `,
 			wantError: false,
 		},
+		{
+			name: "Basic Mitre scenario",
+			content: `
+---
+name: Leverage mdfind to search for aws credentials on disk.
+description: |
+  This TTP runs a search using mdfind to search for AKIA strings in files,
+  which would likely indicate that the file is an aws key.
+mitre:
+  tactics:
+    - TA0006 Credential Access
+  techniques:
+    - T1552 Unsecured Credentials
+  subtechniques:
+    - "T1552.001 Unsecured Credentials: Credentials In Files"
+steps:
+  - name: mdfind_aws_keys
+    inline: |
+      echo -e "Searching for aws keys on disk using mdfind..."
+      mdfind "kMDItemTextContent == '*AKIA*' || kMDItemDisplayName == '*AKIA*' -onlyin ~"
+      echo "[+] TTP Done!"
+`,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			var ttp blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
@@ -277,4 +301,53 @@ steps:
 	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByName["step1"].Stdout)
 	assert.Equal(t, "first output is baz\n", stepResults.ByName["step2"].Stdout)
 	assert.Equal(t, "arg value is victory\n", stepResults.ByName["step3"].Stdout)
+}
+
+func TestMitreAttackMapping(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Valid MITRE Mapping",
+			content: `
+name: TestTTP
+description: Test description
+mitre:
+  tactics:
+    - Initial Access
+    - Execution
+  techniques:
+    - Spearphishing Link
+  subtechniques:
+    - Attachment
+`,
+			wantError: false,
+		},
+		{
+			name: "Invalid MITRE Mapping - Missing Tactic",
+			content: `
+name: TestTTP
+description: Test description
+mitre:
+  techniques:
+    - Spearphishing Link
+`,
+			wantError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, ttp.MitreAttackMapping.Tactics)
+			}
+		})
+	}
 }

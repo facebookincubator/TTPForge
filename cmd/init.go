@@ -20,9 +20,23 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
+
+func copyEmbeddedConfigToPath(configFilePath string) error {
+	cfgDir := filepath.Dir(configFilePath)
+	if err := os.MkdirAll(cfgDir, 0700); err != nil {
+		return err
+	}
+	err := afero.WriteFile(afero.NewOsFs(), configFilePath, []byte(defaultConfigContents), 0600)
+	return err
+}
 
 func buildInitCommand() *cobra.Command {
 	return &cobra.Command{
@@ -33,7 +47,25 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
     `,
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// initialization will be handled by config checking code
+			defaultConfigFilePath, err := getDefaultConfigFilePath()
+			if err != nil {
+				return fmt.Errorf("could not lookup default config file path: %v", err)
+			}
+			exists, err := afero.Exists(afero.NewOsFs(), defaultConfigFilePath)
+			if err != nil {
+				return fmt.Errorf("could not check existence of file %v: %v", defaultConfigFilePath, err)
+			}
+			if exists {
+				logging.L().Warnf("Configuration file %v already exists - TTPForge is probably already initialized", defaultConfigFilePath)
+				logging.L().Warn("If you really want to re-initialize it, delete all existing TTPForge configuration files/directories")
+				return nil
+			}
+
+			logging.L().Infof("Copying embedded configuration file to path: %v", defaultConfigFilePath)
+			err = copyEmbeddedConfigToPath(defaultConfigFilePath)
+			if err != nil {
+				return fmt.Errorf("could not copy default configuration to path %v: %v", defaultConfigFilePath, err)
+			}
 			logging.L().Infof("TTPForge Initialized. Now try `ttpforge run` :)")
 			return nil
 		},

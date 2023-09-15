@@ -1,0 +1,5 @@
+---
+name: basic_inline
+steps:
+  - name: hello
+    inline: echo "hello world"

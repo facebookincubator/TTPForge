@@ -21,44 +21,76 @@ package cmd
 
 import (
 	// 'go lint': need blank import for embedding default config
+	"bytes"
+	// needed for embedded filesystem
 	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/spf13/afero"
+	"gopkg.in/yaml.v3"
 )
 
+// Config stores the variables from the TTPForge global config file
+type Config struct {
+	RepoSpecs []repos.Spec `yaml:"repos"`
+
+	repoCollection repos.RepoCollection
+	cfgFile        string
+}
+
 var (
-	autoInitConfig bool
 	//go:embed default-config.yaml
 	defaultConfigContents string
 	defaultConfigFileName = "config.yaml"
 	defaultResourceDir    = ".ttpforge"
+
+	// Conf refers to the configuration used throughout TTPForge.
+	Conf = &Config{}
+
+	logConfig logging.Config
 )
 
-func ensureDefaultConfig() (string, error) {
+func getDefaultConfigFilePath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-
-	f := afero.NewOsFs()
-	defaultConfigDir := filepath.Join(homeDir, defaultResourceDir)
-	defaultConfigPath := filepath.Join(defaultConfigDir, defaultConfigFileName)
-	exists, err := afero.Exists(f, defaultConfigPath)
-	if err != nil {
-		return "", err
-	}
-	if exists {
-		return defaultConfigPath, nil
-	}
-
-	if err = os.MkdirAll(defaultConfigDir, 0700); err != nil {
-		return "", err
-	}
-
-	if err := afero.WriteFile(f, defaultConfigPath, []byte(defaultConfigContents), 0600); err != nil {
-		return "", err
-	}
+	defaultConfigPath := filepath.Join(homeDir, defaultResourceDir, defaultConfigFileName)
 	return defaultConfigPath, nil
+}
+
+// loadRepoCollection verifies that all repositories specified
+// in the configuration file are present on the filesystem
+// and clones missing ones if needed
+func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
+	// locate our config file directory to expend config-relative paths
+	var basePath string
+	if cfg.cfgFile != "" {
+		cfgFileAbsPath, err := filepath.Abs(cfg.cfgFile)
+		if err != nil {
+			return nil, err
+		}
+		basePath = filepath.Dir(cfgFileAbsPath)
+	}
+	fsys := afero.NewOsFs()
+	return repos.NewRepoCollection(fsys, cfg.RepoSpecs, basePath)
+}
+
+// save() writes the current config back to its file - used by `install“ command
+func (cfg *Config) save() error {
+	var b bytes.Buffer
+	yamlEncoder := yaml.NewEncoder(&b)
+	yamlEncoder.SetIndent(2)
+	err := yamlEncoder.Encode(&cfg)
+	if err != nil {
+		return fmt.Errorf("marshalling config failed: %v", err)
+	}
+	// YAML won't add this stylistic choice so we do it ourselves
+	cfgStr := "---\n" + b.String()
+	err = os.WriteFile(cfg.cfgFile, []byte(cfgStr), 0)
+	return err
 }

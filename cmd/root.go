@@ -20,45 +20,19 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
-// Config stores the variables from the TTPForge global config file
-type Config struct {
-	RepoSpecs []repos.Spec `yaml:"repos"`
-
-	repoCollection repos.RepoCollection
-	cfgFile        string
-}
-
-var (
-	// Conf refers to the configuration used throughout TTPForge.
-	Conf = &Config{}
-
-	logConfig logging.Config
-)
-
-// ExecOptions is used to control some high-level behaviors
-// like ~/.ttpforge/config.yaml auto-initialization.
-// These toggles are passed from main.go so that
-// it doesn't happen accidentally in unit tests
-type ExecOptions struct {
-	AutoInitConfig bool
-}
-
 // Execute sets up runtime configuration for the root command
 // and adds formatted error handling
-func Execute(eo ExecOptions) error {
-	autoInitConfig = eo.AutoInitConfig
+func Execute() error {
 	rootCmd := BuildRootCommand()
 	if err := rootCmd.Execute(); err != nil {
 		// we want our own log formatting (for pretty colors)
@@ -82,8 +56,11 @@ func BuildRootCommand() *cobra.Command {
 TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Procedures.
     `,
 		TraverseChildren: true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			initConfig()
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if cmd.CalledAs() != "init" {
+				return initConfig()
+			}
+			return nil
 		},
 		// we will print our own errors with pretty formatting
 		SilenceErrors: true,
@@ -100,42 +77,52 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 	rootCmd.AddCommand(buildListCommand())
 	rootCmd.AddCommand(buildShowCommand())
 	rootCmd.AddCommand(buildRunCommand())
+	rootCmd.AddCommand(buildInstallCommand())
+	rootCmd.AddCommand(buildRemoveCommand())
 	return rootCmd
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() {
+func initConfig() error {
+	// this eventually needs to be de-global'd but for now we'll at east zero it out
+	// between test cases
+	Conf = &Config{
+		cfgFile: Conf.cfgFile,
+	}
 	// find config file
 	if Conf.cfgFile == "" {
-		if !autoInitConfig {
-			err := errors.New("config auto-init disabled: you must specify a config file manually")
-			cobra.CheckErr(err)
+		defaultConfigFilePath, err := getDefaultConfigFilePath()
+		if err != nil {
+			return fmt.Errorf("could not lookup default config file path: %v", err)
 		}
-		// check default config location
-		defaultConfigPath, err := ensureDefaultConfig()
-		cobra.CheckErr(err)
-		Conf.cfgFile = defaultConfigPath
+		exists, err := afero.Exists(afero.NewOsFs(), defaultConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("could not check existence of file %v: %v", defaultConfigFilePath, err)
+		}
+		if exists {
+			Conf.cfgFile = defaultConfigFilePath
+		} else {
+			logging.L().Warn("No config file specified and default configuration file not found!")
+			logging.L().Warn("You probably want to run `ttpforge init`!")
+			logging.L().Warn("However, if you know what you are doing, then carry on :)")
+		}
 	}
 
-	// load config file
-	logging.L().Debugf("Using config file: %s", Conf.cfgFile)
-	cfgContents, err := os.ReadFile(Conf.cfgFile)
-	cobra.CheckErr(err)
-	err = yaml.Unmarshal(cfgContents, Conf)
-	cobra.CheckErr(err)
-
-	// expand config-relative paths
-	cfgFileAbsPath, err := filepath.Abs(Conf.cfgFile)
-	cobra.CheckErr(err)
-	cfgDir := filepath.Dir(cfgFileAbsPath)
-	fsys := afero.NewOsFs()
-	for specIdx, curSpec := range Conf.RepoSpecs {
-		Conf.RepoSpecs[specIdx].Path = filepath.Join(cfgDir, curSpec.Path)
+	// load config file if we found one
+	if Conf.cfgFile != "" {
+		cfgContents, err := os.ReadFile(Conf.cfgFile)
+		if err != nil {
+			return err
+		}
+		if err = yaml.Unmarshal(cfgContents, Conf); err != nil {
+			return err
+		}
 	}
-	rc, err := repos.NewRepoCollection(fsys, Conf.RepoSpecs, true)
-	cobra.CheckErr(err)
-	Conf.repoCollection = rc
+	var err error
+	if Conf.repoCollection, err = Conf.loadRepoCollection(); err != nil {
+		return err
+	}
 
-	err = logging.InitLog(logConfig)
-	cobra.CheckErr(err)
+	// setup logging
+	return logging.InitLog(logConfig)
 }

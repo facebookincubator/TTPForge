@@ -53,3 +53,31 @@ func TestRun(t *testing.T) {
 		})
 	}
 }
+
+// TestRunWithoutConfig verifies
+// that running TTPs still works without a top-level config file
+func TestRunWithoutConfig(t *testing.T) {
+	testCases := []struct {
+		name      string
+		ttpRef    string
+		wantError bool
+	}{
+		{
+			name:   "basic-file",
+			ttpRef: "test-resources/repos/test-repo/ttps/basic/basic-file.yaml",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rc := cmd.BuildRootCommand()
+			rc.SetArgs([]string{"run", tc.ttpRef})
+			err := rc.Execute()
+			if tc.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

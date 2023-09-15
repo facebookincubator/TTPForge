@@ -20,26 +20,16 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
-func buildListTTPsCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:              "ttps",
-		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
+func buildInstallCommand() *cobra.Command {
+	installCmd := &cobra.Command{
+		Use:              "install",
+		Short:            "install various types of resources used by TTPForge",
+		Long:             "For now, you just want to use the 'ttpforge install repo' subcommand",
 		TraverseChildren: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ttpRefs, err := Conf.repoCollection.ListTTPs()
-			if err != nil {
-				return err
-			}
-			for _, ttpRef := range ttpRefs {
-				fmt.Println(ttpRef)
-			}
-			return nil
-		},
 	}
-
+	installCmd.AddCommand(buildInstallRepoCommand())
+	return installCmd
 }

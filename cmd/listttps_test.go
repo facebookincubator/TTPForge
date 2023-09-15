@@ -17,19 +17,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package main
+package cmd_test
 
 import (
-	"os"
+	"path/filepath"
+	"testing"
 
 	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/stretchr/testify/require"
 )
 
-func main() {
-	if err := cmd.Execute(); err != nil {
-		// cobra won't set the right exit code unless
-		// you use cobra.CheckErr, which we don't want to do for
-		// formatting reasons
-		os.Exit(1)
+func TestListTTPs(t *testing.T) {
+	testConfigFilePath := filepath.Join("test-resources", "test-config.yaml")
+	testCases := []struct {
+		name      string
+		ttpRef    string
+		wantError bool
+	}{
+		{
+			name: "no-filter",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rc := cmd.BuildRootCommand()
+			rc.SetArgs([]string{"list", "ttps", "-c", testConfigFilePath})
+			err := rc.Execute()
+			if tc.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }

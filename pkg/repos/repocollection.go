@@ -31,15 +31,15 @@ import (
 // RepoCollection provides useful methods for resolving and
 // navigating TTPs stored in various different repositories
 type RepoCollection interface {
+	GetRepo(repoName string) (Repo, error)
 	ResolveTTPRef(ttpRef string) (Repo, string, error)
 	ListTTPs() ([]string, error)
 }
 
 type repoCollection struct {
-	repos          []Repo
-	reposByName    map[string]Repo
-	fsys           afero.Fs
-	workdirSupport bool
+	repos       []Repo
+	reposByName map[string]Repo
+	fsys        afero.Fs
 }
 
 // NewRepoCollection validates the provided repo specs
@@ -49,21 +49,19 @@ type repoCollection struct {
 //
 // fsys: base file system (used for unit testing)
 // specs: a list of repo.Spec entries (usually from the config file)
-// workdirSupport: true if the provided fsys supports workdirs
 //
 // **Returns:**
 //
 // RepoCollection: assembled RepoCollection, or nil if there was an error
 // error: an error if there is a problem
-func NewRepoCollection(fsys afero.Fs, specs []Spec, workdirSupport bool) (RepoCollection, error) {
+func NewRepoCollection(fsys afero.Fs, specs []Spec, basePath string) (RepoCollection, error) {
 	// load all repos
 	rc := repoCollection{
-		fsys:           fsys,
-		reposByName:    make(map[string]Repo),
-		workdirSupport: workdirSupport,
+		fsys:        fsys,
+		reposByName: make(map[string]Repo),
 	}
 	for _, spec := range specs {
-		r, err := spec.Load(fsys)
+		r, err := spec.Load(fsys, basePath)
 		if err != nil {
 			return nil, err
 		}
@@ -76,6 +74,27 @@ func NewRepoCollection(fsys afero.Fs, specs []Spec, workdirSupport bool) (RepoCo
 		rc.repos = append(rc.repos, r)
 	}
 	return &rc, nil
+}
+
+// GetRepo retrieves a Repo reference
+// for a repo of the specified name,
+// or returns an error
+// if the repo is not in this collection
+//
+// **Parameters:**
+//
+// repoName: the repoistory name
+//
+// **Returns:**
+//
+// Repo: the located repo
+// error: an error if there is a problem
+func (rc *repoCollection) GetRepo(repoName string) (Repo, error) {
+	r, ok := rc.reposByName[repoName]
+	if !ok {
+		return nil, fmt.Errorf("repository not found: %v", repoName)
+	}
+	return r, nil
 }
 
 // ResolveTTPRef turns a provided TTP reference into
@@ -179,7 +198,7 @@ func (rc *repoCollection) findParentRepo(absPath string) (Repo, error) {
 		Name: repoName,
 		Path: repoPath,
 	}
-	r, err := spec.Load(rc.fsys)
+	r, err := spec.Load(rc.fsys, "")
 	if err != nil {
 		return nil, err
 	}
@@ -199,12 +218,14 @@ func (rc *repoCollection) resolveAbsPath(path string) (string, error) {
 	// don't have a concept of a working directory.
 	// filepath uses the OS working directory of our actual process -
 	// this creates incompability that we resolve manually like this
-	if rc.workdirSupport {
+	switch rc.fsys.(type) {
+	case *afero.OsFs:
 		fullPath, err := filepath.Abs(path)
 		if err != nil {
 			return "", err
 		}
 		return fullPath, nil
+	default:
+		return path, nil
 	}
-	return path, nil
 }
