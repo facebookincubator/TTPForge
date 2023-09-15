@@ -151,7 +151,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		logging.L().Infof("[+] Finished running step: %s", stepCopy.StepName())
 	}
 
-	logging.L().Info("Finished execution of sub ttp file")
+	logging.L().Info("========= Result ==========")
 
 	return &ExecutionResult{
 		ActResult: *aggregateResults(results),

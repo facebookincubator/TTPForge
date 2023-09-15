@@ -195,10 +195,10 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 
 // Execute runs the BasicStep and returns an error if any occur.
 func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+	logging.L().Info("========= Executing ==========")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
-
-	logging.L().Info("========= Executing ==========")
 
 	if b.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")

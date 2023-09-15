@@ -124,8 +124,11 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 
 // Execute runs the EditStep and returns an error if any occur.
 func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+	logging.L().Info("========= Executing ==========")
+
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
+
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
 		var err error
@@ -189,6 +192,8 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 		}
 		return nil, err
 	}
+
+	logging.L().Info("========= Result ==========")
 
 	return &ExecutionResult{}, nil
 }
