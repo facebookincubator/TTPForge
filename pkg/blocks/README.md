@@ -319,7 +319,7 @@ Cleanup(TTPExecutionContext) *ActResult, error
 
 Cleanup is a method to establish a link with the Cleanup interface.
 Assumes that the type is the cleanup step and is invoked by
-f.CleanupStep.Cleanup.
+u.CleanupStep.Cleanup.
 
 ---
 

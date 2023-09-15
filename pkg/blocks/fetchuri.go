@@ -37,14 +37,15 @@ import (
 // FetchURIStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FetchURIStep struct {
-	*Act        `yaml:",inline"`
-	FetchURI    string     `yaml:"fetch_uri,omitempty"`
-	Retries     string     `yaml:"retries,omitempty"`
-	Location    string     `yaml:"location,omitempty"`
-	Proxy       string     `yaml:"proxy,omitempty"`
-	Overwrite   bool       `yaml:"overwrite,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	FileSystem  afero.Fs   `yaml:"-,omitempty"`
+	*Act         `yaml:",inline"`
+	FetchURI     string     `yaml:"fetch_uri,omitempty"`
+	Retries      string     `yaml:"retries,omitempty"`
+	Location     string     `yaml:"location,omitempty"`
+	Proxy        string     `yaml:"proxy,omitempty"`
+	Overwrite    bool       `yaml:"overwrite,omitempty"`
+	IgnoreErrors bool       `yaml:"ignore_errors,omitempty,flow"`
+	CleanupStep  CleanupAct `yaml:"cleanup,omitempty,flow"`
+	FileSystem   afero.Fs   `yaml:"-,omitempty"`
 }
 
 // NewFetchURIStep creates a new FetchURIStep instance and returns a pointer to it.
@@ -67,66 +68,68 @@ func NewFetchURIStep() *FetchURIStep {
 // **Returns:**
 //
 // error: An error if there is a problem decoding the YAML data.
-func (f *FetchURIStep) UnmarshalYAML(node *yaml.Node) error {
+func (u *FetchURIStep) UnmarshalYAML(node *yaml.Node) error {
 
-	type fileStepTmpl struct {
-		Act         `yaml:",inline"`
-		FetchURI    string    `yaml:"fetch_uri,omitempty"`
-		Retries     string    `yaml:"retries,omitempty"`
-		Location    string    `yaml:"location,omitempty"`
-		Proxy       string    `yaml:"proxy,omitempty"`
-		Overwrite   bool      `yaml:"overwrite,omitempty"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
+	type fetchURITmpl struct {
+		Act          `yaml:",inline"`
+		FetchURI     string    `yaml:"fetch_uri,omitempty"`
+		Retries      string    `yaml:"retries,omitempty"`
+		Location     string    `yaml:"location,omitempty"`
+		Proxy        string    `yaml:"proxy,omitempty"`
+		Overwrite    bool      `yaml:"overwrite,omitempty"`
+		IgnoreErrors bool      `yaml:"ignore_errors,omitempty,flow"`
+		CleanupStep  yaml.Node `yaml:"cleanup,omitempty,flow"`
 	}
 
 	// Decode the YAML node into the provided template.
-	var tmpl fileStepTmpl
+	var tmpl fetchURITmpl
 	if err := node.Decode(&tmpl); err != nil {
 		return err
 	}
 
 	// Initialize the FetchURIStep instance with the decoded values.
-	f.Act = &tmpl.Act
-	f.FetchURI = tmpl.FetchURI
-	f.Location = tmpl.Location
-	f.Retries = tmpl.Retries
-	f.Proxy = tmpl.Proxy
-	f.Overwrite = tmpl.Overwrite
+	u.Act = &tmpl.Act
+	u.FetchURI = tmpl.FetchURI
+	u.Location = tmpl.Location
+	u.Retries = tmpl.Retries
+	u.Proxy = tmpl.Proxy
+	u.Overwrite = tmpl.Overwrite
+	u.IgnoreErrors = tmpl.IgnoreErrors
 
 	// Check for invalid steps.
-	if f.IsNil() {
-		return f.ExplainInvalid()
+	if u.IsNil() {
+		return u.ExplainInvalid()
 	}
 
 	// If there is no cleanup step or if this step is the cleanup step, exit.
-	if tmpl.CleanupStep.IsZero() || f.Type == StepCleanup {
+	if tmpl.CleanupStep.IsZero() || u.Type == StepCleanup {
 		return nil
 	}
 
 	// Create a CleanupStep instance and add it to the FetchURIStep instance.
 	logging.L().Debugw("step", "name", tmpl.Name)
-	cleanup, err := f.MakeCleanupStep(&tmpl.CleanupStep)
+	cleanup, err := u.MakeCleanupStep(&tmpl.CleanupStep)
 	logging.L().Debugw("step", zap.Error(err))
 	if err != nil {
 		logging.L().Errorw("error creating cleanup step", zap.Error(err))
 		return err
 	}
 
-	f.CleanupStep = cleanup
+	u.CleanupStep = cleanup
 
 	return nil
 }
 
 // GetType returns the type of the step as StepType.
-func (f *FetchURIStep) GetType() StepType {
+func (u *FetchURIStep) GetType() StepType {
 	return StepFetchURI
 }
 
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by
-// f.CleanupStep.Cleanup.
-func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := f.Execute(execCtx)
+// u.CleanupStep.Cleanup.
+func (u *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	result, err := u.Execute(execCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +137,9 @@ func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) 
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-func (f *FetchURIStep) GetCleanup() []CleanupAct {
-	if f.CleanupStep != nil {
-		return []CleanupAct{f.CleanupStep}
+func (u *FetchURIStep) GetCleanup() []CleanupAct {
+	if u.CleanupStep != nil {
+		return []CleanupAct{u.CleanupStep}
 	}
 	return []CleanupAct{}
 }
@@ -147,31 +150,31 @@ func (f *FetchURIStep) GetCleanup() []CleanupAct {
 // **Returns:**
 //
 // error: An error message explaining why the FetchURIStep is invalid.
-func (f *FetchURIStep) ExplainInvalid() error {
+func (u *FetchURIStep) ExplainInvalid() error {
 	var err error
-	if f.FetchURI == "" {
+	if u.FetchURI == "" {
 		err = errors.New("empty FetchURI provided")
 	}
 
-	if f.Location == "" && err != nil {
+	if u.Location == "" && err != nil {
 		err = errors.New("empty Location provided")
 	}
 
-	if f.Name != "" && err != nil {
-		err = fmt.Errorf("[!] invalid FetchURIStep: [%s] %v", f.Name, zap.Error(err))
+	if u.Name != "" && err != nil {
+		err = fmt.Errorf("[!] invalid FetchURIStep: [%s] %v", u.Name, zap.Error(err))
 	}
 
 	return err
 }
 
 // IsNil checks if the FetchURIStep is nil or empty and returns a boolean value.
-func (f *FetchURIStep) IsNil() bool {
+func (u *FetchURIStep) IsNil() bool {
 	switch {
-	case f.Act.IsNil():
+	case u.Act.IsNil():
 		return true
-	case f.FetchURI == "":
+	case u.FetchURI == "":
 		return true
-	case f.Location == "":
+	case u.Location == "":
 		return true
 	default:
 		return false
@@ -179,11 +182,15 @@ func (f *FetchURIStep) IsNil() bool {
 }
 
 // Execute runs the FetchURIStep and returns an error if any occur.
-func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (u *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.L().Info("========= Executing ==========")
 
-	if err := f.fetchURI(execCtx); err != nil {
+	if err := u.fetchURI(execCtx); err != nil {
 		logging.L().Error(zap.Error(err))
+		if u.IgnoreErrors {
+			logging.L().Warn("Error ignored due to 'ignore_errors' parameter")
+			return &ExecutionResult{}, nil
+		}
 		return nil, err
 	}
 
@@ -194,31 +201,31 @@ func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, e
 
 // fetchURI executes the FetchURIStep with the specified Location, Uri, and additional arguments,
 // and an error if any errors occur.
-func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
-	appFs := f.FileSystem
-	absLocal := f.Location
+func (u *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
+	appFs := u.FileSystem
+	absLocal := u.Location
 
 	if appFs == nil {
 		var err error
 		appFs = afero.NewOsFs()
-		absLocal, err = FetchAbs(f.Location, f.WorkDir)
+		absLocal, err = FetchAbs(u.Location, u.WorkDir)
 		if err != nil {
 			return err
 		}
 	}
 
-	if ok, _ := afero.Exists(appFs, absLocal); ok && !f.Overwrite {
+	if ok, _ := afero.Exists(appFs, absLocal); ok && !u.Overwrite {
 		logging.L().Errorw("location exists, remove and retry", "location", absLocal)
-		return fmt.Errorf("location [%s] exists and overwrite is set to false. remove and retry", f.Location)
+		return fmt.Errorf("location [%s] exists and overwrite is set to false. remove and retry", u.Location)
 	}
 
 	client := http.DefaultClient
-	if f.Proxy != "" {
-		proxyURI, err := url.Parse(f.Proxy)
+	if u.Proxy != "" {
+		proxyURI, err := url.Parse(u.Proxy)
 		if err != nil {
 			return err
 		} else if proxyURI.Host == "" || proxyURI.Scheme == "" {
-			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
+			return fmt.Errorf("invalid URI given for Proxy: %s", u.Proxy)
 		}
 		tr := &http.Transport{
 			Proxy: http.ProxyURL(proxyURI),
@@ -226,7 +233,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 		client = &http.Client{Transport: tr}
 	}
 
-	resp, err := client.Get(f.FetchURI)
+	resp, err := client.Get(u.FetchURI)
 	if err != nil {
 		return err
 	}
@@ -243,7 +250,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	logging.L().Debugw("wrote contents of URI to specified location", "location", absLocal, "uri", f.FetchURI)
+	logging.L().Debugw("wrote contents of URI to specified location", "location", absLocal, "uri", u.FetchURI)
 
 	return nil
 }
@@ -258,48 +265,48 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 // **Returns:**
 //
 // error: An error if any validation checks fail.
-func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
-	if err := f.Act.Validate(); err != nil {
+func (u *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
+	if err := u.Act.Validate(); err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.FetchURI == "" {
+	if u.FetchURI == "" {
 		err := errors.New("require FetchURI to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.Location == "" {
+	if u.Location == "" {
 		err := errors.New("require Location to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.Proxy != "" {
-		uri, err := url.Parse(f.Proxy)
+	if u.Proxy != "" {
+		uri, err := url.Parse(u.Proxy)
 		if err != nil {
 			return err
 		} else if uri.Host == "" || uri.Scheme == "" {
-			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
+			return fmt.Errorf("invalid URI given for Proxy: %s", u.Proxy)
 		}
 	}
 
 	// Retrieve the absolute path to the file.
-	absLocal, err := FetchAbs(f.Location, f.WorkDir)
+	absLocal, err := FetchAbs(u.Location, u.WorkDir)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	_, err = os.Stat(absLocal)
-	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
-		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
+	if !errors.Is(err, fs.ErrNotExist) && !u.Overwrite {
+		logging.L().Errorw("FetchURI location exists, remove and retry", "location", absLocal)
 		return errors.New("file exists at location specified, remove and retry")
 	}
 
-	if f.CleanupStep != nil {
-		if err := f.CleanupStep.Validate(execCtx); err != nil {
+	if u.CleanupStep != nil {
+		if err := u.CleanupStep.Validate(execCtx); err != nil {
 			logging.L().Errorw("error validating cleanup step", zap.Error(err))
 			return err
 		}
