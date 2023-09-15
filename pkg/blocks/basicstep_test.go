@@ -89,7 +89,6 @@ steps:
 }
 
 func TestBasicStepExecuteWithOutput(t *testing.T) {
-
 	// prepare step
 	content := `name: test_basic_step
 inline: echo {\"foo\":{\"bar\":\"baz\"}}
@@ -115,4 +114,70 @@ outputs:
 	require.NoError(t, err)
 	require.Equal(t, 1, len(result.Outputs))
 	assert.Equal(t, "baz", result.Outputs["first"], "first output should be correct")
+}
+
+func TestBasicStepUnmarshalIgnoreErrors(t *testing.T) {
+	data := `
+name: testStep
+inline: echo "Hello World"
+ignore_errors: true
+`
+	step := &blocks.BasicStep{}
+	err := yaml.Unmarshal([]byte(data), step)
+	assert.NoError(t, err)
+	assert.True(t, step.IgnoreErrors)
+}
+
+func TestExecuteWithIgnoreErrors(t *testing.T) {
+	step := &blocks.BasicStep{
+		Act: &blocks.Act{
+			Type: blocks.StepBasic,
+			Name: "errorStep",
+		},
+		Executor:     "bash",
+		Inline:       "exit 1",
+		IgnoreErrors: true,
+	}
+
+	ctx := blocks.TTPExecutionContext{}
+
+	result, err := step.Execute(ctx)
+	assert.NoError(t, err) // Since IgnoreErrors is true, we shouldn't get an error.
+	assert.NotNil(t, result)
+}
+
+func TestExecuteWithoutIgnoreErrors(t *testing.T) {
+	step := &blocks.BasicStep{
+		Act: &blocks.Act{
+			Type: blocks.StepBasic,
+			Name: "errorStep",
+		},
+		Executor:     "bash",
+		Inline:       "exit 1",
+		IgnoreErrors: false,
+	}
+
+	ctx := blocks.TTPExecutionContext{}
+
+	_, err := step.Execute(ctx)
+	assert.Error(t, err) // Since IgnoreErrors is false, we should get an error.
+}
+
+func TestValidExecuteWithIgnoreErrors(t *testing.T) {
+	step := &blocks.BasicStep{
+		Act: &blocks.Act{
+			Type: blocks.StepBasic,
+			Name: "validStep",
+		},
+		Executor:     "bash",
+		Inline:       "echo Hello",
+		IgnoreErrors: true,
+	}
+
+	ctx := blocks.TTPExecutionContext{}
+
+	result, err := step.Execute(ctx)
+	assert.NoError(t, err) // Even if IgnoreErrors is true, we shouldn't get an error since the step is valid.
+	assert.NotNil(t, result)
+	assert.Equal(t, "Hello\n", result.Stdout)
 }

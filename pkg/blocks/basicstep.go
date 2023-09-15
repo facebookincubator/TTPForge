@@ -43,7 +43,7 @@ type BasicStep struct {
 	Inline       string     `yaml:"inline,flow"`
 	Args         []string   `yaml:"args,omitempty,flow"`
 	CleanupStep  CleanupAct `yaml:"cleanup,omitempty"`
-	IgnoreErrors bool       `yaml:"ignore_errors,omitempty,flow`
+	IgnoreErrors bool       `yaml:"ignore_errors,omitempty,flow"`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
@@ -63,7 +63,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 		Inline       string    `yaml:"inline,flow"`
 		Args         []string  `yaml:"args,omitempty,flow"`
 		CleanupStep  yaml.Node `yaml:"cleanup,omitempty"`
-		IgnoreErrors bool      `yaml:"ignore_errors,omitempty,flow`
+		IgnoreErrors bool      `yaml:"ignore_errors,omitempty,flow"`
 	}
 
 	var tmpl basicStepTmpl
@@ -82,7 +82,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 		return b.ExplainInvalid()
 	}
 
-	// we do it piecemiel to build our struct
+	// build our struct in a piecemeal fashion
 	if tmpl.CleanupStep.IsZero() || b.Type == StepCleanup {
 		return nil
 	}
@@ -200,23 +200,25 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 
 	logging.L().Info("========= Executing ==========")
 
-	var err error
-	var result *ExecutionResult
 	if b.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
-	} else {
-		result, err = b.executeBashStdin(ctx, execCtx)
-		if err != nil {
-			logging.L().Error(zap.Error(err))
-			if b.IgnoreErrors {
-				logging.L().Warn("Error ignored due to 'ignore_errors' parameter")
-				err = nil
+	}
+
+	result, err := b.executeBashStdin(ctx, execCtx)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		if b.IgnoreErrors {
+			logging.L().Warn("Error ignored due to 'ignore_errors' parameter")
+			// If result is nil, instantiate an empty result to prevent nil pointer issues
+			if result == nil {
+				result = &ExecutionResult{}
 			}
 			return result, nil
 		}
+		return &ExecutionResult{}, err
 	}
 
-	logging.L().Info("========= Done ==========")
+	logging.L().Info("========= Result ==========")
 
 	return result, nil
 }
