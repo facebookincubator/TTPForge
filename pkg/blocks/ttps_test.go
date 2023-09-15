@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/targets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -114,6 +115,44 @@ steps:
       echo -e "Searching for aws keys on disk using mdfind..."
       mdfind "kMDItemTextContent == '*AKIA*' || kMDItemDisplayName == '*AKIA*' -onlyin ~"
       echo "[+] TTP Done!"
+`,
+			wantError: false,
+		},
+		{
+			name: "OS and Arch",
+			content: `
+---
+name: os-and-arch-target
+description: |
+  Example demonstrating how to create a TTP that works for specific
+  operating systems and architectures.
+
+  This TTP also demonstrates how to create a TTP that can
+  be used for specific cloud providers and regions.
+targets:
+  os:
+    - linux
+    - macos
+  arch:
+    - x86_64
+    - arm64
+  cloud:
+    - provider: "aws"
+      region: "us-west-1"
+    - provider: "gcp"
+      region: "us-west1-a"
+    - provider: "azure"
+      region: "eastus"
+
+steps:
+  - name: friendly-message
+    inline: |
+      set -e
+
+      echo -e "You are running a TTP that works for the following operating systems: {{ .Targets.os }}"
+      echo -e "and architectures: {{ .Targets.arch }}."
+      echo -e "It can be used for the following cloud providers"
+      echo -e "at the specified regions as well: {{ .Targets.cloud }}."
 `,
 			wantError: false,
 		},
@@ -454,10 +493,10 @@ targets:
 			expectedTTP: blocks.TTP{
 				Name:        "cloud-target",
 				Description: "Test cloud targeting",
-				Targets: blocks.Targets{
+				TargetSpec: targets.TargetSpec{
 					OS:   []string{"linux", "windows"},
 					Arch: []string{"x86_64", "arm64"},
-					Cloud: []blocks.Cloud{
+					Cloud: []targets.Cloud{
 						{
 							Provider: "aws",
 							Region:   "us-west-1",
@@ -481,8 +520,8 @@ targets:
 			name: "Valid cloud-only targets",
 			content: `
 ---
-name: cloud-only
-description: Cloud-only target
+name: cloud
+description: Cloud target
 targets:
   cloud:
     - provider: "aws"
@@ -490,10 +529,10 @@ targets:
 `,
 			wantError: false,
 			expectedTTP: blocks.TTP{
-				Name:        "cloud-only",
-				Description: "Cloud-only target",
-				Targets: blocks.Targets{
-					Cloud: []blocks.Cloud{
+				Name:        "cloud",
+				Description: "Cloud target",
+				TargetSpec: targets.TargetSpec{
+					Cloud: []targets.Cloud{
 						{
 							Provider: "aws",
 							Region:   "us-west-1",

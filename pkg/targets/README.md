@@ -17,6 +17,25 @@ The `targets` package is a part of the TTPForge.
 
 ## Functions
 
+### ParseAndValidateTargets(TargetSpec)
+
+```go
+ParseAndValidateTargets(TargetSpec) map[string]interface{}, error
+```
+
+ParseAndValidateTargets takes a TargetSpec and processes the targets specified in it.
+It then returns a map containing the processed targets. If the TargetSpec does not have any
+valid targets specified, the resulting map will be empty.
+
+Parameters:
+targetSpec: The specifications for valid targets, extracted from the YAML configuration.
+
+Returns:
+processedTargets: A map of target names (like 'os', 'arch', etc.) to their values.
+err: An error if any issues arise during the processing.
+
+---
+
 ## Installation
 
 To use the TTPForge/targets package, you first need to install it.

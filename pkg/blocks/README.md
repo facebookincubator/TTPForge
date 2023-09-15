@@ -567,22 +567,25 @@ returns it as a string.
 
 ---
 
-### LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string)
+### LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string, []string)
 
 ```go
-LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string) *TTP, error
+LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string, []string) *TTP, error
 ```
 
 LoadTTP reads a TTP file and creates a TTP instance based on its contents.
+It processes the targets and arguments present in the file, validates them,
+and populates the appropriate fields in the provided TTPExecutionConfig.
 If the file is empty or contains invalid data, it returns an error.
 
-**Parameters:**
-
+Parameters:
 ttpFilePath: the absolute or relative path to the TTP YAML file.
-fsys: an afero.Fs that contains the specified TTP file path
+fsys: an afero.Fs that contains the specified TTP file path.
+execCfg: Configuration containing execution details which will be populated based on parsed targets and arguments.
+argsKvStrs: Key-value strings for argument specifications.
+targetsKvStrs: Key-value strings for target specifications (Currently unused but may be required for future extensions).
 
-**Returns:**
-
+Returns:
 ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
 err: An error if the file contains invalid data or cannot be read.
 
