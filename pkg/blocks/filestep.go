@@ -37,11 +37,12 @@ import (
 // FileStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FileStep struct {
-	*Act        `yaml:",inline"`
-	FilePath    string     `yaml:"file,omitempty"`
-	Executor    string     `yaml:"executor,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	Args        []string   `yaml:"args,omitempty,flow"`
+	*Act         `yaml:",inline"`
+	FilePath     string     `yaml:"file,omitempty"`
+	Executor     string     `yaml:"executor,omitempty"`
+	CleanupStep  CleanupAct `yaml:"cleanup,omitempty,flow"`
+	Args         []string   `yaml:"args,omitempty,flow"`
+	IgnoreErrors bool       `yaml:"ignore_errors,omitempty,flow"`
 }
 
 // NewFileStep creates a new FileStep instance and returns a pointer to it.
@@ -67,11 +68,12 @@ func NewFileStep() *FileStep {
 func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 
 	type fileStepTmpl struct {
-		Act         `yaml:",inline"`
-		FilePath    string    `yaml:"file,omitempty"`
-		Executor    string    `yaml:"executor,omitempty"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
-		Args        []string  `yaml:"args,omitempty,flow"`
+		Act          `yaml:",inline"`
+		FilePath     string    `yaml:"file,omitempty"`
+		Executor     string    `yaml:"executor,omitempty"`
+		CleanupStep  yaml.Node `yaml:"cleanup,omitempty,flow"`
+		Args         []string  `yaml:"args,omitempty,flow"`
+		IgnoreErrors bool      `yaml:"ignore_errors,omitempty,flow"`
 	}
 
 	// Decode the YAML node into the provided template.
@@ -85,6 +87,7 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	f.Args = tmpl.Args
 	f.FilePath = tmpl.FilePath
 	f.Executor = tmpl.Executor
+	f.IgnoreErrors = tmpl.IgnoreErrors
 
 	// Check for invalid steps.
 	if f.IsNil() {
@@ -142,6 +145,7 @@ func (f *FileStep) GetCleanup() []CleanupAct {
 // error: An error message explaining why the FileStep is invalid.
 func (f *FileStep) ExplainInvalid() error {
 	var err error
+
 	if f.FilePath == "" {
 		err = errors.New("empty FilePath provided")
 	}
@@ -169,16 +173,23 @@ func (f *FileStep) IsNil() bool {
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.L().Info("========= Executing ==========")
 
-	if f.FilePath != "" {
-		if err := f.fileExec(execCtx); err != nil {
-			logging.L().Error(zap.Error(err))
-			return nil, err
+	if f.FilePath == "" {
+		return nil, fmt.Errorf("empty file value in Execute(...)")
+	}
+
+	err := f.fileExec(execCtx)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		if f.IgnoreErrors {
+			logging.L().Warn("Error ignored due to 'ignore_errors' parameter")
+			return &ExecutionResult{}, nil
 		}
+		return &ExecutionResult{}, err
 	}
 
 	logging.L().Info("========= Result ==========")
 
-	return &ExecutionResult{}, nil
+	return &ExecutionResult{}, err
 }
 
 // fileExec executes the FileStep with the specified executor and arguments,

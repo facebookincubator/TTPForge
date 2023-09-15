@@ -20,6 +20,8 @@ THE SOFTWARE.
 package blocks_test
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -89,4 +91,112 @@ func getDefaultExecutor() string {
 		return blocks.ExecutorCmd
 	}
 	return blocks.ExecutorSh
+}
+
+func TestFileStepUnmarshalIgnoreErrors(t *testing.T) {
+	data := `
+name: testFileStep
+file: expect-fail-example.sh
+ignore_errors: true
+`
+	step := &blocks.FileStep{}
+	err := yaml.Unmarshal([]byte(data), step)
+	assert.NoError(t, err)
+	assert.True(t, step.IgnoreErrors)
+}
+
+func createInvalidScript() (string, error) {
+	tmpDir := os.TempDir()
+
+	// Create the script that is designed to fail
+	scriptPath := filepath.Join(tmpDir, "expect-fail-example.sh")
+	content := `#!/bin/bash
+set -e
+
+exit 1
+`
+	err := os.WriteFile(scriptPath, []byte(content), 0755)
+	return scriptPath, err
+}
+
+func TestFileStepIgnoreErrors(t *testing.T) {
+	scriptPath, err := createInvalidScript()
+	if err != nil {
+		t.Fatalf("failed to setup: %v", err)
+	}
+	defer os.Remove(scriptPath) // Cleanup after test
+
+	data := `
+steps:
+  - name: file-step-expected-to-fail
+    ignore_errors: true
+    file: ` + scriptPath + `
+  - name: file-step-post-error
+    inline: |
+      echo -e "We still reach this step despite there being an error"
+      echo -e "in the previous file step."
+`
+	var ttps blocks.TTP
+	err = yaml.Unmarshal([]byte(data), &ttps)
+	assert.NoError(t, err)
+
+	step := ttps.Steps[0].(*blocks.FileStep) // Cast to FileStep
+
+	// Execute the FileStep and expect no error because of the `ignore_errors` flag
+	ctx := blocks.TTPExecutionContext{}
+	_, err = step.Execute(ctx)
+	assert.NoError(t, err) // Since IgnoreErrors is true, we shouldn't get an error.
+}
+
+func TestExecuteFileWithoutIgnoreErrors(t *testing.T) {
+	step := &blocks.FileStep{
+		Act: &blocks.Act{
+			Type: blocks.StepFile,
+			Name: "errorFileStep",
+		},
+		Executor:     "bash",
+		FilePath:     "/non/existent/path/error.sh", // This path will surely cause an error.
+		IgnoreErrors: false,
+	}
+
+	ctx := blocks.TTPExecutionContext{}
+
+	_, err := step.Execute(ctx)
+	assert.Error(t, err) // Since IgnoreErrors is false, we should get an error.
+}
+
+func createValidScript() (string, error) {
+	tmpDir := os.TempDir()
+
+	// Create a valid script
+	scriptPath := filepath.Join(tmpDir, "valid-file.sh")
+	content := `#!/bin/bash
+echo "This is valid."
+`
+	err := os.WriteFile(scriptPath, []byte(content), 0755) // Make it executable
+	return scriptPath, err
+}
+
+func TestValidExecuteFileWithIgnoreErrors(t *testing.T) {
+	validFilePath, err := createValidScript()
+	if err != nil {
+		t.Fatalf("failed to create valid script: %v", err)
+	}
+	defer os.Remove(validFilePath) // Cleanup after test
+
+	step := &blocks.FileStep{
+		Act: &blocks.Act{
+			Type: blocks.StepFile,
+			Name: "validFileStep",
+		},
+		Executor:     "bash",
+		FilePath:     validFilePath,
+		IgnoreErrors: true,
+	}
+
+	ctx := blocks.TTPExecutionContext{}
+
+	result, err := step.Execute(ctx)
+	assert.NoError(t, err) // Even if IgnoreErrors is true, we shouldn't get an error since the step is valid.
+	assert.NotNil(t, result)
 }
