@@ -23,7 +23,9 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
+	"go.uber.org/zap"
 )
 
 // Edit represents a single old+new find-and-replace pair
@@ -37,11 +39,12 @@ type Edit struct {
 
 // EditStep represents one or more edits to a specific file
 type EditStep struct {
-	*Act       `yaml:",inline"`
-	FileToEdit string   `yaml:"edit_file,omitempty"`
-	Edits      []*Edit  `yaml:"edits,omitempty"`
-	FileSystem afero.Fs `yaml:"-,omitempty"`
-	BackupFile string   `yaml:"backup_file,omitempty"`
+	*Act         `yaml:",inline"`
+	FileToEdit   string   `yaml:"edit_file,omitempty"`
+	Edits        []*Edit  `yaml:"edits,omitempty"`
+	FileSystem   afero.Fs `yaml:"-,omitempty"`
+	BackupFile   string   `yaml:"backup_file,omitempty"`
+	IgnoreErrors bool     `yaml:"ignore_errors,omitempty,flow"`
 }
 
 // NewEditStep creates a new EditStep instance with an initialized Act struct.
@@ -128,11 +131,19 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 		var err error
 		targetPath, err = FetchAbs(targetPath, s.WorkDir)
 		if err != nil {
+			if s.IgnoreErrors {
+				logging.L().Warn("Error ignored due to 'ignore_errors' parameter", zap.Error(err))
+				return &ExecutionResult{}, nil
+			}
 			return nil, err
 		}
 	}
 	rawContents, err := afero.ReadFile(fileSystem, targetPath)
 	if err != nil {
+		if s.IgnoreErrors {
+			logging.L().Warn("Error ignored due to 'ignore_errors' parameter", zap.Error(err))
+			return &ExecutionResult{}, nil
+		}
 		return nil, err
 	}
 
@@ -141,6 +152,10 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 	if s.BackupFile != "" {
 		err = afero.WriteFile(fileSystem, s.BackupFile, []byte(contents), 0644)
 		if err != nil {
+			if s.IgnoreErrors {
+				logging.L().Warn("Error ignored due to 'ignore_errors' parameter", zap.Error(err))
+				return &ExecutionResult{}, nil
+			}
 			return nil, fmt.Errorf("could not write backup file %v: %v", s.BackupFile, err)
 		}
 	}
@@ -150,22 +165,28 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 	// we can optimize
 	for editIdx, edit := range s.Edits {
 		matches := edit.oldRegexp.FindAllStringIndex(contents, -1)
-		// we want to error here because otherwise ppl will be confused by silent
-		// failures if the format of the file they're trying to edit changes
-		// and their regexes no longer work
 		if len(matches) == 0 {
-			return nil, fmt.Errorf(
+			err = fmt.Errorf(
 				"pattern '%v' from edit #%d was not found in file %v",
 				edit.Old,
 				editIdx+1,
 				s.FileToEdit,
 			)
+			if s.IgnoreErrors {
+				logging.L().Warn("Error ignored due to 'ignore_errors' parameter", zap.Error(err))
+				continue
+			}
+			return nil, err
 		}
 		contents = edit.oldRegexp.ReplaceAllString(contents, edit.New)
 	}
 
 	err = afero.WriteFile(fileSystem, targetPath, []byte(contents), 0644)
 	if err != nil {
+		if s.IgnoreErrors {
+			logging.L().Warn("Error ignored due to 'ignore_errors' parameter", zap.Error(err))
+			return &ExecutionResult{}, nil
+		}
 		return nil, err
 	}
 

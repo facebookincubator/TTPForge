@@ -1,22 +1,3 @@
-/*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
 package blocks_test
 
 import (
@@ -298,4 +279,55 @@ edits:
 	_, err = step.Execute(blocks.TTPExecutionContext{})
 	require.Error(t, err, "not finding a search string should result in an error")
 	assert.Equal(t, "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt", err.Error())
+}
+
+func TestEditStepUnmarshalIgnoreErrors(t *testing.T) {
+	data := `
+name: testEditStep
+edit_file: sample.txt
+edits:
+  - old: foo
+    new: bar
+ignore_errors: true
+`
+	step := &blocks.EditStep{}
+	err := yaml.Unmarshal([]byte(data), step)
+	assert.NoError(t, err)
+	assert.True(t, step.IgnoreErrors)
+}
+
+func TestExecuteEditWithIgnoreErrorsNonexistentFile(t *testing.T) {
+	step := &blocks.EditStep{
+		Act: &blocks.Act{
+			Type: blocks.StepEdit,
+			Name: "editStep",
+		},
+		FileToEdit:   "nonexistent.txt",
+		Edits:        []*blocks.Edit{{Old: "foo", New: "bar"}},
+		IgnoreErrors: true,
+		FileSystem:   afero.NewMemMapFs(),
+	}
+
+	execCtx := blocks.TTPExecutionContext{}
+
+	_, err := step.Execute(execCtx)
+	assert.NoError(t, err) // Since IgnoreErrors is true, we shouldn't get an error.
+}
+
+func TestExecuteEditWithoutIgnoreErrorsNonexistentFile(t *testing.T) {
+	step := &blocks.EditStep{
+		Act: &blocks.Act{
+			Type: blocks.StepEdit,
+			Name: "editStep",
+		},
+		FileToEdit:   "nonexistent.txt",
+		Edits:        []*blocks.Edit{{Old: "foo", New: "bar"}},
+		IgnoreErrors: false,
+		FileSystem:   afero.NewMemMapFs(),
+	}
+
+	execCtx := blocks.TTPExecutionContext{}
+
+	_, err := step.Execute(execCtx)
+	assert.Error(t, err) // Since IgnoreErrors is false, we should get an error.
 }
