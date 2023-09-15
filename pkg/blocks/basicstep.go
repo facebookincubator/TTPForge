@@ -38,11 +38,12 @@ import (
 
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	*Act        `yaml:",inline"`
-	Executor    string     `yaml:"executor,omitempty"`
-	Inline      string     `yaml:"inline,flow"`
-	Args        []string   `yaml:"args,omitempty,flow"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty"`
+	*Act         `yaml:",inline"`
+	Executor     string     `yaml:"executor,omitempty"`
+	Inline       string     `yaml:"inline,flow"`
+	Args         []string   `yaml:"args,omitempty,flow"`
+	CleanupStep  CleanupAct `yaml:"cleanup,omitempty"`
+	IgnoreErrors bool       `yaml:"ignore_errors,omitempty,flow`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
@@ -56,15 +57,16 @@ func NewBasicStep() *BasicStep {
 
 // UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
 func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
-	type BasicStepTmpl struct {
-		Act         `yaml:",inline"`
-		Executor    string    `yaml:"executor,omitempty"`
-		Inline      string    `yaml:"inline,flow"`
-		Args        []string  `yaml:"args,omitempty,flow"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty"`
+	type basicStepTmpl struct {
+		Act          `yaml:",inline"`
+		Executor     string    `yaml:"executor,omitempty"`
+		Inline       string    `yaml:"inline,flow"`
+		Args         []string  `yaml:"args,omitempty,flow"`
+		CleanupStep  yaml.Node `yaml:"cleanup,omitempty"`
+		IgnoreErrors bool      `yaml:"ignore_errors,omitempty,flow`
 	}
 
-	var tmpl BasicStepTmpl
+	var tmpl basicStepTmpl
 	// there is an issue with strict fields not being managed https://github.com/go-yaml/yaml/issues/460
 	if err := node.Decode(&tmpl); err != nil {
 		return err
@@ -74,6 +76,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	b.Args = tmpl.Args
 	b.Executor = tmpl.Executor
 	b.Inline = tmpl.Inline
+	b.IgnoreErrors = tmpl.IgnoreErrors
 
 	if b.IsNil() {
 		return b.ExplainInvalid()
@@ -121,12 +124,15 @@ func (b *BasicStep) GetType() StepType {
 // ExplainInvalid returns an error with an explanation of why a BasicStep is invalid.
 func (b *BasicStep) ExplainInvalid() error {
 	var err error
+
 	if b.Inline == "" {
 		err = fmt.Errorf("(inline) empty")
 	}
+
 	if b.Name != "" && err != nil {
 		return fmt.Errorf("[!] invalid basicstep: [%s] %w", b.Name, err)
 	}
+
 	return err
 }
 
@@ -194,13 +200,20 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 
 	logging.L().Info("========= Executing ==========")
 
+	var err error
+	var result *ExecutionResult
 	if b.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
-	}
-
-	result, err := b.executeBashStdin(ctx, execCtx)
-	if err != nil {
-		return nil, err
+	} else {
+		result, err = b.executeBashStdin(ctx, execCtx)
+		if err != nil {
+			logging.L().Error(zap.Error(err))
+			if b.IgnoreErrors {
+				logging.L().Warn("Error ignored due to 'ignore_errors' parameter")
+				err = nil
+			}
+			return result, nil
+		}
 	}
 
 	logging.L().Info("========= Done ==========")
