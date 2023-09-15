@@ -30,9 +30,10 @@ import (
 
 // SubTTPStep represents a step within a parent TTP that references a separate TTP file.
 type SubTTPStep struct {
-	*Act    `yaml:",inline"`
-	TtpFile string            `yaml:"ttp"`
-	Args    map[string]string `yaml:"args"`
+	*Act         `yaml:",inline"`
+	TtpFile      string            `yaml:"ttp"`
+	Args         map[string]string `yaml:"args"`
+	IgnoreErrors bool              `yaml:"ignore_errors,omitempty"`
 
 	// Omitting because the sub steps will contain the cleanups.
 	CleanupSteps []CleanupAct `yaml:"-,omitempty"`
@@ -81,9 +82,10 @@ func (s *SubTTPStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 // a YAML node into a SubTTPStep instance.
 func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	type Subtmpl struct {
-		Act     `yaml:",inline"`
-		TtpFile string            `yaml:"ttp"`
-		Args    map[string]string `yaml:"args"`
+		Act          `yaml:",inline"`
+		TtpFile      string            `yaml:"ttp"`
+		Args         map[string]string `yaml:"args"`
+		IgnoreErrors bool              `yaml:"ignore_errors,omitempty"`
 	}
 	var substep Subtmpl
 
@@ -95,6 +97,7 @@ func (s *SubTTPStep) UnmarshalYAML(node *yaml.Node) error {
 	s.Act = &substep.Act
 	s.TtpFile = substep.TtpFile
 	s.Args = substep.Args
+	s.IgnoreErrors = substep.IgnoreErrors
 
 	return nil
 }
@@ -125,9 +128,17 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 
 		result, err := stepCopy.Execute(s.subExecCtx)
 		if err != nil {
-			return nil, err
+			// Bypass error if IgnoreErrors flag is set
+			if s.IgnoreErrors {
+				logging.L().Warn("Error ignored due to 'ignore_errors' parameter", "error", err.Error())
+			} else {
+				return nil, err
+			}
 		}
-		results = append(results, &result.ActResult)
+
+		if result != nil {
+			results = append(results, &result.ActResult)
+		}
 
 		availableSteps[stepCopy.StepName()] = stepCopy
 

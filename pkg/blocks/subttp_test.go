@@ -151,3 +151,86 @@ ttp: with/cleanup.yaml`,
 		})
 	}
 }
+
+func TestSubTTPExecutionWithIgnoreErrors(t *testing.T) {
+	tests := []struct {
+		name         string
+		stepYAML     string
+		expectError  bool
+		ignoreErrors bool
+	}{
+		{
+			name: "Sub TTP Execution with IgnoreErrors Set",
+			stepYAML: `name: testing-ignore
+ttp: non-existent-ttp.yaml`,
+			expectError:  true,
+			ignoreErrors: true,
+		},
+		{
+			name: "Sub TTP Execution without IgnoreErrors Set",
+			stepYAML: `name: testing-no-ignore
+ttp: non-existent-ttp.yaml`,
+			expectError:  true,
+			ignoreErrors: false,
+		},
+	}
+
+	fsys := makeTestFsForSubTTPs(t)
+	spec := repos.Spec{
+		Name: "default",
+		Path: "repos/a",
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var step blocks.SubTTPStep
+			err := yaml.Unmarshal([]byte(tc.stepYAML), &step)
+			require.NoError(t, err, "step YAML should unmarshal safely")
+
+			repo, err := spec.Load(fsys, "")
+			require.NoError(t, err)
+
+			execCtx := blocks.TTPExecutionContext{
+				Cfg: blocks.TTPExecutionConfig{
+					Repo: repo,
+				},
+			}
+			err = step.Validate(execCtx)
+
+			if tc.ignoreErrors {
+				// Error should not cause the test to fail if IgnoreErrors is set
+				assert.True(t, tc.expectError == (err != nil), "Unexpected error status")
+			} else {
+				if tc.expectError {
+					assert.Error(t, err, "Expected error but didn't get one")
+				} else {
+					assert.NoError(t, err, "Didn't expect error but got one")
+				}
+			}
+		})
+	}
+}
+
+func TestSubTTPUnmarshalIgnoreErrorsTrue(t *testing.T) {
+	data := `
+name: subTTPStepTest
+ttp: some-ttp.yaml
+ignore_errors: true
+`
+	var step blocks.SubTTPStep
+	err := yaml.Unmarshal([]byte(data), &step)
+	assert.NoError(t, err)
+	assert.True(t, step.IgnoreErrors)
+}
+
+func TestSubTTPUnmarshalIgnoreErrorsFalse(t *testing.T) {
+	data := `
+name: subTTPStepTest
+ttp: some-ttp.yaml
+ignore_errors: false
+`
+	var step blocks.SubTTPStep
+	err := yaml.Unmarshal([]byte(data), &step)
+	assert.NoError(t, err)
+	assert.False(t, step.IgnoreErrors)
+}
