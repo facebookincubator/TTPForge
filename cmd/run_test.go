@@ -20,10 +20,13 @@ THE SOFTWARE.
 package cmd_test
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,6 +80,101 @@ func TestRunWithoutConfig(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func directoryExists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
+}
+
+func TestNoCleanupFlag(t *testing.T) {
+	testCases := []struct {
+		name             string
+		content          string
+		execConfig       blocks.TTPExecutionConfig
+		expectedDirExist bool
+		wantError        bool
+	}{
+		{
+			name: "Test No Cleanup Behavior - Directory Creation",
+			content: `
+name: test-cleanup
+steps:
+  - name: step_one
+    inline: mkdir testDir
+    cleanup:
+      inline: rm -rf testDir`,
+			execConfig: blocks.TTPExecutionConfig{
+				NoCleanup: true,
+			},
+			expectedDirExist: true,
+			wantError:        false,
+		},
+		{
+			name: "Test Cleanup Behavior - Directory Deletion",
+			content: `
+name: test-cleanup-2
+steps:
+  - name: step_two
+    inline: mkdir testDir2
+    cleanup:
+      inline: rm -rf testDir2`,
+			execConfig: blocks.TTPExecutionConfig{
+				NoCleanup: false,
+			},
+			expectedDirExist: false,
+			wantError:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a temp directory to work within
+			tempDir, err := os.MkdirTemp("", "testCleanup")
+			if err != nil {
+				t.Fatalf("failed to create temp directory: %v", err)
+				return
+			}
+			defer os.RemoveAll(tempDir) // cleanup temp directory
+
+			// Update content to work within the temp directory
+			tc.content = strings.ReplaceAll(tc.content, "mkdir ", "mkdir "+tempDir+"/")
+			tc.content = strings.ReplaceAll(tc.content, "rm -rf ", "rm -rf "+tempDir+"/")
+
+			// Render the templated TTP first
+			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
+			if err != nil {
+				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
+				return
+			}
+
+			_, err = ttp.RunSteps(tc.execConfig)
+			if tc.wantError && err == nil {
+				t.Error("expected an error from step execution but got none")
+				return
+			}
+			if !tc.wantError && err != nil {
+				t.Errorf("didn't expect an error from step execution but got: %s", err)
+				return
+			}
+
+			// Determine which directory to check based on the test case content
+			dirName := tempDir + "/testDir"
+			if strings.Contains(tc.content, "testDir2") {
+				dirName = tempDir + "/testDir2"
+			}
+
+			// Check if the directory exists
+			if tc.expectedDirExist && !directoryExists(dirName) {
+				t.Errorf("expected the directory '%s' to exist but it doesn't", dirName)
+				return
+			}
+			if !tc.expectedDirExist && directoryExists(dirName) {
+				t.Errorf("didn't expect the directory '%s' to exist but it does", dirName)
+				return
 			}
 		})
 	}
