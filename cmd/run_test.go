@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/facebookincubator/ttpforge/cmd"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -175,6 +176,91 @@ steps:
 			if !tc.expectedDirExist && directoryExists(dirName) {
 				t.Errorf("didn't expect the directory '%s' to exist but it does", dirName)
 				return
+			}
+		})
+	}
+}
+
+func TestCleanupDelayFlag(t *testing.T) {
+	testCases := []struct {
+		name             string
+		content          string
+		execConfig       blocks.TTPExecutionConfig
+		expectedDirExist bool
+		cleanupDelay     time.Duration
+		wantError        bool
+	}{
+		{
+			name: "Test Cleanup Delay Behavior - Directory Creation",
+			content: `
+---
+name: test-cleanup-delay
+steps:
+  - name: step_one
+    inline: mkdir -p TEMP_DIR_PLACEHOLDER/testDirDelay
+    cleanup:
+      inline: rm -rf TEMP_DIR_PLACEHOLDER/testDirDelay
+`,
+			execConfig: blocks.TTPExecutionConfig{
+				CleanupDelaySeconds: 5, // 5 second delay
+			},
+			expectedDirExist: true,
+			cleanupDelay:     5 * time.Second,
+			wantError:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a temp directory to work within
+			tempDir, err := os.MkdirTemp("", "testCleanupDelay")
+			if err != nil {
+				t.Fatalf("failed to create temp directory: %v", err)
+				return
+			}
+			defer os.RemoveAll(tempDir) // cleanup temp directory
+
+			// Prepare the directory name where operations are expected
+			dirName := filepath.Join(tempDir, "testDirDelay")
+
+			// Update content to work within the temp directory using filepath.Join to ensure platform compatibility
+			tc.content = strings.ReplaceAll(tc.content, "TEMP_DIR_PLACEHOLDER", tempDir)
+
+			// Render the templated TTP first
+			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
+			if err != nil {
+				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
+				return
+			}
+
+			// Capture the start time
+			startTime := time.Now()
+
+			_, err = ttp.RunSteps(tc.execConfig)
+			if tc.wantError && err == nil {
+				t.Error("expected an error from step execution but got none")
+				return
+			}
+			if !tc.wantError && err != nil {
+				t.Errorf("didn't expect an error from step execution but got: %s", err)
+				return
+			}
+
+			// Wait for the cleanup delay
+			time.Sleep(tc.cleanupDelay)
+
+			// Check if the directory exists after the cleanup delay
+			if directoryExists(dirName) {
+				t.Errorf("didn't expect the directory '%s' to exist after the cleanup delay but it does", dirName)
+				return
+			}
+
+			// Calculate the total duration
+			duration := time.Since(startTime)
+
+			// Ensure that the total time taken is reasonably close to the cleanup delay
+			if duration < tc.cleanupDelay {
+				t.Errorf("total time taken %s is less than expected cleanup delay %s", duration, tc.cleanupDelay)
 			}
 		})
 	}
