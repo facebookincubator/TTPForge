@@ -28,7 +28,7 @@ import (
 
 func buildRunCommand() *cobra.Command {
 	var argsList []string
-	ttpCfg := blocks.TTPExecutionConfig{}
+	var ttpCfg blocks.TTPExecutionConfig
 	runCmd := &cobra.Command{
 		Use:   "run [repo_name//path/to/ttp]",
 		Short: "Run the TTP found in the specified YAML file.",
@@ -46,21 +46,26 @@ func buildRunCommand() *cobra.Command {
 
 			// load TTP and process argument values
 			// based on the TTPs argument value specifications
-			c := blocks.TTPExecutionConfig{
-				Repo: foundRepo,
+			ttpCfg.Repo = foundRepo
+
+			// Set the --no-cleanup value if provided
+			ttpCfg.NoCleanup, err = cmd.Flags().GetBool("no-cleanup")
+			if err != nil {
+				return fmt.Errorf("failed to process the no-cleanup arg: %v", err)
 			}
-			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &c, argsList)
+
+			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}
 
-			if _, err := ttp.RunSteps(c); err != nil {
+			if _, err := ttp.RunSteps(ttpCfg); err != nil {
 				return fmt.Errorf("failed to run TTP at %v: %v", ttpAbsPath, err)
 			}
 			return nil
 		},
 	}
-	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging)")
+	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging and daisy-chaining TTPs)")
 	runCmd.PersistentFlags().UintVar(&ttpCfg.CleanupDelaySeconds, "cleanup-delay-seconds", 0, "Wait this long after TTP execution before starting cleanup")
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
 
