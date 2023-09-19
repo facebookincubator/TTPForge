@@ -94,6 +94,7 @@ func TestNoCleanupFlag(t *testing.T) {
 		execConfig       blocks.TTPExecutionConfig
 		expectedDirExist bool
 		wantError        bool
+		dirName          string
 	}{
 		{
 			name: "Test No Cleanup Behavior - Directory Creation",
@@ -110,6 +111,7 @@ steps:
 			},
 			expectedDirExist: true,
 			wantError:        false,
+			dirName:          "testDir",
 		},
 		{
 			name: "Test Cleanup Behavior - Directory Deletion",
@@ -126,6 +128,7 @@ steps:
 			},
 			expectedDirExist: false,
 			wantError:        false,
+			dirName:          "testDir2",
 		},
 	}
 
@@ -158,11 +161,7 @@ steps:
 				require.NoError(t, err)
 			}
 
-			// Determine which directory to check based on the test case content
-			dirName := tempDir + "/testDir"
-			if strings.Contains(tc.content, "testDir2") {
-				dirName = tempDir + "/testDir2"
-			}
+			dirName := filepath.Join(tempDir, tc.dirName)
 
 			// Check if the directory exists
 			dirExists, err := afero.DirExists(afs, dirName)
