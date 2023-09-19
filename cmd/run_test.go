@@ -102,6 +102,7 @@ func TestNoCleanupFlag(t *testing.T) {
 		{
 			name: "Test No Cleanup Behavior - Directory Creation",
 			content: `
+---
 name: test-cleanup
 steps:
   - name: step_one
@@ -117,6 +118,7 @@ steps:
 		{
 			name: "Test Cleanup Behavior - Directory Deletion",
 			content: `
+---
 name: test-cleanup-2
 steps:
   - name: step_two

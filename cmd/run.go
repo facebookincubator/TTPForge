@@ -48,12 +48,6 @@ func buildRunCommand() *cobra.Command {
 			// based on the TTPs argument value specifications
 			ttpCfg.Repo = foundRepo
 
-			// Set the --no-cleanup value if provided
-			ttpCfg.NoCleanup, err = cmd.Flags().GetBool("no-cleanup")
-			if err != nil {
-				return fmt.Errorf("failed to process the no-cleanup arg: %v", err)
-			}
-
 			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
