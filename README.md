@@ -17,7 +17,7 @@ targets and mediums.
 ## Table of Contents
 
 - [Getting Started - User](#getting-started-as-a-user)
-- [Getting Started - Developer](docs/dev.md)
+- [Getting Started - Developer](docs/dev/README.md)
 - [Using the TTPForge Dev Container](docs/container.md)
 - [Code Standards](docs/code-standards.md)
 - [Creating a new release](docs/release.md)
