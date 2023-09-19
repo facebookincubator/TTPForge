@@ -20,7 +20,8 @@ various projects.
 The tool versions recommended for use with TTPForge are specified
 in the `.tool-versions` file found in the repository root.
 
-Setup asdf for usage with TTPForge as follows (these commands are distilled from the asdf [docs](https://asdf-vm.com/) - check there for updates if needed):
+Setup [asdf](https://asdf-vm.com/) for usage with TTPForge by running
+the following commands:
 
 ```bash
 git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.13.1
