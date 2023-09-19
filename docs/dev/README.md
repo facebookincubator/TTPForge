@@ -30,7 +30,7 @@ asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
 ```
 
 You can then install the correct Golang version for this project by
-running the following command in the repo root:
+running the following command **from inside the repo root directory**:
 
 ```bash
 asdf install golang
@@ -46,7 +46,7 @@ go version
 
 ## Testing and Building TTPForge
 
-With the appropriate Golang version installed as per the instructions above, you 
+With the appropriate Golang version installed as per the instructions above, you
 can now run our unit tests
 
 ```bash
@@ -61,8 +61,8 @@ go build -o ttpforge
 
 ## Running Pre-Commit Locally (Optional)
 
-This step is not required to build and run your own copy of TTPForge, 
-but may help you iterate more quickly when responding to Pull Request 
+This step is not required to build and run your own copy of TTPForge,
+but may help you iterate more quickly when responding to Pull Request
 checks that our repository automatically runs to test/lint new code.
 Otherwise, you'll need to wait for Github Actions to vet your PR.
 
