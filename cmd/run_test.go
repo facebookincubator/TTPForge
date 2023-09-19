@@ -20,7 +20,6 @@ THE SOFTWARE.
 package cmd_test
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,6 +27,8 @@ import (
 
 	"github.com/facebookincubator/ttpforge/cmd"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -86,12 +87,8 @@ func TestRunWithoutConfig(t *testing.T) {
 	}
 }
 
-func directoryExists(path string) bool {
-	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
-}
-
 func TestNoCleanupFlag(t *testing.T) {
+	afs := afero.NewOsFs()
 	testCases := []struct {
 		name             string
 		content          string
@@ -136,12 +133,8 @@ steps:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a temp directory to work within
-			tempDir, err := os.MkdirTemp("", "testCleanup")
-			if err != nil {
-				t.Fatalf("failed to create temp directory: %v", err)
-				return
-			}
-			defer os.RemoveAll(tempDir) // cleanup temp directory
+			tempDir, err := afero.TempDir(afs, "", "testCleanup")
+			require.NoError(t, err)
 
 			// Update content to work within the temp directory
 			tc.content = strings.ReplaceAll(tc.content, "mkdir ", "mkdir "+tempDir+"/")
@@ -149,19 +142,21 @@ steps:
 
 			// Render the templated TTP first
 			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
-			if err != nil {
-				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
-				return
-			}
+			require.NoError(t, err)
+
+			// Handle potential error from RemoveAll within a deferred function
+			defer func() {
+				err := afs.RemoveAll(tempDir) // cleanup temp directory
+				if err != nil {
+					t.Errorf("failed to remove temp directory: %v", err)
+				}
+			}()
 
 			_, err = ttp.RunSteps(tc.execConfig)
-			if tc.wantError && err == nil {
-				t.Error("expected an error from step execution but got none")
-				return
-			}
-			if !tc.wantError && err != nil {
-				t.Errorf("didn't expect an error from step execution but got: %s", err)
-				return
+			if tc.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 
 			// Determine which directory to check based on the test case content
@@ -171,19 +166,15 @@ steps:
 			}
 
 			// Check if the directory exists
-			if tc.expectedDirExist && !directoryExists(dirName) {
-				t.Errorf("expected the directory '%s' to exist but it doesn't", dirName)
-				return
-			}
-			if !tc.expectedDirExist && directoryExists(dirName) {
-				t.Errorf("didn't expect the directory '%s' to exist but it does", dirName)
-				return
-			}
+			dirExists, err := afero.DirExists(afs, dirName)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedDirExist, dirExists)
 		})
 	}
 }
 
 func TestCleanupDelayFlag(t *testing.T) {
+	afs := afero.NewOsFs()
 	testCases := []struct {
 		name             string
 		content          string
@@ -215,14 +206,9 @@ steps:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a temp directory to work within
-			tempDir, err := os.MkdirTemp("", "testCleanupDelay")
-			if err != nil {
-				t.Fatalf("failed to create temp directory: %v", err)
-				return
-			}
-			defer os.RemoveAll(tempDir) // cleanup temp directory
+			tempDir, err := afero.TempDir(afs, "", "testCleanupDelay")
+			require.NoError(t, err)
 
-			// Prepare the directory name where operations are expected
 			dirName := filepath.Join(tempDir, "testDirDelay")
 
 			// Update content to work within the temp directory using filepath.Join to ensure platform compatibility
@@ -230,40 +216,39 @@ steps:
 
 			// Render the templated TTP first
 			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
-			if err != nil {
-				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
-				return
-			}
+			require.NoError(t, err)
+
+			// Handle potential error from RemoveAll within a deferred function
+			defer func() {
+				err := afs.RemoveAll(tempDir) // cleanup temp directory
+				if err != nil {
+					t.Errorf("failed to remove temp directory: %v", err)
+				}
+			}()
 
 			// Capture the start time
 			startTime := time.Now()
 
 			_, err = ttp.RunSteps(tc.execConfig)
-			if tc.wantError && err == nil {
-				t.Error("expected an error from step execution but got none")
-				return
-			}
-			if !tc.wantError && err != nil {
-				t.Errorf("didn't expect an error from step execution but got: %s", err)
-				return
+			if tc.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 
 			// Wait for the cleanup delay
 			time.Sleep(tc.cleanupDelay)
 
 			// Check if the directory exists after the cleanup delay
-			if directoryExists(dirName) {
-				t.Errorf("didn't expect the directory '%s' to exist after the cleanup delay but it does", dirName)
-				return
-			}
+			dirExists, err := afero.DirExists(afs, dirName)
+			require.NoError(t, err)
+			assert.False(t, dirExists)
 
 			// Calculate the total duration
 			duration := time.Since(startTime)
 
 			// Ensure that the total time taken is reasonably close to the cleanup delay
-			if duration < tc.cleanupDelay {
-				t.Errorf("total time taken %s is less than expected cleanup delay %s", duration, tc.cleanupDelay)
-			}
+			assert.True(t, duration >= tc.cleanupDelay)
 		})
 	}
 }
