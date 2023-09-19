@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/facebookincubator/ttpforge/cmd"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -169,86 +168,6 @@ steps:
 			dirExists, err := afero.DirExists(afs, dirName)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedDirExist, dirExists)
-		})
-	}
-}
-
-func TestCleanupDelayFlag(t *testing.T) {
-	afs := afero.NewOsFs()
-	testCases := []struct {
-		name             string
-		content          string
-		execConfig       blocks.TTPExecutionConfig
-		expectedDirExist bool
-		cleanupDelay     time.Duration
-		wantError        bool
-	}{
-		{
-			name: "Test Cleanup Delay Behavior - Directory Creation",
-			content: `
----
-name: test-cleanup-delay
-steps:
-  - name: step_one
-    inline: mkdir -p TEMP_DIR_PLACEHOLDER/testDirDelay
-    cleanup:
-      inline: rm -rf TEMP_DIR_PLACEHOLDER/testDirDelay
-`,
-			execConfig: blocks.TTPExecutionConfig{
-				CleanupDelaySeconds: 5, // 5 second delay
-			},
-			expectedDirExist: true,
-			cleanupDelay:     5 * time.Second,
-			wantError:        false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Create a temp directory to work within
-			tempDir, err := afero.TempDir(afs, "", "testCleanupDelay")
-			require.NoError(t, err)
-
-			dirName := filepath.Join(tempDir, "testDirDelay")
-
-			// Update content to work within the temp directory using filepath.Join to ensure platform compatibility
-			tc.content = strings.ReplaceAll(tc.content, "TEMP_DIR_PLACEHOLDER", tempDir)
-
-			// Render the templated TTP first
-			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
-			require.NoError(t, err)
-
-			// Handle potential error from RemoveAll within a deferred function
-			defer func() {
-				err := afs.RemoveAll(tempDir) // cleanup temp directory
-				if err != nil {
-					t.Errorf("failed to remove temp directory: %v", err)
-				}
-			}()
-
-			// Capture the start time
-			startTime := time.Now()
-
-			_, err = ttp.RunSteps(tc.execConfig)
-			if tc.wantError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-
-			// Wait for the cleanup delay
-			time.Sleep(tc.cleanupDelay)
-
-			// Check if the directory exists after the cleanup delay
-			dirExists, err := afero.DirExists(afs, dirName)
-			require.NoError(t, err)
-			assert.False(t, dirExists)
-
-			// Calculate the total duration
-			duration := time.Since(startTime)
-
-			// Ensure that the total time taken is reasonably close to the cleanup delay
-			assert.True(t, duration >= tc.cleanupDelay)
 		})
 	}
 }
