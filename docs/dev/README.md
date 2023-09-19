@@ -8,7 +8,7 @@ and follow along.
 
 ## Install Golang
 
-We recommend building and testing TTPForge using Golang version `1.20.8`,
+We recommend building and testing TTPForge using Golang version `1.21.1`,
 although older versions are also supported for compatibility reasons.
 You can install this Golang version from the official Golang [website](https://go.dev/doc/install).
 Alternatively, you can use `asdf` to manage your tool versions as described below -
