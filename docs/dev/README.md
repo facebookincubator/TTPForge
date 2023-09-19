@@ -87,7 +87,7 @@ Otherwise, you'll need to wait for Github Actions to vet your PR.
 
 ### Configure environment
 
-1. Install dependencies:
+1. Install additional dependencies:
 
    ```bash
    mage installDeps
