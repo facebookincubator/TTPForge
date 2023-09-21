@@ -22,9 +22,12 @@ THE SOFTWARE.
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/l50/goutils/v2/dev/lint"
 	mageutils "github.com/l50/goutils/v2/dev/mage"
@@ -131,6 +134,155 @@ func RunTests() error {
 	if err := sh.RunV(filepath.Join(".hooks", "run-go-tests.sh"), "all"); err != nil {
 		return fmt.Errorf("failed to run unit tests: %v", err)
 	}
+
+	return nil
+}
+
+func processLines(r io.Reader, language string) ([]string, error) {
+	scanner := bufio.NewScanner(r)
+	var lines, codeBlockLines []string
+	var inCodeBlock bool
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+
+		inCodeBlock, codeBlockLines = processLine(trimmedLine, line, inCodeBlock, language, codeBlockLines)
+		if !inCodeBlock && len(codeBlockLines) > 0 {
+			lines = append(lines, codeBlockLines...)
+			codeBlockLines = codeBlockLines[:0]
+		} else if !inCodeBlock {
+			lines = append(lines, line)
+		}
+	}
+
+	if len(codeBlockLines) > 0 {
+		if inCodeBlock {
+			codeBlockLines = append(codeBlockLines, "\t\t\t// ```")
+		}
+		lines = append(lines, codeBlockLines...)
+	}
+
+	return lines, scanner.Err()
+}
+
+func processLine(trimmedLine, line string, inCodeBlock bool, language string, codeBlockLines []string) (bool, []string) {
+	switch {
+	case strings.HasPrefix(trimmedLine, "```"+language):
+		inCodeBlock = !inCodeBlock
+		if inCodeBlock {
+			codeBlockLines = append(codeBlockLines, line)
+		}
+	case inCodeBlock:
+		codeBlockLines = append(codeBlockLines, line)
+	case strings.Contains(trimmedLine, "```") && inCodeBlock:
+		inCodeBlock = false
+	}
+	return inCodeBlock, codeBlockLines
+}
+
+func extractTTPForgeCommand(r io.Reader) ([]string, error) {
+	lines, err := processLines(r, "bash")
+	if err != nil {
+		return nil, err
+	}
+
+	var inCodeBlock bool
+	var currentCommand string
+	var commands []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line) // Remove leading and trailing spaces
+
+		// Remove the backslashes at the end
+		if strings.HasSuffix(line, "\\") {
+			line = line[:len(line)-1]
+		}
+
+		if strings.Contains(line, "```bash") {
+			inCodeBlock = true
+			continue
+		}
+
+		if inCodeBlock && strings.Contains(line, "```") {
+			inCodeBlock = false
+			if currentCommand != "" {
+				commands = append(commands, strings.TrimSpace(currentCommand))
+				currentCommand = ""
+			}
+			continue
+		}
+
+		if inCodeBlock {
+			if currentCommand != "" {
+				currentCommand += " " + line
+			} else {
+				currentCommand = line
+			}
+		}
+	}
+
+	return commands, nil
+}
+
+func findReadmeFiles(rootDir string) error {
+	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("error accessing path %q: %v", path, err)
+		}
+
+		if !info.IsDir() && info.Name() == "README.md" && strings.Contains(path, "ttps/examples") {
+			contents, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("error reading %s:%v", path, err)
+			}
+
+			commands, err := extractTTPForgeCommand(strings.NewReader(string(contents)))
+			if err != nil {
+				return fmt.Errorf("failed to parse %v: %v", path, err)
+			}
+
+			for _, command := range commands {
+				if command != "" {
+					parts := strings.Fields(command)
+
+					if len(parts) < 2 {
+						return fmt.Errorf("unexpected command format: %s", command)
+					}
+
+					mainCommand := parts[0]
+					action := parts[1]
+					ttp := parts[2]
+					args := parts[3:]
+
+					cmdArg := []string{action, ttp}
+
+					// Execute the command
+					fmt.Printf("Running command extracted from %s: %s %s %s\n\n", info.Name(), mainCommand, cmdArg, strings.Join(args, " "))
+					_, err := sys.RunCommand(mainCommand, append(cmdArg, args...)...)
+					if err != nil {
+						return fmt.Errorf("failed to run command %s %s %s: %v", mainCommand, cmdArg, strings.Join(args, " "), err)
+					}
+				}
+			}
+
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error walking the path %s: %v", rootDir, err)
+	}
+
+	return nil
+}
+
+// RunIntegrationTests runs the example TTPs found in ForgeArmory
+func RunIntegrationTests() error {
+	home, err := sys.GetHomeDir()
+	if err != nil {
+		return err
+	}
+	armoryTTPs := filepath.Join(home, ".ttpforge", "repos", "forgearmory", "ttps")
+	findReadmeFiles(armoryTTPs)
 
 	return nil
 }

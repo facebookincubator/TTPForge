@@ -13,6 +13,17 @@
       "postDebugTask": "delete mage_output_file.go"
     },
     {
+      "name": "Mage RunIntegrationTests",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/magefiles/mage_output_file.go",
+      "args": ["runIntegrationTests"],
+      "buildFlags": "magefile.go",
+      "preLaunchTask": "create mage_output_file.go and run code to debug",
+      "postDebugTask": "delete mage_output_file.go"
+    },
+    {
       "type": "go",
       "request": "launch",
       "name": "Debug variadic params TTP",
