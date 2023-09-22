@@ -74,7 +74,7 @@ Here's an example of TTPForge's YAML format; this
 [TTP](https://github.com/facebookincubator/ForgeArmory/blob/main/ttps/defense-evasion/macos/disable-system-updates/disable-system-updates.yaml)
 disables macOS security updates:
 
-```
+```yaml
 ---
 name: Disable system security updates
 description: |
