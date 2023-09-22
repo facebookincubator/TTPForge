@@ -8,24 +8,22 @@
 [![Renovate](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/renovate.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/facebookincubator/TTPForge/badge.svg)](https://coveralls.io/github/facebookincubator/TTPForge)
 
-This repo hosts the TTPForge tool created by Meta's Purple Team.
-It is intended to provide an interface to execute TTPs across various
-targets and mediums.
+TTPForge is a cyber attack simulation platform. This project promotes a
+Purple Team approach to cybersecurity with the following goals:
 
----
+* To help blue teams accurately measure their detection and response capabilities
+  through high-fidelity simulations of real attacker activity.
+* To help red teams improve the ROI/actionability of their findings by packaging
+  their attacks as automated, repeatable simulations.
 
-## Table of Contents
+TTPForge allows you to automate  attacker tactics, techniques, and procedures (TTPs)
+using a powerful but easy-to-use YAML format. Check out an [example](#examples) or
+head straight to the [installation](#installation) instructions.
 
-- [Getting Started - User](#getting-started-as-a-user)
-- [Getting Started - Developer](docs/dev/README.md)
-- [Using the TTPForge Dev Container](docs/container.md)
-- [Code Standards](docs/code-standards.md)
-- [Creating a new release](docs/release.md)
-- [TTPForge Building Blocks](docs/building-blocks.md)
+TTPForge is written in [Go](https://go.dev/) and was originally created
+by @d3sch41n, @CrimsonK1ng, and @l50, members of Meta's Offensive Security Group.
 
----
-
-## Getting started as a user
+## Installation
 
 1. Get latest TTPForge release:
 
@@ -67,6 +65,50 @@ targets and mediums.
    ttpforge init
    ```
 
+TTPForge is now ready to use - check out our [tutorial](#tutorial) to
+start exploring its capabilities.
+
+## Examples
+
+Here's an example of TTPForge's YAML format; this
+[TTP](https://github.com/facebookincubator/ForgeArmory/blob/main/ttps/defense-evasion/macos/disable-system-updates/disable-system-updates.yaml)
+disables macOS security updates:
+
+```
+---
+name: Disable system security updates
+description: |
+  This TTP disables the automatic installation of macOS security updates.
+mitre:
+  tactics:
+    - TA0005 Defense Evasion
+  techniques:
+    - T1562 Impair Defenses
+  subtechniques:
+    - "T1562.001 Impair Defenses: Disable or Modify Tools"
+
+steps:
+  - name: disable-updates
+    inline: |
+      echo -e "===> Disabling automatic installation of security updates..."
+      sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool NO
+      echo "[+] DONE!"
+
+    cleanup:
+      inline: |
+        echo -e "===> Enabling automatic installation of security updates..."
+        sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool YES
+        echo "[+] DONE!"
+```
+
+Head over to the [ForgeArmory](https://github.com/facebookincubator/ForgeArmory),
+our collection of open-source TTPs powered by TTPForge,
+to check out more examples!
+
+---
+
+## Tutorial
+
 1. List available TTP repositories (should show `forgearmory`)
 
    ```bash
@@ -93,3 +135,13 @@ targets and mediums.
      --arg a_message="hello" \
      --arg a_number=1337
    ```
+
+## Documentation
+
+Check out our documentation on the following topics:
+
+- [Developer Documentation](docs/dev/README.md)
+- [Using the TTPForge Dev Container](docs/container.md)
+- [Code Standards](docs/code-standards.md)
+- [Creating a new release](docs/release.md)
+- [TTPForge Building Blocks](docs/building-blocks.md)
