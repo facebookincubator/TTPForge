@@ -36,12 +36,13 @@ import (
 // through an editor program or via a C2, where there is no
 // corresponding shell history telemetry
 type CreateFileStep struct {
-	*Act        `yaml:",inline"`
-	Path        string     `yaml:"create_file,omitempty"`
-	Contents    string     `yaml:"contents,omitempty"`
-	Overwrite   bool       `yaml:"overwrite,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	FileSystem  afero.Fs   `yaml:"-,omitempty"`
+	Act         `yaml:",inline"`
+	Path        string      `yaml:"create_file,omitempty"`
+	Contents    string      `yaml:"contents,omitempty"`
+	Overwrite   bool        `yaml:"overwrite,omitempty"`
+	Perm        os.FileMode `yaml:"perm,omitempty"`
+	CleanupStep CleanupAct  `yaml:"cleanup,omitempty,flow"`
+	FileSystem  afero.Fs    `yaml:"-,omitempty"`
 }
 
 // NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
@@ -81,7 +82,7 @@ func (s *CreateFileStep) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	// Initialize the instance with the decoded values.
-	s.Act = &tmpl.Act
+	s.Act = tmpl.Act
 	s.Path = tmpl.Path
 	s.Contents = tmpl.Contents
 	s.Overwrite = tmpl.Overwrite
@@ -173,7 +174,7 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult,
 	if exists && !s.Overwrite {
 		return nil, fmt.Errorf("path %v already exists and overwrite was not set", s.Path)
 	}
-	f, err = fsys.OpenFile(s.Path, os.O_WRONLY|os.O_CREATE, 0644)
+	f, err = fsys.OpenFile(s.Path, os.O_WRONLY|os.O_CREATE, s.Perm)
 	if err != nil {
 		return nil, err
 	}

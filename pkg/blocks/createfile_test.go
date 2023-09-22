@@ -31,11 +31,11 @@ import (
 
 func TestCreateFileExecute(t *testing.T) {
 	testCases := []struct {
-		name         string
-		description  string
-		step         *blocks.CreateFileStep
-		fsysContents map[string][]byte
-		wantError    bool
+		name               string
+		description        string
+		step               *blocks.CreateFileStep
+		fsysContents       map[string][]byte
+		expectExecuteError bool
 	}{
 		{
 			name:        "Create Valid File",
@@ -54,7 +54,7 @@ func TestCreateFileExecute(t *testing.T) {
 			},
 		},
 		{
-			name:        "No Overwrite",
+			name:        "Already Exists (No Overwrite)",
 			description: "Should fail because file already exists",
 			step: &blocks.CreateFileStep{
 				Path:     "already-exists.txt",
@@ -63,10 +63,10 @@ func TestCreateFileExecute(t *testing.T) {
 			fsysContents: map[string][]byte{
 				"already-exists.txt": []byte("whoops"),
 			},
-			wantError: true,
+			expectExecuteError: true,
 		},
 		{
-			name:        "With Overwrite",
+			name:        "Already Exists (With Overwrite)",
 			description: "Should succeed and overwrite existing file",
 			step: &blocks.CreateFileStep{
 				Path:      "already-exists.txt",
@@ -75,6 +75,15 @@ func TestCreateFileExecute(t *testing.T) {
 			},
 			fsysContents: map[string][]byte{
 				"already-exists.txt": []byte("whoops"),
+			},
+		},
+		{
+			name:        "Set Permissions Manually",
+			description: "Make the file read-only",
+			step: &blocks.CreateFileStep{
+				Path:     "make-read-only",
+				Contents: "very-read-only",
+				Perm:     0600,
 			},
 		},
 	}
@@ -90,18 +99,26 @@ func TestCreateFileExecute(t *testing.T) {
 				tc.step.FileSystem = afero.NewMemMapFs()
 			}
 
-			// run step
-			_, err := tc.step.Execute(blocks.TTPExecutionContext{})
-
-			// check result
-			if tc.wantError {
+			// execute and check error
+			var execCtx blocks.TTPExecutionContext
+			_, err := tc.step.Execute(execCtx)
+			if tc.expectExecuteError {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
+
+			// check contents
 			contentBytes, err := afero.ReadFile(tc.step.FileSystem, tc.step.Path)
 			require.NoError(t, err)
 			assert.Equal(t, tc.step.Contents, string(contentBytes))
+
+			// check permissions
+			if tc.step.Perm != 0 {
+				info, err := tc.step.FileSystem.Stat(tc.step.Path)
+				require.NoError(t, err)
+				assert.Equal(t, tc.step.Perm, info.Mode())
+			}
 		})
 	}
 }
