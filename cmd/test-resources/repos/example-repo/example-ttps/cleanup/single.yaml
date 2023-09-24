@@ -1,0 +1,7 @@
+---
+name: create_file_then_cleanup
+steps:
+- name: create_first_file
+  inline: touch /tmp/foo
+  cleanup:
+    inline: rm /tmp/foo

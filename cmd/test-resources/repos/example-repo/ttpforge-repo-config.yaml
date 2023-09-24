@@ -1,0 +1,4 @@
+---
+ttp_search_paths:
+  - some-other-ttps
+  - example-ttps

@@ -1,0 +1,11 @@
+---
+name: multiple_cleanup_actions
+steps:
+- name: disable_edr
+  inline: echo "we are now disabling EDR"
+  cleanup:
+    inline: echo "we are now re-enabling EDR..."
+- name: create_malicious_launch_agent
+  inline: echo "dropping malicious payload"
+  cleanup:
+    inline: echo "removing malicious launch agent..."

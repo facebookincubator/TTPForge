@@ -1,6 +1,6 @@
 ---
 repos:
+  - name: example-repo
+    path: repos/example-repo
   - name: test-repo
     path: repos/test-repo
-  - name: another-repo
-    path: repos/another-repo

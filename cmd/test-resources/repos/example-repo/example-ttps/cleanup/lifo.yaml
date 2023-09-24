@@ -1,0 +1,22 @@
+---
+name: cleanup_after_failure
+description: |
+  This TTP demonstrates how cleanup steps are run in reverse order
+  and are tolerant of faults in the individual steps.
+steps:
+  - name: first_step_name
+    inline: echo "executing first step"     
+    cleanup:
+      inline: echo "cleaning up first step"
+  - name: second_step_name
+    inline: echo "executing second step"     
+    cleanup:
+      inline: echo "cleaning up second step"
+  - name: third_step_name
+    inline: THIS COMMAND WILL INTENTIONALLLY FAIL
+    cleanup:
+      inline: echo "cleaning up third step"
+  - name: fourth_step_name
+    inline: echo "executing fourth step"     
+    cleanup:
+      inline: echo "cleaning up fourth step"
