@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/l50/goutils/v2 v2.1.0
 	github.com/magefile/mage v1.15.0
-	github.com/spf13/afero v1.9.5
+	github.com/spf13/afero v1.10.0
 )
 
 require (
