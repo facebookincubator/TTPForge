@@ -1,0 +1,8 @@
+---
+name: create_file
+steps:
+  - name: create_file_step
+    create_file: /tmp/foo
+    contents: "hello world"
+    overwrite: true
+    mode: 0600

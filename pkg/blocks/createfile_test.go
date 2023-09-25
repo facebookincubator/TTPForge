@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -83,7 +84,7 @@ func TestCreateFileExecute(t *testing.T) {
 			step: &blocks.CreateFileStep{
 				Path:     "make-read-only",
 				Contents: "very-read-only",
-				Perm:     0600,
+				Mode:     0400,
 			},
 		},
 	}
@@ -114,10 +115,10 @@ func TestCreateFileExecute(t *testing.T) {
 			assert.Equal(t, tc.step.Contents, string(contentBytes))
 
 			// check permissions
-			if tc.step.Perm != 0 {
+			if tc.step.Mode != 0 {
 				info, err := tc.step.FileSystem.Stat(tc.step.Path)
 				require.NoError(t, err)
-				assert.Equal(t, tc.step.Perm, info.Mode())
+				assert.Equal(t, os.FileMode(tc.step.Mode), info.Mode())
 			}
 		})
 	}

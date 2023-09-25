@@ -37,12 +37,12 @@ import (
 // corresponding shell history telemetry
 type CreateFileStep struct {
 	*Act        `yaml:",inline"`
-	Path        string      `yaml:"create_file,omitempty"`
-	Contents    string      `yaml:"contents,omitempty"`
-	Overwrite   bool        `yaml:"overwrite,omitempty"`
-	Perm        os.FileMode `yaml:"perm,omitempty"`
-	CleanupStep CleanupAct  `yaml:"cleanup,omitempty,flow"`
-	FileSystem  afero.Fs    `yaml:"-,omitempty"`
+	Path        string     `yaml:"create_file,omitempty"`
+	Contents    string     `yaml:"contents,omitempty"`
+	Overwrite   bool       `yaml:"overwrite,omitempty"`
+	Mode        int        `yaml:"mode,omitempty"`
+	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
+	FileSystem  afero.Fs   `yaml:"-,omitempty"`
 }
 
 // NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
@@ -51,9 +51,6 @@ func NewCreateFileStep() *CreateFileStep {
 		Act: &Act{
 			Type: StepCreateFile,
 		},
-		// use the default umask
-		// https://stackoverflow.com/questions/23842247/reading-default-filemode-when-using-os-o-create
-		Perm: 0666,
 	}
 }
 
@@ -75,6 +72,7 @@ func (s *CreateFileStep) UnmarshalYAML(node *yaml.Node) error {
 		Path        string    `yaml:"create_file,omitempty"`
 		Contents    string    `yaml:"contents,omitempty"`
 		Overwrite   bool      `yaml:"overwrite,omitempty"`
+		Mode        int       `yaml:"mode,omitempty"`
 		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
 	}
 
@@ -89,6 +87,7 @@ func (s *CreateFileStep) UnmarshalYAML(node *yaml.Node) error {
 	s.Path = tmpl.Path
 	s.Contents = tmpl.Contents
 	s.Overwrite = tmpl.Overwrite
+	s.Mode = tmpl.Mode
 
 	// Check for invalid steps.
 	if s.IsNil() {
@@ -143,7 +142,7 @@ func (s *CreateFileStep) GetCleanup() []CleanupAct {
 // error: An error message explaining why the step is invalid.
 func (s *CreateFileStep) ExplainInvalid() error {
 	if s.Path == "" {
-		return errors.New("empty FetchURI provided")
+		return errors.New("empty `create_file:` provided")
 	}
 	return nil
 }
@@ -177,7 +176,13 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult,
 	if exists && !s.Overwrite {
 		return nil, fmt.Errorf("path %v already exists and overwrite was not set", s.Path)
 	}
-	f, err = fsys.OpenFile(s.Path, os.O_WRONLY|os.O_CREATE, s.Perm)
+	// use the default umask
+	// https://stackoverflow.com/questions/23842247/reading-default-filemode-when-using-os-o-create
+	mode := s.Mode
+	if mode == 0 {
+		mode = 0666
+	}
+	f, err = fsys.OpenFile(s.Path, os.O_WRONLY|os.O_CREATE, os.FileMode(mode))
 	if err != nil {
 		return nil, err
 	}
