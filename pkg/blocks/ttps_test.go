@@ -175,8 +175,18 @@ steps:
 	}
 }
 
-func TestCleanupAfterStepFailure(t *testing.T) {
-	content := `name: test
+func TestTTP(t *testing.T) {
+	testCases := []struct {
+		name               string
+		content            string
+		execConfig         blocks.TTPExecutionConfig
+		expectedByIndexOut map[int]string
+		expectedByNameOut  map[string]string
+		wantError          bool
+	}{
+		{
+			name: "Cleanup After Step Failure",
+			content: `name: test
 description: verifies that cleanups run after step failures
 steps:
     - name: step1
@@ -194,36 +204,21 @@ steps:
     - name: step4
       inline: echo "step4"
       cleanup:
-        inline: echo "cleanup4"`
-
-	var ttp blocks.TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	stepResults, err := ttp.RunSteps(blocks.TTPExecutionConfig{})
-	assert.Error(t, err, "should get an error from step failure")
-
-	require.Equal(t, 2, len(stepResults.ByIndex))
-	assert.Equal(t, "step1\n", stepResults.ByIndex[0].Stdout)
-	assert.Equal(t, "step2\n", stepResults.ByIndex[1].Stdout)
-
-	require.Equal(t, 2, len(stepResults.ByName))
-	assert.Equal(t, "step1\n", stepResults.ByName["step1"].Stdout)
-	assert.Equal(t, "step2\n", stepResults.ByName["step2"].Stdout)
-
-	require.NotNil(t, stepResults.ByIndex[0].Cleanup)
-	require.NotNil(t, stepResults.ByIndex[1].Cleanup)
-	assert.Equal(t, "cleanup1\n", stepResults.ByIndex[0].Cleanup.Stdout)
-	assert.Equal(t, "cleanup2\n", stepResults.ByIndex[1].Cleanup.Stdout)
-
-	require.NotNil(t, stepResults.ByName["step1"].Cleanup)
-	require.NotNil(t, stepResults.ByName["step2"].Cleanup)
-	assert.Equal(t, "cleanup1\n", stepResults.ByName["step1"].Cleanup.Stdout)
-	assert.Equal(t, "cleanup2\n", stepResults.ByName["step2"].Cleanup.Stdout)
-}
-
-func TestTemplatingArgsAndConditionalExec(t *testing.T) {
-	content := `name: test_variable_expansion
+        inline: echo "cleanup4"`,
+			execConfig: blocks.TTPExecutionConfig{},
+			expectedByIndexOut: map[int]string{
+				0: "step1\n",
+				1: "step2\n",
+			},
+			expectedByNameOut: map[string]string{
+				"step1": "step1\n",
+				"step2": "step2\n",
+			},
+			wantError: true,
+		},
+		{
+			name: "Templating Args And Conditional Exec",
+			content: `name: test_variable_expansion
 description: tests args + step result variable expansion functionality
 args:
 - name: arg1
@@ -241,31 +236,26 @@ steps:
 {{ if .Args.do_optional_step_2 }}
   - name: optional_step_2
     inline: echo "optional step 2"
-{{ end }}`
-
-	execCfg := blocks.TTPExecutionConfig{
-		Args: map[string]any{
-			"arg1":               "victory",
-			"do_optional_step_2": true,
+{{ end }}`,
+			execConfig: blocks.TTPExecutionConfig{
+				Args: map[string]interface{}{
+					"arg1":               "victory",
+					"do_optional_step_2": true,
+				},
+			},
+			expectedByIndexOut: map[int]string{
+				0: "arg value is victory\n",
+				1: "optional step 2\n",
+			},
+			expectedByNameOut: map[string]string{
+				"mandatory_step":  "arg value is victory\n",
+				"optional_step_2": "optional step 2\n",
+			},
+			wantError: false,
 		},
-	}
-	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
-	require.NoError(t, err)
-
-	stepResults, err := ttp.RunSteps(execCfg)
-	require.NoError(t, err)
-
-	require.Equal(t, 2, len(stepResults.ByIndex))
-	assert.Equal(t, "arg value is victory\n", stepResults.ByIndex[0].Stdout)
-	assert.Equal(t, "optional step 2\n", stepResults.ByIndex[1].Stdout)
-
-	require.Equal(t, 2, len(stepResults.ByName))
-	assert.Equal(t, "arg value is victory\n", stepResults.ByName["mandatory_step"].Stdout)
-	assert.Equal(t, "optional step 2\n", stepResults.ByName["optional_step_2"].Stdout)
-}
-
-func TestVariableExpansionArgsAndStepResults(t *testing.T) {
-	content := `name: test_variable_expansion
+		{
+			name: "Variable Expansion Args And Step Results",
+			content: `name: test_variable_expansion
 description: tests args + step result variable expansion functionality
 args:
 - name: arg1
@@ -279,28 +269,53 @@ steps:
   - name: step2
     inline: echo "first output is baz"
   - name: step3
-    inline: echo "arg value is {{ .Args.arg1 }}"`
-
-	execCfg := blocks.TTPExecutionConfig{
-		Args: map[string]any{
-			"arg1": "victory",
+    inline: echo "arg value is {{ .Args.arg1 }}"`,
+			execConfig: blocks.TTPExecutionConfig{
+				Args: map[string]interface{}{
+					"arg1": "victory",
+				},
+			},
+			expectedByIndexOut: map[int]string{
+				0: "{\"foo\":{\"bar\":\"baz\"}}\n",
+				1: "first output is baz\n",
+				2: "arg value is victory\n",
+			},
+			expectedByNameOut: map[string]string{
+				"step1": "{\"foo\":{\"bar\":\"baz\"}}\n",
+				"step2": "first output is baz\n",
+				"step3": "arg value is victory\n",
+			},
+			wantError: false,
 		},
 	}
-	ttp, err := blocks.RenderTemplatedTTP(content, &execCfg)
-	require.NoError(t, err)
 
-	stepResults, err := ttp.RunSteps(execCfg)
-	require.NoError(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Render the templated TTP first
+			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
+			if err != nil {
+				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
+				return
+			}
 
-	require.Equal(t, 3, len(stepResults.ByIndex))
-	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByIndex[0].Stdout)
-	assert.Equal(t, "first output is baz\n", stepResults.ByIndex[1].Stdout)
-	assert.Equal(t, "arg value is victory\n", stepResults.ByIndex[2].Stdout)
+			stepResults, err := ttp.RunSteps(tc.execConfig)
+			if tc.wantError && err == nil {
+				t.Error("expected an error from step execution but got none")
+				return
+			}
+			if !tc.wantError && err != nil {
+				t.Errorf("didn't expect an error from step execution but got: %s", err)
+				return
+			}
 
-	require.Equal(t, 3, len(stepResults.ByName))
-	assert.Equal(t, "{\"foo\":{\"bar\":\"baz\"}}\n", stepResults.ByName["step1"].Stdout)
-	assert.Equal(t, "first output is baz\n", stepResults.ByName["step2"].Stdout)
-	assert.Equal(t, "arg value is victory\n", stepResults.ByName["step3"].Stdout)
+			for index, output := range tc.expectedByIndexOut {
+				require.Equal(t, output, stepResults.ByIndex[index].Stdout)
+			}
+			for name, output := range tc.expectedByNameOut {
+				require.Equal(t, output, stepResults.ByName[name].Stdout)
+			}
+		})
+	}
 }
 
 func TestMitreAttackMapping(t *testing.T) {
