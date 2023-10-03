@@ -287,6 +287,25 @@ steps:
 			},
 			wantError: false,
 		},
+		{
+			name: "Metacharacters in step contents",
+			content: `name: test_metacharacters
+steps:
+  - name: step1
+    inline: |
+      cat <<EOF
+      A
+      B
+      EOF`,
+			execConfig: blocks.TTPExecutionConfig{},
+			expectedByIndexOut: map[int]string{
+				0: "A\nB\n",
+			},
+			expectedByNameOut: map[string]string{
+				"step1": "A\nB\n",
+			},
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
