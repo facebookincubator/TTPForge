@@ -22,11 +22,11 @@ package blocks
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
