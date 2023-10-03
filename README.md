@@ -40,10 +40,7 @@ targets and mediums.
 
    source "${bashutils_path}"
 
-   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.3" ttpforge
-
-   # Optionally, if you are using the `gh` cli:
-   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.3" ttpforge $GITHUB_TOKEN
+   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.8" ttpforge
    ```
 
    At this point, the latest `ttpforge` release should be in
