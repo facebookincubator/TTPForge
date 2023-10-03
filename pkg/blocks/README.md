@@ -214,6 +214,107 @@ Validate validates the BasicStep, checking for the necessary attributes and depe
 
 ---
 
+### CreateFileStep.Cleanup(TTPExecutionContext)
+
+```go
+Cleanup(TTPExecutionContext) *ActResult, error
+```
+
+Cleanup is a method to establish a link with the Cleanup interface.
+Assumes that the type is the cleanup step and is invoked by
+s.CleanupStep.Cleanup.
+
+---
+
+### CreateFileStep.Execute(TTPExecutionContext)
+
+```go
+Execute(TTPExecutionContext) *ExecutionResult, error
+```
+
+Execute runs the step and returns an error if any occur.
+
+---
+
+### CreateFileStep.ExplainInvalid()
+
+```go
+ExplainInvalid() error
+```
+
+ExplainInvalid returns an error message explaining why the step
+is invalid.
+
+**Returns:**
+
+error: An error message explaining why the step is invalid.
+
+---
+
+### CreateFileStep.GetCleanup()
+
+```go
+GetCleanup() []CleanupAct
+```
+
+GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
+
+---
+
+### CreateFileStep.GetType()
+
+```go
+GetType() StepType
+```
+
+GetType returns the type of the step as StepType.
+
+---
+
+### CreateFileStep.IsNil()
+
+```go
+IsNil() bool
+```
+
+IsNil checks if the step is nil or empty and returns a boolean value.
+
+---
+
+### CreateFileStep.UnmarshalYAML(*yaml.Node)
+
+```go
+UnmarshalYAML(*yaml.Node) error
+```
+
+UnmarshalYAML decodes a YAML node into a CreateFileStep instance. It uses
+the provided struct as a template for the YAML data, and initializes the
+CreateFileStep instance with the decoded values.
+
+**Parameters:**
+
+node: A pointer to a yaml.Node representing the YAML data to decode.
+
+**Returns:**
+
+error: An error if there is a problem decoding the YAML data.
+
+---
+
+### CreateFileStep.Validate(TTPExecutionContext)
+
+```go
+Validate(TTPExecutionContext) error
+```
+
+Validate validates the step
+
+**Returns:**
+
+error: An error if any validation checks fail.
+
+---
+
 ### EditStep.Execute(TTPExecutionContext)
 
 ```go
@@ -595,6 +696,16 @@ NewBasicStep() *BasicStep
 ```
 
 NewBasicStep creates a new BasicStep instance with an initialized Act struct.
+
+---
+
+### NewCreateFileStep()
+
+```go
+NewCreateFileStep() *CreateFileStep
+```
+
+NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
 
 ---
 

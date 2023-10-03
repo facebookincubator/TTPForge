@@ -179,7 +179,7 @@ func (t *TTP) decodeSteps(steps []yaml.Node) error {
 		// these candidate steps are pointers, so this line
 		// MUST be inside the outer step loop or horrible things will happen
 		// #justpointerthings
-		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep()}
+		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
 		for _, stepType := range stepTypes {
 			err := stepNode.Decode(stepType)
 			if err == nil && !stepType.IsNil() {
@@ -200,21 +200,11 @@ func (t *TTP) decodeSteps(steps []yaml.Node) error {
 		}
 
 		if !decoded {
-			return t.handleInvalidStepError(stepNode)
+			return fmt.Errorf("Step #%v does not match any supported step type", stepIdx+1)
 		}
 	}
 
 	return nil
-}
-
-func (t *TTP) handleInvalidStepError(stepNode yaml.Node) error {
-	act := Act{}
-	err := stepNode.Decode(&act)
-
-	if act.Name != "" && err != nil {
-		return fmt.Errorf("invalid step found, missing parameters for step types")
-	}
-	return fmt.Errorf("invalid step found with no name, missing parameters for step types")
 }
 
 func (t *TTP) setWorkingDirectory() error {
