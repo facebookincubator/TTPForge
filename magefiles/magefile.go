@@ -38,14 +38,18 @@ import (
 
 	// mage utility functions
 	"github.com/magefile/mage/mg"
-	"github.com/magefile/mage/sh"
 )
 
 func init() {
 	os.Setenv("GO111MODULE", "on")
 }
 
-// InstallDeps Installs go dependencies
+// InstallDeps installs the Go dependencies.
+//
+// **Returns:**
+//
+// error: An error if any issue occurs while trying to
+// install the dependencies.
 func InstallDeps() error {
 	fmt.Println("Installing dependencies.")
 
@@ -64,7 +68,18 @@ func InstallDeps() error {
 	return nil
 }
 
-// FindExportedFuncsWithoutTests finds exported functions without tests
+// FindExportedFuncsWithoutTests identifies exported functions
+// within a package that lack corresponding test functions.
+//
+// **Parameters:**
+//
+// pkg: The package name as a string.
+//
+// **Returns:**
+//
+// []string: A list of exported functions without tests.
+// error: An error if any issue occurs during the identification
+// process.
 func FindExportedFuncsWithoutTests(pkg string) ([]string, error) {
 	funcs, err := mageutils.FindExportedFuncsWithoutTests(os.Args[1])
 	if err != nil {
@@ -76,11 +91,14 @@ func FindExportedFuncsWithoutTests(pkg string) ([]string, error) {
 	}
 
 	return funcs, nil
-
 }
 
-// GeneratePackageDocs generates package documentation
-// for packages in the current directory and its subdirectories.
+// GeneratePackageDocs creates documentation for the various packages in TTPForge.
+//
+// **Returns:**
+//
+// error: An error if any issue occurs during documentation
+// generation.
 func GeneratePackageDocs() error {
 	fs := afero.NewOsFs()
 
@@ -106,7 +124,17 @@ func GeneratePackageDocs() error {
 	return nil
 }
 
-// RunPreCommit runs all pre-commit hooks locally
+// RunPreCommit updates, clears, and executes all pre-commit hooks
+// locally. The function follows a three-step process:
+//  1. Updates the pre-commit hooks using lint.UpdatePCHooks.
+//  2. Clears the pre-commit cache with lint.ClearPCCache to ensure
+//     a clean environment.
+//  3. Executes all pre-commit hooks locally using lint.RunPCHooks.
+//
+// **Returns:**
+//
+// error: An error if any issue occurs at any of the three stages
+// of the process.
 func RunPreCommit() error {
 	fmt.Println("Updating pre-commit hooks.")
 	if err := lint.UpdatePCHooks(); err != nil {
@@ -126,16 +154,34 @@ func RunPreCommit() error {
 	return nil
 }
 
-// RunTests runs all of the unit tests
+// RunTests executes all unit and integration tests.
+//
+// **Returns:**
+//
+// error: An error if any issue occurs while running the tests.
 func RunTests() error {
 	mg.Deps(InstallDeps)
 
 	fmt.Println("Running unit tests.")
-	if err := sh.RunV(filepath.Join(".hooks", "run-go-tests.sh"), "all"); err != nil {
+	if _, err := sys.RunCommand(filepath.Join(".hooks", "run-go-tests.sh"), "all"); err != nil {
 		return fmt.Errorf("failed to run unit tests: %v", err)
 	}
 
+	fmt.Println("Running integration tests.")
+	if err := runIntegrationTests(); err != nil {
+		return fmt.Errorf("failed to run integration tests: %v", err)
+	}
+
 	return nil
+}
+
+func runIntegrationTests() error {
+	home, err := sys.GetHomeDir()
+	if err != nil {
+		return err
+	}
+	armoryTTPs := filepath.Join(home, ".ttpforge", "repos", "forgearmory", "ttps")
+	return findReadmeFiles(armoryTTPs)
 }
 
 func processLines(r io.Reader, language string) ([]string, error) {
@@ -145,37 +191,36 @@ func processLines(r io.Reader, language string) ([]string, error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		trimmedLine := strings.TrimSpace(line)
 
-		inCodeBlock, codeBlockLines = processLine(trimmedLine, line, inCodeBlock, language, codeBlockLines)
-		if !inCodeBlock && len(codeBlockLines) > 0 {
+		inCodeBlock, codeBlockLines = handleLineInCodeBlock(strings.TrimSpace(line), line, inCodeBlock, language, codeBlockLines)
+
+		if !inCodeBlock {
 			lines = append(lines, codeBlockLines...)
 			codeBlockLines = codeBlockLines[:0]
-		} else if !inCodeBlock {
-			lines = append(lines, line)
+			if !strings.HasPrefix(line, "```") {
+				lines = append(lines, line)
+			}
 		}
 	}
 
-	if len(codeBlockLines) > 0 {
-		if inCodeBlock {
-			codeBlockLines = append(codeBlockLines, "\t\t\t// ```")
-		}
+	if inCodeBlock {
+		codeBlockLines = append(codeBlockLines, "\t\t\t// ```")
 		lines = append(lines, codeBlockLines...)
 	}
 
 	return lines, scanner.Err()
 }
 
-func processLine(trimmedLine, line string, inCodeBlock bool, language string, codeBlockLines []string) (bool, []string) {
+func handleLineInCodeBlock(trimmedLine, line string, inCodeBlock bool, language string, codeBlockLines []string) (bool, []string) {
 	switch {
 	case strings.HasPrefix(trimmedLine, "```"+language):
-		inCodeBlock = !inCodeBlock
-		if inCodeBlock {
+		if !inCodeBlock {
 			codeBlockLines = append(codeBlockLines, line)
 		}
+		return !inCodeBlock, codeBlockLines
 	case inCodeBlock:
 		codeBlockLines = append(codeBlockLines, line)
-	case strings.Contains(trimmedLine, "```") && inCodeBlock:
+	case strings.Contains(trimmedLine, "```"):
 		inCodeBlock = false
 	}
 	return inCodeBlock, codeBlockLines
@@ -190,33 +235,27 @@ func extractTTPForgeCommand(r io.Reader) ([]string, error) {
 	var inCodeBlock bool
 	var currentCommand string
 	var commands []string
+
 	for _, line := range lines {
-		line = strings.TrimSpace(line) // Remove leading and trailing spaces
+		trimmedLine := strings.TrimSpace(line)
 
 		// Remove the backslashes at the end
-		if strings.HasSuffix(line, "\\") {
-			line = line[:len(line)-1]
-		}
+		trimmedLine = strings.TrimSuffix(trimmedLine, "\\")
 
-		if strings.Contains(line, "```bash") {
+		switch {
+		case strings.Contains(trimmedLine, "```bash"):
 			inCodeBlock = true
-			continue
-		}
-
-		if inCodeBlock && strings.Contains(line, "```") {
+			currentCommand = ""
+		case inCodeBlock && strings.Contains(trimmedLine, "```"):
 			inCodeBlock = false
 			if currentCommand != "" {
 				commands = append(commands, strings.TrimSpace(currentCommand))
-				currentCommand = ""
 			}
-			continue
-		}
-
-		if inCodeBlock {
+		case inCodeBlock:
 			if currentCommand != "" {
-				currentCommand += " " + line
+				currentCommand += " " + trimmedLine
 			} else {
-				currentCommand = line
+				currentCommand = trimmedLine
 			}
 		}
 	}
@@ -225,64 +264,54 @@ func extractTTPForgeCommand(r io.Reader) ([]string, error) {
 }
 
 func findReadmeFiles(rootDir string) error {
-	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("error accessing path %q: %v", path, err)
 		}
 
 		if !info.IsDir() && info.Name() == "README.md" && strings.Contains(path, "ttps/examples") {
-			contents, err := os.ReadFile(path)
-			if err != nil {
-				return fmt.Errorf("error reading %s:%v", path, err)
-			}
-
-			commands, err := extractTTPForgeCommand(strings.NewReader(string(contents)))
-			if err != nil {
-				return fmt.Errorf("failed to parse %v: %v", path, err)
-			}
-
-			for _, command := range commands {
-				if command != "" {
-					parts := strings.Fields(command)
-
-					if len(parts) < 2 {
-						return fmt.Errorf("unexpected command format: %s", command)
-					}
-
-					mainCommand := parts[0]
-					action := parts[1]
-					ttp := parts[2]
-					args := parts[3:]
-
-					cmdArg := []string{action, ttp}
-
-					// Execute the command
-					fmt.Printf("Running command extracted from %s: %s %s %s\n\n", info.Name(), mainCommand, cmdArg, strings.Join(args, " "))
-					_, err := sys.RunCommand(mainCommand, append(cmdArg, args...)...)
-					if err != nil {
-						return fmt.Errorf("failed to run command %s %s %s: %v", mainCommand, cmdArg, strings.Join(args, " "), err)
-					}
-				}
-			}
-
+			return processReadme(path, info)
 		}
 		return nil
 	})
+}
+
+func processReadme(path string, info os.FileInfo) error {
+	contents, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("error walking the path %s: %v", rootDir, err)
+		return fmt.Errorf("error reading %s:%v", path, err)
 	}
 
+	commands, err := extractTTPForgeCommand(strings.NewReader(string(contents)))
+	if err != nil {
+		return fmt.Errorf("failed to parse %v: %v", path, err)
+	}
+
+	for _, command := range commands {
+		if err := runExtractedCommand(command, info); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// RunIntegrationTests runs the example TTPs found in ForgeArmory
-func RunIntegrationTests() error {
-	home, err := sys.GetHomeDir()
-	if err != nil {
-		return err
+func runExtractedCommand(command string, info os.FileInfo) error {
+	if command == "" {
+		return nil
 	}
-	armoryTTPs := filepath.Join(home, ".ttpforge", "repos", "forgearmory", "ttps")
-	findReadmeFiles(armoryTTPs)
 
+	parts := strings.Fields(command)
+	if len(parts) < 3 {
+		return fmt.Errorf("unexpected command format: %s", command)
+	}
+
+	mainCommand, action, ttp := parts[0], parts[1], parts[2]
+	args := parts[3:]
+
+	fmt.Printf("Running command extracted from %s: %s %s %s\n\n", info.Name(), mainCommand, action, strings.Join(args, " "))
+
+	if _, err := sys.RunCommand(mainCommand, append([]string{action, ttp}, args...)...); err != nil {
+		return fmt.Errorf("failed to run command %s %s %s: %v", mainCommand, action, strings.Join(args, " "), err)
+	}
 	return nil
 }
