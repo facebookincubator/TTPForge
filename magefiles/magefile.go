@@ -168,22 +168,34 @@ func RunTests() error {
 	}
 
 	fmt.Println("Running integration tests.")
-	if err := runIntegrationTests(); err != nil {
+	if err := RunIntegrationTests(); err != nil {
 		return fmt.Errorf("failed to run integration tests: %v", err)
 	}
 
 	return nil
 }
 
-func runIntegrationTests() error {
+// RunIntegrationTests executes all integration tests by extracting the commands
+// described in README files of TTP examples and then executing them. This
+// dynamic testing approach ensures the reliability of TTP examples.
+//
+// **Returns:**
+//
+// error: An error if any issue occurs while running the tests.
+func RunIntegrationTests() error {
 	home, err := sys.GetHomeDir()
 	if err != nil {
 		return err
 	}
 	armoryTTPs := filepath.Join(home, ".ttpforge", "repos", "forgearmory", "ttps")
+
+	// Parse README files to extract and run example commands, ensuring the
+	// validity of our examples.
 	return findReadmeFiles(armoryTTPs)
 }
 
+// processLines parses an io.Reader, identifying and marking code blocks
+// found in a TTP README.
 func processLines(r io.Reader, language string) ([]string, error) {
 	scanner := bufio.NewScanner(r)
 	var lines, codeBlockLines []string
@@ -211,6 +223,8 @@ func processLines(r io.Reader, language string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
+// handleLineInCodeBlock categorizes and handles each line based on its
+// content and relation to code blocks found in a TTP README.
 func handleLineInCodeBlock(trimmedLine, line string, inCodeBlock bool, language string, codeBlockLines []string) (bool, []string) {
 	switch {
 	case strings.HasPrefix(trimmedLine, "```"+language):
@@ -226,6 +240,9 @@ func handleLineInCodeBlock(trimmedLine, line string, inCodeBlock bool, language 
 	return inCodeBlock, codeBlockLines
 }
 
+// extractTTPForgeCommand extracts the TTPForge run commands from the provided
+// reader (parsed README content). This approach automates the testing of
+// examples by leveraging the commands documented in READMEs.
 func extractTTPForgeCommand(r io.Reader) ([]string, error) {
 	lines, err := processLines(r, "bash")
 	if err != nil {
@@ -263,6 +280,10 @@ func extractTTPForgeCommand(r io.Reader) ([]string, error) {
 	return commands, nil
 }
 
+// findReadmeFiles looks for README.md files in the specified directory.
+// The READMEs are expected to contain TTPForge commands that serve as
+// user-facing instructions for the examples. By parsing these READMEs, we can
+// automatically test and validate these instructions.
 func findReadmeFiles(rootDir string) error {
 	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -276,6 +297,9 @@ func findReadmeFiles(rootDir string) error {
 	})
 }
 
+// processReadme reads the content of a given README file, extracts the
+// TTPForge commands, and runs them. This acts as a verification step to
+// ensure the examples work as described in the README.
 func processReadme(path string, info os.FileInfo) error {
 	contents, err := os.ReadFile(path)
 	if err != nil {
@@ -295,6 +319,8 @@ func processReadme(path string, info os.FileInfo) error {
 	return nil
 }
 
+// runExtractedCommand executes the input TTPForge command, acting as a
+// dynamic validation step.
 func runExtractedCommand(command string, info os.FileInfo) error {
 	if command == "" {
 		return nil
