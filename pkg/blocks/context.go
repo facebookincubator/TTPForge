@@ -32,6 +32,7 @@ const contextVariablePrefix = "$forge."
 
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
+	DryRun              bool
 	NoCleanup           bool
 	CleanupDelaySeconds uint
 	Args                map[string]any
