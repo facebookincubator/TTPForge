@@ -40,7 +40,7 @@ targets and mediums.
 
    source "${bashutils_path}"
 
-   fetchFromGithub "facebookincubator" "TTPForge" "v1.0.8" ttpforge
+   fetchFromGithub "facebookincubator" "TTPForge" "latest" ttpforge
    ```
 
    At this point, the latest `ttpforge` release should be in
