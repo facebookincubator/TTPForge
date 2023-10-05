@@ -1,0 +1,8 @@
+---
+name: file-step-demo 
+description: |
+  Checks simple file step execution.
+  In particular, verifies that working directories function correctly.
+steps:
+  - name: execute_file
+    file: hello-world.sh

@@ -50,7 +50,7 @@ func TestRun(t *testing.T) {
 			args: []string{
 				"-c",
 				testConfigFilePath,
-				testRepoName + "//basic/basic-file.yaml",
+				testRepoName + "//steps/file-step-demo.yaml",
 			},
 			expectedStdout: "Hello World\n",
 		},
@@ -58,9 +58,19 @@ func TestRun(t *testing.T) {
 			name:        "file-step-no-config",
 			description: "verify that execution works with no config file specified",
 			args: []string{
-				testResourcesDir + "/repos/" + testRepoName + "/ttps/basic/basic-file.yaml",
+				testResourcesDir + "/repos/" + testRepoName + "/ttps/steps/file-step-demo.yaml",
 			},
 			expectedStdout: "Hello World\n",
+		},
+		{
+			name:        "second-repo",
+			description: "verify that execution of a TTP in a second repo succeeds",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"another-repo//simple-inline.yaml",
+			},
+			expectedStdout: "simple inline was executed\n",
 		},
 	}
 
