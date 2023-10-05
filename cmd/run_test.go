@@ -33,44 +33,33 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	testConfigFilePath := filepath.Join("test-resources", "test-config.yaml")
-	testCases := []struct {
-		name      string
-		ttpRef    string
-		wantError bool
-	}{
-		{
-			name:   "basic-file",
-			ttpRef: "test-repo//basic/basic-file.yaml",
-		},
-	}
+	const testResourcesDir = "test-resources"
+	const testRepoName = "test-repo"
+	testConfigFilePath := filepath.Join(testResourcesDir, "test-config.yaml")
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand(nil)
-			rc.SetArgs([]string{"run", "-c", testConfigFilePath, tc.ttpRef})
-			err := rc.Execute()
-			if tc.wantError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-// TestRunWithoutConfig verifies
-// that running TTPs still works without a top-level config file
-func TestRunWithoutConfig(t *testing.T) {
 	testCases := []struct {
 		name           string
-		ttpRef         string
+		description    string
+		args           []string
 		expectedStdout string
 		wantError      bool
 	}{
 		{
-			name:           "basic-file",
-			ttpRef:         "test-resources/repos/test-repo/ttps/basic/basic-file.yaml",
+			name:        "file-step",
+			description: "check that a regular file step works",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				testRepoName + "//basic/basic-file.yaml",
+			},
+			expectedStdout: "Hello World\n",
+		},
+		{
+			name:        "file-step-no-config",
+			description: "verify that execution works with no config file specified",
+			args: []string{
+				testResourcesDir + "/repos/" + testRepoName + "/ttps/basic/basic-file.yaml",
+			},
 			expectedStdout: "Hello World\n",
 		},
 	}
@@ -82,7 +71,7 @@ func TestRunWithoutConfig(t *testing.T) {
 				Stdout: &stdoutBuf,
 				Stderr: &stderrBuf,
 			})
-			rc.SetArgs([]string{"run", tc.ttpRef})
+			rc.SetArgs(append([]string{"run"}, tc.args...))
 			err := rc.Execute()
 			if tc.wantError {
 				require.Error(t, err)
