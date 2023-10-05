@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRemoveCommand(cfg *config) *cobra.Command {
+func buildRemoveCommand(cfg *Config) *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:              "remove",
 		Short:            "remove (uninstall) various types of resources used by TTPForge",

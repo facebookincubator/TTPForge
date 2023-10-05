@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRunCommand(cfg *config) *cobra.Command {
+func buildRunCommand(cfg *Config) *cobra.Command {
 	var argsList []string
 	var ttpCfg blocks.TTPExecutionConfig
 	runCmd := &cobra.Command{

@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildInstallRepoCommand(cfg *config) *cobra.Command {
+func buildInstallRepoCommand(cfg *Config) *cobra.Command {
 	var newRepoSpec repos.Spec
 	installRepoCommand := &cobra.Command{
 		Use:              "repo --name repo_name [repo_url]",

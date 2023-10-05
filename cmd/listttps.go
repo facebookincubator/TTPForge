@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildListTTPsCommand(cfg *config) *cobra.Command {
+func buildListTTPsCommand(cfg *Config) *cobra.Command {
 	var repoFilter string
 	listTTPsCommand := &cobra.Command{
 		Use:              "ttps",

@@ -42,7 +42,7 @@ func Execute() error {
 // command including all flags and sub-commands.
 // This function is principally used for tests.
 func BuildRootCommand() *cobra.Command {
-	cfg := &config{}
+	cfg := &Config{}
 
 	// setup root command and flags
 	rootCmd := &cobra.Command{

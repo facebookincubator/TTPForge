@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildInstallCommand(cfg *config) *cobra.Command {
+func buildInstallCommand(cfg *Config) *cobra.Command {
 	installCmd := &cobra.Command{
 		Use:              "install",
 		Short:            "install various types of resources used by TTPForge",

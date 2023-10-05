@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildListCommand(cfg *config) *cobra.Command {
+func buildListCommand(cfg *Config) *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:              "list",
 		Short:            "list various resources available to TTPForge",

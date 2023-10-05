@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildShowCommand(cfg *config) *cobra.Command {
+func buildShowCommand(cfg *Config) *cobra.Command {
 	showCmd := &cobra.Command{
 		Use:              "show",
 		Short:            "displays the contents of a ttpforge resource",

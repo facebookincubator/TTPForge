@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRemoveRepoCommand(cfg *config) *cobra.Command {
+func buildRemoveRepoCommand(cfg *Config) *cobra.Command {
 	var newRepoSpec repos.Spec
 	removeRepoCommand := &cobra.Command{
 		Use:              "repo",

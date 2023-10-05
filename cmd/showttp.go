@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildShowTTPCommand(cfg *config) *cobra.Command {
+func buildShowTTPCommand(cfg *Config) *cobra.Command {
 
 	return &cobra.Command{
 		Use:              "ttp",

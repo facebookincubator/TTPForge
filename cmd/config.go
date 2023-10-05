@@ -35,7 +35,9 @@ import (
 )
 
 // Config stores the variables from the TTPForge global config file
-type config struct {
+// we export it for use in tests, but packages besides `cmd` probably
+// should not touch it
+type Config struct {
 	RepoSpecs []repos.Spec `yaml:"repos"`
 
 	repoCollection repos.RepoCollection
@@ -63,7 +65,7 @@ func getDefaultConfigFilePath() (string, error) {
 // loadRepoCollection verifies that all repositories specified
 // in the configuration file are present on the filesystem
 // and clones missing ones if needed
-func (cfg *config) loadRepoCollection() (repos.RepoCollection, error) {
+func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
 	// locate our config file directory to expend config-relative paths
 	var basePath string
 	if cfg.cfgFile != "" {
@@ -78,7 +80,7 @@ func (cfg *config) loadRepoCollection() (repos.RepoCollection, error) {
 }
 
 // save() writes the current config back to its file - used by `install“ command
-func (cfg *config) save() error {
+func (cfg *Config) save() error {
 	var b bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&b)
 	yamlEncoder.SetIndent(2)
@@ -92,7 +94,7 @@ func (cfg *config) save() error {
 	return err
 }
 
-func (cfg *config) init() error {
+func (cfg *Config) init() error {
 	// find config file
 	if cfg.cfgFile == "" {
 		defaultConfigFilePath, err := getDefaultConfigFilePath()

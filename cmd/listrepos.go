@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildListReposCommand(cfg *config) *cobra.Command {
+func buildListReposCommand(cfg *Config) *cobra.Command {
 	return &cobra.Command{
 		Use:              "repos",
 		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
