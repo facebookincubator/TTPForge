@@ -88,7 +88,7 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 		typedVal, err := spec.convertArgToType(argVal)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"invalid value '%v' specified for argument '%v': %v",
+				"failed to process value '%v' specified for argument '%v': %v",
 				argVal,
 				argName,
 				err,

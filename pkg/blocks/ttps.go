@@ -295,6 +295,12 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 		return nil, err
 	}
 
+	// stop after validation for dry run
+	if execCtx.Cfg.DryRun {
+		logging.L().Info("[*] Dry-Run Requested - Returning Early")
+		return nil, nil
+	}
+
 	stepResults, cleanup, err := t.executeSteps(execCtx)
 	if err != nil {
 		// we need to run cleanup so we don't return here
