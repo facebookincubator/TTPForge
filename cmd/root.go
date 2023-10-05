@@ -25,8 +25,24 @@ import (
 
 // BuildRootCommand constructs a fully-initialized root cobra
 // command including all flags and sub-commands.
-// This function is principally used for tests.
+// This function is called from main(), but
+// otherwise is principally used for tests.
+//
+// **Parameters:**
+//
+// cfg: a Config struct used to control certain aspects of execution
+//
+//	in unit tests. Note that this should usually just be set to nil,
+//	and many of the fields you could set may be overwritten when
+//	cfg.init() is subsequently called.
+//
+// **Returns:**
+//
+// *cobra.Command: The initialized root cobra command
 func BuildRootCommand(cfg *Config) *cobra.Command {
+	if cfg == nil {
+		cfg = &Config{}
+	}
 
 	// setup root command and flags
 	rootCmd := &cobra.Command{

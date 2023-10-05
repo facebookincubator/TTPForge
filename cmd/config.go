@@ -22,6 +22,8 @@ package cmd
 import (
 	// 'go lint': need blank import for embedding default config
 	"bytes"
+	"io"
+
 	// needed for embedded filesystem
 	_ "embed"
 	"fmt"
@@ -39,6 +41,14 @@ import (
 // should not touch it
 type Config struct {
 	RepoSpecs []repos.Spec `yaml:"repos"`
+
+	// used for capturing output in tests
+	// note: these are not supported for every single command.
+	// they will only receive output if you use `cmd.Prinln(...)`
+	// and such
+	// https://stackoverflow.com/questions/66802459/how-to-call-setout-on-subcommands-in-cobra
+	Stdout io.Writer
+	Stderr io.Writer
 
 	repoCollection repos.RepoCollection
 	cfgFile        string

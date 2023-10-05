@@ -20,6 +20,7 @@ THE SOFTWARE.
 package cmd_test
 
 import (
+	"bytes"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -46,7 +47,7 @@ func TestRun(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand(&cmd.Config{})
+			rc := cmd.BuildRootCommand(nil)
 			rc.SetArgs([]string{"run", "-c", testConfigFilePath, tc.ttpRef})
 			err := rc.Execute()
 			if tc.wantError {
@@ -62,19 +63,25 @@ func TestRun(t *testing.T) {
 // that running TTPs still works without a top-level config file
 func TestRunWithoutConfig(t *testing.T) {
 	testCases := []struct {
-		name      string
-		ttpRef    string
-		wantError bool
+		name           string
+		ttpRef         string
+		expectedStdout string
+		wantError      bool
 	}{
 		{
-			name:   "basic-file",
-			ttpRef: "test-resources/repos/test-repo/ttps/basic/basic-file.yaml",
+			name:           "basic-file",
+			ttpRef:         "test-resources/repos/test-repo/ttps/basic/basic-file.yaml",
+			expectedStdout: "Hello World\n",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand(&cmd.Config{})
+			var stdoutBuf, stderrBuf bytes.Buffer
+			rc := cmd.BuildRootCommand(&cmd.Config{
+				Stdout: &stdoutBuf,
+				Stderr: &stderrBuf,
+			})
 			rc.SetArgs([]string{"run", tc.ttpRef})
 			err := rc.Execute()
 			if tc.wantError {
@@ -82,6 +89,7 @@ func TestRunWithoutConfig(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+			assert.Equal(t, tc.expectedStdout, stdoutBuf.String())
 		})
 	}
 }

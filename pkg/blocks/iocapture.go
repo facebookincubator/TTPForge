@@ -16,25 +16,37 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-
-package main
+package blocks
 
 import (
+	"bytes"
+	"io"
 	"os"
-
-	"github.com/facebookincubator/ttpforge/cmd"
-	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"os/exec"
 )
 
-func main() {
-	rootCmd := cmd.BuildRootCommand(nil)
-	if err := rootCmd.Execute(); err != nil {
-		// we want our own log formatting (for pretty colors)
-		// so we don't use cobra.CheckErr
-		logging.L().Errorf("failed to run command:\n\t%v", err)
-		// cobra won't set the right exit code unless
-		// you use cobra.CheckErr, which we don't want to do for
-		// formatting reasons
-		os.Exit(1)
+func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ExecutionResult, error) {
+	if stdout == nil {
+		stdout = os.Stdout
 	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = io.MultiWriter(stdout, &stdoutBuf)
+	cmd.Stderr = io.MultiWriter(stderr, &stderrBuf)
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
+	result := ExecutionResult{}
+	result.Stdout = outStr
+	result.Stderr = errStr
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

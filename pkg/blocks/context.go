@@ -22,6 +22,7 @@ package blocks
 import (
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -37,6 +38,8 @@ type TTPExecutionConfig struct {
 	CleanupDelaySeconds uint
 	Args                map[string]any
 	Repo                repos.Repo
+	Stdout              io.Writer
+	Stderr              io.Writer
 }
 
 // TTPExecutionContext - holds config and context for the currently executing TTP

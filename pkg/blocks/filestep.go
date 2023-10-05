@@ -20,16 +20,14 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -167,27 +165,10 @@ func (f *FileStep) IsNil() bool {
 
 // Execute runs the FileStep and returns an error if any occur.
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
-	logging.L().Info("========= Executing ==========")
-
-	if f.FilePath != "" {
-		if err := f.fileExec(execCtx); err != nil {
-			logging.L().Error(zap.Error(err))
-			return nil, err
-		}
-	}
-
-	logging.L().Info("========= Result ==========")
-
-	return &ExecutionResult{}, nil
-}
-
-// fileExec executes the FileStep with the specified executor and arguments,
-// and returns an error if any occur.
-func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 	var cmd *exec.Cmd
 	expandedArgs, err := execCtx.ExpandVariables(f.Args)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if f.Executor == ExecutorBinary {
 		cmd = exec.Command(f.FilePath, expandedArgs...)
@@ -201,23 +182,16 @@ func (f *FileStep) fileExec(execCtx TTPExecutionContext) error {
 	envAsList := FetchEnv(f.Environment)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cmd.Env = expandedEnvAsList
 	cmd.Dir = f.WorkDir
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
-	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
-
-	err = cmd.Run()
-	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
+	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 	if err != nil {
-		logging.L().Errorw("bad exit of process", "stdout", outStr, "stderr", errStr, "exit code", cmd.ProcessState.ExitCode())
-		return err
+		return nil, err
 	}
-	logging.L().Debugw("output of process", "stdout", outStr, "stderr", errStr, "status", cmd.ProcessState.ExitCode())
-
-	return nil
+	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
+	return nil, err
 }
 
 // Validate validates the FileStep. It checks that the

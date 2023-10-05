@@ -37,8 +37,11 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 			// don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true
 
-			ttpRef := args[0]
+			// capture output for tests if needed
+			ttpCfg.Stdout, ttpCfg.Stderr = cfg.Stdout, cfg.Stderr
+
 			// find the TTP file
+			ttpRef := args[0]
 			foundRepo, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
