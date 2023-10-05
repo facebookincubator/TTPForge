@@ -26,14 +26,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildListTTPsCommand() *cobra.Command {
+func buildListTTPsCommand(cfg *config) *cobra.Command {
 	var repoFilter string
 	listTTPsCommand := &cobra.Command{
 		Use:              "ttps",
 		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ttpRefs, err := Conf.repoCollection.ListTTPs()
+			ttpRefs, err := cfg.repoCollection.ListTTPs()
 			if err != nil {
 				return err
 			}

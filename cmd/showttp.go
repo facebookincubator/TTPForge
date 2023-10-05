@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildShowTTPCommand() *cobra.Command {
+func buildShowTTPCommand(cfg *config) *cobra.Command {
 
 	return &cobra.Command{
 		Use:              "ttp",
@@ -35,7 +35,7 @@ func buildShowTTPCommand() *cobra.Command {
 		Args:             cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ttpRef := args[0]
-			_, ttpAbsPath, err := Conf.repoCollection.ResolveTTPRef(ttpRef)
+			_, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
 			}

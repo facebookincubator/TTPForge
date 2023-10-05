@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRunCommand() *cobra.Command {
+func buildRunCommand(cfg *config) *cobra.Command {
 	var argsList []string
 	var ttpCfg blocks.TTPExecutionConfig
 	runCmd := &cobra.Command{
@@ -39,7 +39,7 @@ func buildRunCommand() *cobra.Command {
 
 			ttpRef := args[0]
 			// find the TTP file
-			foundRepo, ttpAbsPath, err := Conf.repoCollection.ResolveTTPRef(ttpRef)
+			foundRepo, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
 			}

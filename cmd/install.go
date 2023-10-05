@@ -23,13 +23,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildInstallCommand() *cobra.Command {
+func buildInstallCommand(cfg *config) *cobra.Command {
 	installCmd := &cobra.Command{
 		Use:              "install",
 		Short:            "install various types of resources used by TTPForge",
 		Long:             "For now, you just want to use the 'ttpforge install repo' subcommand",
 		TraverseChildren: true,
 	}
-	installCmd.AddCommand(buildInstallRepoCommand())
+	installCmd.AddCommand(buildInstallRepoCommand(cfg))
 	return installCmd
 }

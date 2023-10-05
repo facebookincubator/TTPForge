@@ -20,13 +20,8 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"gopkg.in/yaml.v3"
 
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -47,6 +42,7 @@ func Execute() error {
 // command including all flags and sub-commands.
 // This function is principally used for tests.
 func BuildRootCommand() *cobra.Command {
+	cfg := &config{}
 
 	// setup root command and flags
 	rootCmd := &cobra.Command{
@@ -58,7 +54,7 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		TraverseChildren: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.CalledAs() != "init" {
-				return initConfig()
+				return cfg.init()
 			}
 			return nil
 		},
@@ -66,7 +62,7 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		SilenceErrors: true,
 	}
 	// shared flags across commands - mostly logging
-	rootCmd.PersistentFlags().StringVarP(&Conf.cfgFile, "config", "c", "", "Config file")
+	rootCmd.PersistentFlags().StringVarP(&cfg.cfgFile, "config", "c", "", "Config file")
 	rootCmd.PersistentFlags().BoolVar(&logConfig.Stacktrace, "stack-trace", false, "Show stacktrace when logging error")
 	rootCmd.PersistentFlags().BoolVar(&logConfig.NoColor, "no-color", false, "disable colored output")
 	rootCmd.PersistentFlags().BoolVarP(&logConfig.Verbose, "verbose", "v", false, "verbose logging")
@@ -74,55 +70,10 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 
 	// add sub commands
 	rootCmd.AddCommand(buildInitCommand())
-	rootCmd.AddCommand(buildListCommand())
-	rootCmd.AddCommand(buildShowCommand())
-	rootCmd.AddCommand(buildRunCommand())
-	rootCmd.AddCommand(buildInstallCommand())
-	rootCmd.AddCommand(buildRemoveCommand())
+	rootCmd.AddCommand(buildListCommand(cfg))
+	rootCmd.AddCommand(buildShowCommand(cfg))
+	rootCmd.AddCommand(buildRunCommand(cfg))
+	rootCmd.AddCommand(buildInstallCommand(cfg))
+	rootCmd.AddCommand(buildRemoveCommand(cfg))
 	return rootCmd
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() error {
-	// this eventually needs to be de-global'd but for now we'll at east zero it out
-	// between test cases
-	Conf = &Config{
-		cfgFile: Conf.cfgFile,
-	}
-	// find config file
-	if Conf.cfgFile == "" {
-		defaultConfigFilePath, err := getDefaultConfigFilePath()
-		if err != nil {
-			return fmt.Errorf("could not lookup default config file path: %v", err)
-		}
-		exists, err := afero.Exists(afero.NewOsFs(), defaultConfigFilePath)
-		if err != nil {
-			return fmt.Errorf("could not check existence of file %v: %v", defaultConfigFilePath, err)
-		}
-		if exists {
-			Conf.cfgFile = defaultConfigFilePath
-		} else {
-			logging.L().Warn("No config file specified and default configuration file not found!")
-			logging.L().Warn("You probably want to run `ttpforge init`!")
-			logging.L().Warn("However, if you know what you are doing, then carry on :)")
-		}
-	}
-
-	// load config file if we found one
-	if Conf.cfgFile != "" {
-		cfgContents, err := os.ReadFile(Conf.cfgFile)
-		if err != nil {
-			return err
-		}
-		if err = yaml.Unmarshal(cfgContents, Conf); err != nil {
-			return err
-		}
-	}
-	var err error
-	if Conf.repoCollection, err = Conf.loadRepoCollection(); err != nil {
-		return err
-	}
-
-	// setup logging
-	return logging.InitLog(logConfig)
 }

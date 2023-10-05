@@ -23,14 +23,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildListCommand() *cobra.Command {
+func buildListCommand(cfg *config) *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:              "list",
 		Short:            "list various resources available to TTPForge",
 		Long:             "Use this command to list repos, TTPs, etc.",
 		TraverseChildren: true,
 	}
-	listCmd.AddCommand(buildListTTPsCommand())
-	listCmd.AddCommand(buildListReposCommand())
+	listCmd.AddCommand(buildListTTPsCommand(cfg))
+	listCmd.AddCommand(buildListReposCommand(cfg))
 	return listCmd
 }

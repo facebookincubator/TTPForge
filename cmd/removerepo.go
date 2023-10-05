@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRemoveRepoCommand() *cobra.Command {
+func buildRemoveRepoCommand(cfg *config) *cobra.Command {
 	var newRepoSpec repos.Spec
 	removeRepoCommand := &cobra.Command{
 		Use:              "repo",
@@ -38,7 +38,7 @@ func buildRemoveRepoCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repoToRemove := args[0]
 			logging.L().Infof("will attempt to delete repo: %v", repoToRemove)
-			r, err := Conf.repoCollection.GetRepo(repoToRemove)
+			r, err := cfg.repoCollection.GetRepo(repoToRemove)
 			if err != nil {
 				return err
 			}
@@ -53,15 +53,15 @@ func buildRemoveRepoCommand() *cobra.Command {
 
 			// write the new config with that repo removed
 			var newRepoSpecs []repos.Spec
-			for _, spec := range Conf.RepoSpecs {
+			for _, spec := range cfg.RepoSpecs {
 				if spec.Name == repoToRemove {
 					break
 				}
 				newRepoSpecs = append(newRepoSpecs, spec)
 			}
-			Conf.RepoSpecs = newRepoSpecs
+			cfg.RepoSpecs = newRepoSpecs
 			logging.L().Infof("writing updated configuration...", repoToRemove)
-			err = Conf.save()
+			err = cfg.save()
 			if err != nil {
 				return fmt.Errorf("failed to save updated configuration: %v", err)
 			}

@@ -35,7 +35,7 @@ import (
 )
 
 // Config stores the variables from the TTPForge global config file
-type Config struct {
+type config struct {
 	RepoSpecs []repos.Spec `yaml:"repos"`
 
 	repoCollection repos.RepoCollection
@@ -47,9 +47,6 @@ var (
 	defaultConfigContents string
 	defaultConfigFileName = "config.yaml"
 	defaultResourceDir    = ".ttpforge"
-
-	// Conf refers to the configuration used throughout TTPForge.
-	Conf = &Config{}
 
 	logConfig logging.Config
 )
@@ -66,7 +63,7 @@ func getDefaultConfigFilePath() (string, error) {
 // loadRepoCollection verifies that all repositories specified
 // in the configuration file are present on the filesystem
 // and clones missing ones if needed
-func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
+func (cfg *config) loadRepoCollection() (repos.RepoCollection, error) {
 	// locate our config file directory to expend config-relative paths
 	var basePath string
 	if cfg.cfgFile != "" {
@@ -81,7 +78,7 @@ func (cfg *Config) loadRepoCollection() (repos.RepoCollection, error) {
 }
 
 // save() writes the current config back to its file - used by `install“ command
-func (cfg *Config) save() error {
+func (cfg *config) save() error {
 	var b bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&b)
 	yamlEncoder.SetIndent(2)
@@ -93,4 +90,43 @@ func (cfg *Config) save() error {
 	cfgStr := "---\n" + b.String()
 	err = os.WriteFile(cfg.cfgFile, []byte(cfgStr), 0)
 	return err
+}
+
+func (cfg *config) init() error {
+	// find config file
+	if cfg.cfgFile == "" {
+		defaultConfigFilePath, err := getDefaultConfigFilePath()
+		if err != nil {
+			return fmt.Errorf("could not lookup default config file path: %v", err)
+		}
+		exists, err := afero.Exists(afero.NewOsFs(), defaultConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("could not check existence of file %v: %v", defaultConfigFilePath, err)
+		}
+		if exists {
+			cfg.cfgFile = defaultConfigFilePath
+		} else {
+			logging.L().Warn("No config file specified and default configuration file not found!")
+			logging.L().Warn("You probably want to run `ttpforge init`!")
+			logging.L().Warn("However, if you know what you are doing, then carry on :)")
+		}
+	}
+
+	// load config file if we found one
+	if cfg.cfgFile != "" {
+		cfgContents, err := os.ReadFile(cfg.cfgFile)
+		if err != nil {
+			return err
+		}
+		if err = yaml.Unmarshal(cfgContents, cfg); err != nil {
+			return err
+		}
+	}
+	var err error
+	if cfg.repoCollection, err = cfg.loadRepoCollection(); err != nil {
+		return err
+	}
+
+	// setup logging
+	return logging.InitLog(logConfig)
 }
