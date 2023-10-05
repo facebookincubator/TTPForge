@@ -23,10 +23,15 @@ import (
 	"os"
 
 	"github.com/facebookincubator/ttpforge/cmd"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
+	rootCmd := cmd.BuildRootCommand(&cmd.Config{})
+	if err := rootCmd.Execute(); err != nil {
+		// we want our own log formatting (for pretty colors)
+		// so we don't use cobra.CheckErr
+		logging.L().Errorf("failed to run command:\n\t%v", err)
 		// cobra won't set the right exit code unless
 		// you use cobra.CheckErr, which we don't want to do for
 		// formatting reasons

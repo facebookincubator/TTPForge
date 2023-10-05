@@ -20,29 +20,13 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"github.com/facebookincubator/ttpforge/pkg/logging"
-
 	"github.com/spf13/cobra"
 )
-
-// Execute sets up runtime configuration for the root command
-// and adds formatted error handling
-func Execute() error {
-	rootCmd := BuildRootCommand()
-	if err := rootCmd.Execute(); err != nil {
-		// we want our own log formatting (for pretty colors)
-		// so we don't use cobra.CheckErr
-		logging.L().Errorf("failed to run command:\n\t%v", err)
-		return err
-	}
-	return nil
-}
 
 // BuildRootCommand constructs a fully-initialized root cobra
 // command including all flags and sub-commands.
 // This function is principally used for tests.
-func BuildRootCommand() *cobra.Command {
-	cfg := &Config{}
+func BuildRootCommand(cfg *Config) *cobra.Command {
 
 	// setup root command and flags
 	rootCmd := &cobra.Command{

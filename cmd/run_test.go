@@ -46,7 +46,7 @@ func TestRun(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand()
+			rc := cmd.BuildRootCommand(&cmd.Config{})
 			rc.SetArgs([]string{"run", "-c", testConfigFilePath, tc.ttpRef})
 			err := rc.Execute()
 			if tc.wantError {
@@ -74,7 +74,7 @@ func TestRunWithoutConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand()
+			rc := cmd.BuildRootCommand(&cmd.Config{})
 			rc.SetArgs([]string{"run", tc.ttpRef})
 			err := rc.Execute()
 			if tc.wantError {
