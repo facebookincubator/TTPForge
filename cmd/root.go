@@ -28,13 +28,14 @@ import (
 // This function is called from main(), but
 // otherwise is principally used for tests.
 //
+// The cfg parameter is used to control certain aspect of execution
+// in unit tests. Note that this should usually just be set to nil,
+// and many of the fields you could set may be overwritten when
+// cfg.init is subsequently called.
+//
 // **Parameters:**
 //
 // cfg: a Config struct used to control certain aspects of execution
-//
-//	in unit tests. Note that this should usually just be set to nil,
-//	and many of the fields you could set may be overwritten when
-//	cfg.init() is subsequently called.
 //
 // **Returns:**
 //

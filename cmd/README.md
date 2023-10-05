@@ -17,26 +17,29 @@ The `cmd` package is a part of the TTPForge.
 
 ## Functions
 
-### BuildRootCommand()
+### BuildRootCommand(*Config)
 
 ```go
-BuildRootCommand() *cobra.Command
+BuildRootCommand(*Config) *cobra.Command
 ```
 
 BuildRootCommand constructs a fully-initialized root cobra
 command including all flags and sub-commands.
-This function is principally used for tests.
+This function is called from main(), but
+otherwise is principally used for tests.
 
----
+The cfg parameter is used to control certain aspect of execution
+in unit tests. Note that this should usually just be set to nil,
+and many of the fields you could set may be overwritten when
+cfg.init is subsequently called.
 
-### Execute()
+**Parameters:**
 
-```go
-Execute() error
-```
+cfg: a Config struct used to control certain aspects of execution
 
-Execute sets up runtime configuration for the root command
-and adds formatted error handling
+**Returns:**
+
+*cobra.Command: The initialized root cobra command
 
 ---
 

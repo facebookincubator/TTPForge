@@ -1,5 +1,5 @@
 ---
-name: file-step-demo 
+name: file-step-demo
 description: |
   Checks simple file step execution.
   In particular, verifies that working directories function correctly.
