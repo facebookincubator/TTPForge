@@ -41,7 +41,7 @@ func TestListTTPs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand()
+			rc := cmd.BuildRootCommand(nil)
 			rc.SetArgs([]string{"list", "ttps", "-c", testConfigFilePath})
 			err := rc.Execute()
 			if tc.wantError {

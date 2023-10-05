@@ -17,34 +17,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package cmd
+package blocks
 
 import (
-	"fmt"
-
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
+	"bytes"
+	"io"
+	"os"
+	"os/exec"
 )
 
-func buildShowTTPCommand(cfg *Config) *cobra.Command {
-
-	return &cobra.Command{
-		Use:              "ttp",
-		Short:            "displays the contents of the TTP specified by the provided reference",
-		TraverseChildren: true,
-		Args:             cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ttpRef := args[0]
-			_, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
-			if err != nil {
-				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
-			}
-			contents, err := afero.ReadFile(afero.NewOsFs(), ttpAbsPath)
-			if err != nil {
-				return fmt.Errorf("failed to read file %v: %v", ttpAbsPath, err)
-			}
-			fmt.Print(string(contents))
-			return nil
-		},
+func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ExecutionResult, error) {
+	if stdout == nil {
+		stdout = os.Stdout
 	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = io.MultiWriter(stdout, &stdoutBuf)
+	cmd.Stderr = io.MultiWriter(stderr, &stderrBuf)
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
+	result := ExecutionResult{}
+	result.Stdout = outStr
+	result.Stderr = errStr
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

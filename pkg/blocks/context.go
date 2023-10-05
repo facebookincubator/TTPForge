@@ -22,6 +22,7 @@ package blocks
 import (
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -32,10 +33,13 @@ const contextVariablePrefix = "$forge."
 
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
+	DryRun              bool
 	NoCleanup           bool
 	CleanupDelaySeconds uint
 	Args                map[string]any
 	Repo                repos.Repo
+	Stdout              io.Writer
+	Stderr              io.Writer
 }
 
 // TTPExecutionContext - holds config and context for the currently executing TTP

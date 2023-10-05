@@ -20,11 +20,9 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -228,7 +226,11 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 
 	cmd := b.prepareCommand(ctx, expandedEnvAsList, expandedStrs[0])
 
-	result, err := b.runCommand(cmd)
+	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+	if err != nil {
+		return nil, err
+	}
+	result.Outputs, err = outputs.Parse(b.Outputs, result.Stdout)
 	if err != nil {
 		return nil, err
 	}
@@ -243,25 +245,4 @@ func (b *BasicStep) prepareCommand(ctx context.Context, envAsList []string, inli
 	cmd.Stdin = strings.NewReader(inline)
 
 	return cmd
-}
-
-func (b *BasicStep) runCommand(cmd *exec.Cmd) (*ExecutionResult, error) {
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
-	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
-
-	err := cmd.Run()
-	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
-	if err != nil {
-		return nil, err
-	}
-
-	result := ExecutionResult{}
-	result.Stdout = outStr
-	result.Stderr = errStr
-	result.Outputs, err = outputs.Parse(b.Outputs, result.Stdout)
-	if err != nil {
-		return nil, err
-	}
-	return &result, nil
 }

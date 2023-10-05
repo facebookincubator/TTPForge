@@ -23,13 +23,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRemoveCommand() *cobra.Command {
+func buildRemoveCommand(cfg *Config) *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:              "remove",
 		Short:            "remove (uninstall) various types of resources used by TTPForge",
 		Long:             "For now, you just want to use the 'ttpforge remove repo' subcommand",
 		TraverseChildren: true,
 	}
-	removeCmd.AddCommand(buildRemoveRepoCommand())
+	removeCmd.AddCommand(buildRemoveRepoCommand(cfg))
 	return removeCmd
 }

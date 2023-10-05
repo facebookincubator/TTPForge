@@ -25,13 +25,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildListReposCommand() *cobra.Command {
+func buildListReposCommand(cfg *Config) *cobra.Command {
 	return &cobra.Command{
 		Use:              "repos",
 		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, spec := range Conf.RepoSpecs {
+			for _, spec := range cfg.RepoSpecs {
 				fmt.Printf("%v\t%v\n", spec.Name, spec.Path)
 			}
 			return nil

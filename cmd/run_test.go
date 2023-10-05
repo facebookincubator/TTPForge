@@ -20,6 +20,7 @@ THE SOFTWARE.
 package cmd_test
 
 import (
+	"bytes"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -32,56 +33,84 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	testConfigFilePath := filepath.Join("test-resources", "test-config.yaml")
+	const testResourcesDir = "test-resources"
+	const testRepoName = "test-repo"
+	testConfigFilePath := filepath.Join(testResourcesDir, "test-config.yaml")
+
 	testCases := []struct {
-		name      string
-		ttpRef    string
-		wantError bool
+		name           string
+		description    string
+		args           []string
+		expectedStdout string
+		wantError      bool
 	}{
 		{
-			name:   "basic-file",
-			ttpRef: "test-repo//basic/basic-file.yaml",
+			name:        "file-step",
+			description: "check that a regular file step works",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				testRepoName + "//steps/file-step-demo.yaml",
+			},
+			expectedStdout: "Hello World\n",
+		},
+		{
+			name:        "file-step-no-config",
+			description: "verify that execution works with no config file specified",
+			args: []string{
+				testResourcesDir + "/repos/" + testRepoName + "/ttps/steps/file-step-demo.yaml",
+			},
+			expectedStdout: "Hello World\n",
+		},
+		{
+			name:        "second-repo",
+			description: "verify that execution of a TTP in a second repo succeeds",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"another-repo//simple-inline.yaml",
+			},
+			expectedStdout: "simple inline was executed\n",
+		},
+		{
+			name:        "dry-run-success",
+			description: "validating a TTP with `--dry-run` should work for a syntactically valid TTP",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"--dry-run",
+				testRepoName + "//dry-run/dry-run-success.yaml",
+			},
+			expectedStdout: "",
+		},
+		{
+			name:        "dry-run-fail",
+			description: "validating a TTP with `--dry-run` should fail for a syntactically invalid TTP",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"--dry-run",
+				testRepoName + "//dry-run/dry-run-fail.yaml",
+			},
+			wantError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand()
-			rc.SetArgs([]string{"run", "-c", testConfigFilePath, tc.ttpRef})
+			var stdoutBuf, stderrBuf bytes.Buffer
+			rc := cmd.BuildRootCommand(&cmd.Config{
+				Stdout: &stdoutBuf,
+				Stderr: &stderrBuf,
+			})
+			rc.SetArgs(append([]string{"run"}, tc.args...))
 			err := rc.Execute()
 			if tc.wantError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
-		})
-	}
-}
-
-// TestRunWithoutConfig verifies
-// that running TTPs still works without a top-level config file
-func TestRunWithoutConfig(t *testing.T) {
-	testCases := []struct {
-		name      string
-		ttpRef    string
-		wantError bool
-	}{
-		{
-			name:   "basic-file",
-			ttpRef: "test-resources/repos/test-repo/ttps/basic/basic-file.yaml",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand()
-			rc.SetArgs([]string{"run", tc.ttpRef})
-			err := rc.Execute()
-			if tc.wantError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			assert.Equal(t, tc.expectedStdout, stdoutBuf.String())
 		})
 	}
 }

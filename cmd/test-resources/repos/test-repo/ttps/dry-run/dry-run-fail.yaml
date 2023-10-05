@@ -1,0 +1,6 @@
+---
+name: dry-run-fail
+steps:
+  # this should fail --dry-run validation due to having an invalid step
+  - name: hello
+    not_a_valid_step_type: foo

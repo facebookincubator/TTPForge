@@ -22,6 +22,8 @@ package cmd
 import (
 	// 'go lint': need blank import for embedding default config
 	"bytes"
+	"io"
+
 	// needed for embedded filesystem
 	_ "embed"
 	"fmt"
@@ -35,8 +37,18 @@ import (
 )
 
 // Config stores the variables from the TTPForge global config file
+// we export it for use in tests, but packages besides `cmd` probably
+// should not touch it
 type Config struct {
 	RepoSpecs []repos.Spec `yaml:"repos"`
+
+	// used for capturing output in tests
+	// note: these are not supported for every single command.
+	// they will only receive output if you use `cmd.Prinln(...)`
+	// and such
+	// https://stackoverflow.com/questions/66802459/how-to-call-setout-on-subcommands-in-cobra
+	Stdout io.Writer
+	Stderr io.Writer
 
 	repoCollection repos.RepoCollection
 	cfgFile        string
@@ -47,9 +59,6 @@ var (
 	defaultConfigContents string
 	defaultConfigFileName = "config.yaml"
 	defaultResourceDir    = ".ttpforge"
-
-	// Conf refers to the configuration used throughout TTPForge.
-	Conf = &Config{}
 
 	logConfig logging.Config
 )
@@ -93,4 +102,43 @@ func (cfg *Config) save() error {
 	cfgStr := "---\n" + b.String()
 	err = os.WriteFile(cfg.cfgFile, []byte(cfgStr), 0)
 	return err
+}
+
+func (cfg *Config) init() error {
+	// find config file
+	if cfg.cfgFile == "" {
+		defaultConfigFilePath, err := getDefaultConfigFilePath()
+		if err != nil {
+			return fmt.Errorf("could not lookup default config file path: %v", err)
+		}
+		exists, err := afero.Exists(afero.NewOsFs(), defaultConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("could not check existence of file %v: %v", defaultConfigFilePath, err)
+		}
+		if exists {
+			cfg.cfgFile = defaultConfigFilePath
+		} else {
+			logging.L().Warn("No config file specified and default configuration file not found!")
+			logging.L().Warn("You probably want to run `ttpforge init`!")
+			logging.L().Warn("However, if you know what you are doing, then carry on :)")
+		}
+	}
+
+	// load config file if we found one
+	if cfg.cfgFile != "" {
+		cfgContents, err := os.ReadFile(cfg.cfgFile)
+		if err != nil {
+			return err
+		}
+		if err = yaml.Unmarshal(cfgContents, cfg); err != nil {
+			return err
+		}
+	}
+	var err error
+	if cfg.repoCollection, err = cfg.loadRepoCollection(); err != nil {
+		return err
+	}
+
+	// setup logging
+	return logging.InitLog(logConfig)
 }

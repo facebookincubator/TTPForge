@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildInstallRepoCommand() *cobra.Command {
+func buildInstallRepoCommand(cfg *Config) *cobra.Command {
 	var newRepoSpec repos.Spec
 	installRepoCommand := &cobra.Command{
 		Use:              "repo --name repo_name [repo_url]",
@@ -43,13 +43,13 @@ func buildInstallRepoCommand() *cobra.Command {
 			}
 			newRepoSpec.Git.URL = u.String()
 			newRepoSpec.Path = filepath.Join("repos", newRepoSpec.Name)
-			Conf.RepoSpecs = append(Conf.RepoSpecs, newRepoSpec)
-			_, err = Conf.loadRepoCollection()
+			cfg.RepoSpecs = append(cfg.RepoSpecs, newRepoSpec)
+			_, err = cfg.loadRepoCollection()
 			if err != nil {
 				return fmt.Errorf("failed to add new repo: %v", err)
 			}
 
-			err = Conf.save()
+			err = cfg.save()
 			if err != nil {
 				return fmt.Errorf("failed to save updated configuration: %v", err)
 			}

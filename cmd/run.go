@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRunCommand() *cobra.Command {
+func buildRunCommand(cfg *Config) *cobra.Command {
 	var argsList []string
 	var ttpCfg blocks.TTPExecutionConfig
 	runCmd := &cobra.Command{
@@ -37,9 +37,12 @@ func buildRunCommand() *cobra.Command {
 			// don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true
 
-			ttpRef := args[0]
+			// capture output for tests if needed
+			ttpCfg.Stdout, ttpCfg.Stderr = cfg.Stdout, cfg.Stderr
+
 			// find the TTP file
-			foundRepo, ttpAbsPath, err := Conf.repoCollection.ResolveTTPRef(ttpRef)
+			ttpRef := args[0]
+			foundRepo, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
 			}
@@ -59,6 +62,7 @@ func buildRunCommand() *cobra.Command {
 			return nil
 		},
 	}
+	runCmd.PersistentFlags().BoolVar(&ttpCfg.DryRun, "dry-run", false, "Parse arguments and validate TTP Contents, but do not actually run the TTP")
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging and daisy-chaining TTPs)")
 	runCmd.PersistentFlags().UintVar(&ttpCfg.CleanupDelaySeconds, "cleanup-delay-seconds", 0, "Wait this long after TTP execution before starting cleanup")
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "variable input mapping for args to be used in place of inputs defined in each ttp file")
