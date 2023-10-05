@@ -1,0 +1,6 @@
+---
+name: dry-run-success
+steps:
+  # if you actually ran this TTP, it would fail, but that's outside the scope of what dry-run should check
+  - name: hello
+    inline: this should pass dry-run validation as it is only expected to fail at runtime

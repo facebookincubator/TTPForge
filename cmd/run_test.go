@@ -72,6 +72,28 @@ func TestRun(t *testing.T) {
 			},
 			expectedStdout: "simple inline was executed\n",
 		},
+		{
+			name:        "dry-run-success",
+			description: "validating a TTP with `--dry-run` should work for a syntactically valid TTP",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"--dry-run",
+				testRepoName + "//dry-run/dry-run-success.yaml",
+			},
+			expectedStdout: "",
+		},
+		{
+			name:        "dry-run-fail",
+			description: "validating a TTP with `--dry-run` should fail for a syntactically invalid TTP",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"--dry-run",
+				testRepoName + "//dry-run/dry-run-fail.yaml",
+			},
+			wantError: true,
+		},
 	}
 
 	for _, tc := range testCases {
