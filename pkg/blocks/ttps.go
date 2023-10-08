@@ -123,6 +123,13 @@ func reduceIndentation(b []byte, n int) []byte {
 // It decodes a YAML Node into a TTP object, handling the decoding and
 // validation of the individual steps within the TTP.
 //
+// Why we need a highly customized unmarshal implementation:
+//
+//  1. The YAML for TTP contains a slice of Steps in YAML format
+//  2. For each of these YAML steps, non-trivial logic is required to determine:
+//     a. Which strongly-typed Golang struct it maps to, OR
+//     b. Whether the YAML step is invalid and does not map to any strongly-type Golang struct
+//
 // **Parameters:**
 //
 // node: A pointer to a yaml.Node that represents the TTP structure
