@@ -38,6 +38,7 @@ type FileStep struct {
 	*Act        `yaml:",inline"`
 	FilePath    string                  `yaml:"file,omitempty"`
 	Executor    string                  `yaml:"executor,omitempty"`
+	Environment map[string]string       `yaml:"env,omitempty"`
 	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
 	CleanupStep CleanupAct              `yaml:"cleanup,omitempty,flow"`
 	Args        []string                `yaml:"args,omitempty,flow"`
@@ -69,6 +70,7 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 		Act         `yaml:",inline"`
 		FilePath    string                  `yaml:"file,omitempty"`
 		Executor    string                  `yaml:"executor,omitempty"`
+		Environment map[string]string       `yaml:"env,omitempty"`
 		Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
 		CleanupStep yaml.Node               `yaml:"cleanup,omitempty,flow"`
 		Args        []string                `yaml:"args,omitempty,flow"`
@@ -85,6 +87,7 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	f.Args = tmpl.Args
 	f.FilePath = tmpl.FilePath
 	f.Executor = tmpl.Executor
+	f.Environment = tmpl.Environment
 	f.Outputs = tmpl.Outputs
 
 	// Check for invalid steps.

@@ -39,6 +39,7 @@ type BasicStep struct {
 	*Act        `yaml:",inline"`
 	Executor    string                  `yaml:"executor,omitempty"`
 	Inline      string                  `yaml:"inline,flow"`
+	Environment map[string]string       `yaml:"env,omitempty"`
 	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
 	CleanupStep CleanupAct              `yaml:"cleanup,omitempty"`
 }
@@ -58,6 +59,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 		Act         `yaml:",inline"`
 		Executor    string                  `yaml:"executor,omitempty"`
 		Inline      string                  `yaml:"inline,flow"`
+		Environment map[string]string       `yaml:"env,omitempty"`
 		Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
 		CleanupStep yaml.Node               `yaml:"cleanup,omitempty"`
 	}
@@ -71,6 +73,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	b.Act = &tmpl.Act
 	b.Executor = tmpl.Executor
 	b.Inline = tmpl.Inline
+	b.Environment = tmpl.Environment
 	b.Outputs = tmpl.Outputs
 
 	if b.IsNil() {
