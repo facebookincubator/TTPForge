@@ -120,7 +120,7 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the EditStep and returns an error if any occur.
-func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
 	if fileSystem == nil {
@@ -169,5 +169,5 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 		return nil, err
 	}
 
-	return &ExecutionResult{}, nil
+	return &ActResult{}, nil
 }

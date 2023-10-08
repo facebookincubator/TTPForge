@@ -126,11 +126,7 @@ func (f *FetchURIStep) GetType() StepType {
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
 func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := f.Execute(execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return &result.ActResult, err
+	return f.Execute(execCtx)
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -179,7 +175,7 @@ func (f *FetchURIStep) IsNil() bool {
 }
 
 // Execute runs the FetchURIStep and returns an error if any occur.
-func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Info("========= Executing ==========")
 
 	if err := f.fetchURI(execCtx); err != nil {
@@ -189,7 +185,7 @@ func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, e
 
 	logging.L().Info("========= Result ==========")
 
-	return &ExecutionResult{}, nil
+	return &ActResult{}, nil
 }
 
 // fetchURI executes the FetchURIStep with the specified Location, Uri, and additional arguments,

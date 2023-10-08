@@ -123,11 +123,7 @@ func (f *FileStep) GetType() StepType {
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := f.Execute(execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return &result.ActResult, err
+	return f.Execute(execCtx)
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -170,7 +166,7 @@ func (f *FileStep) IsNil() bool {
 }
 
 // Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	var cmd *exec.Cmd
 	expandedArgs, err := execCtx.ExpandVariables(f.Args)
 	if err != nil {
@@ -197,7 +193,7 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 		return nil, err
 	}
 	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
-	return nil, err
+	return result, err
 }
 
 // Validate validates the FileStep. It checks that the

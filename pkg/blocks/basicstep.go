@@ -99,11 +99,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 
 // Cleanup is an implementation of the CleanupAct interface's Cleanup method.
 func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := b.Execute(execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return &result.ActResult, err
+	return b.Execute(execCtx)
 }
 
 // GetCleanup returns the cleanup steps for a BasicStep.
@@ -189,7 +185,7 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the BasicStep and returns an error if any occur.
-func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 
@@ -209,7 +205,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 	return result, nil
 }
 
-func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
 
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()

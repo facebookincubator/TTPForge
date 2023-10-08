@@ -265,9 +265,12 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []C
 		stepCopy := step
 		logging.L().Infof("[+] Running current step: %s", step.StepName())
 
-		execResult, err := stepCopy.Execute(execCtx)
+		stepResult, err := stepCopy.Execute(execCtx)
 		if err != nil {
 			return stepResults, cleanup, err
+		}
+		execResult := &ExecutionResult{
+			ActResult: *stepResult,
 		}
 		stepResults.ByName[step.StepName()] = execResult
 		stepResults.ByIndex = append(stepResults.ByIndex, execResult)

@@ -93,7 +93,7 @@ type StepInterface interface {
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
 	// Execute will need to take care of the condition checks/etc...
-	Execute(execCtx TTPExecutionContext) (*ExecutionResult, error)
+	Execute(execCtx TTPExecutionContext) (*ActResult, error)
 	IsNil() bool
 	ExplainInvalid() error
 	Validate(execCtx TTPExecutionContext) error

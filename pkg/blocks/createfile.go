@@ -119,11 +119,7 @@ func (s *CreateFileStep) GetType() StepType {
 // Assumes that the type is the cleanup step and is invoked by
 // s.CleanupStep.Cleanup.
 func (s *CreateFileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := s.Execute(execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return &result.ActResult, err
+	return s.Execute(execCtx)
 }
 
 // GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
@@ -160,7 +156,7 @@ func (s *CreateFileStep) IsNil() bool {
 }
 
 // Execute runs the step and returns an error if any occur.
-func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Creating file %v", s.Path)
 	fsys := s.FileSystem
 	if fsys == nil {
@@ -191,7 +187,7 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult,
 		return nil, err
 	}
 
-	return &ExecutionResult{}, nil
+	return &ActResult{}, nil
 }
 
 // Validate validates the step

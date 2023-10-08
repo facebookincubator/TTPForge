@@ -26,7 +26,7 @@ import (
 	"os/exec"
 )
 
-func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ExecutionResult, error) {
+func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
 	if stdout == nil {
 		stdout = os.Stdout
 	}
@@ -43,7 +43,7 @@ func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ExecutionResult,
 		return nil, err
 	}
 	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
-	result := ExecutionResult{}
+	result := ActResult{}
 	result.Stdout = outStr
 	result.Stderr = errStr
 	if err != nil {

@@ -27,7 +27,7 @@ import (
 )
 
 type Action interface {
-	Execute(execCtx TTPExecutionContext) (*ExecutionResult, error)
+	Execute(execCtx TTPExecutionContext) (*ActResult, error)
 	Validate(execCtx TTPExecutionContext) error
 	IsNil() bool
 }
@@ -89,7 +89,7 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (s *Step) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	return s.action.Execute(execCtx)
 }
 

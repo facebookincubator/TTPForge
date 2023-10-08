@@ -114,7 +114,7 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
-func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("[*] Executing Sub TTP: %s", s.Name)
 	availableSteps := make(map[string]StepInterface)
 
@@ -127,7 +127,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, &result.ActResult)
+		results = append(results, result)
 
 		availableSteps[stepCopy.StepName()] = stepCopy
 
@@ -142,9 +142,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, err
 
 	logging.L().Info("Finished execution of sub ttp file")
 
-	return &ExecutionResult{
-		ActResult: *aggregateResults(results),
-	}, nil
+	return aggregateResults(results), nil
 }
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance
