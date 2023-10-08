@@ -22,7 +22,6 @@ package blocks
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -69,7 +68,6 @@ const (
 // stepRef: Reference to other steps in the sequence.
 // output: The output of the Act's execution.
 type Act struct {
-	Condition   string                  `yaml:"if,omitempty"`
 	Environment map[string]string       `yaml:"env,omitempty"`
 	Name        string                  `yaml:"name"`
 	WorkDir     string                  `yaml:"-"`
@@ -168,41 +166,6 @@ func (a *Act) Validate() error {
 	}
 
 	return nil
-}
-
-// CheckCondition checks the condition specified for an Act and returns true
-// if it matches the current OS, false otherwise. If the condition is "always",
-// the function returns true.
-// If an error occurs while checking the condition, it is returned.
-//
-// **Returns:**
-//
-// bool: true if the condition matches the current OS or the
-// condition is "always", false otherwise.
-//
-// error: An error if an error occurs while checking the condition.
-func (a *Act) CheckCondition() (bool, error) {
-	switch a.Condition {
-	case "windows":
-		if runtime.GOOS == "windows" {
-			return true, nil
-		}
-	case "darwin":
-		if runtime.GOOS == "darwin" {
-			return true, nil
-		}
-	case "linux":
-		if runtime.GOOS == "linux" {
-			return true, nil
-		}
-	// Run even if a previous step has failed.
-	case "always":
-		return true, nil
-
-	default:
-		return false, nil
-	}
-	return false, nil
 }
 
 // MakeCleanupStep creates a CleanupAct based on the given yaml.Node.
