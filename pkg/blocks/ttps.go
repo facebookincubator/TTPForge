@@ -48,7 +48,7 @@ type TTP struct {
 	Description        string            `yaml:"description"`
 	MitreAttackMapping MitreAttack       `yaml:"mitre,omitempty"`
 	Environment        map[string]string `yaml:"env,flow,omitempty"`
-	Steps              []Step            `yaml:"steps,omitempty,flow"`
+	Steps              []StepInterface   `yaml:"steps,omitempty,flow"`
 	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
@@ -186,7 +186,7 @@ func (t *TTP) decodeSteps(steps []yaml.Node) error {
 		// these candidate steps are pointers, so this line
 		// MUST be inside the outer step loop or horrible things will happen
 		// #justpointerthings
-		stepTypes := []Step{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
+		stepTypes := []StepInterface{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
 		for _, stepType := range stepTypes {
 			err := stepNode.Decode(stepType)
 			if err == nil && !stepType.IsNil() {

@@ -116,7 +116,7 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
 	logging.L().Infof("[*] Executing Sub TTP: %s", s.Name)
-	availableSteps := make(map[string]Step)
+	availableSteps := make(map[string]StepInterface)
 
 	var results []*ActResult
 	for _, step := range s.ttp.Steps {

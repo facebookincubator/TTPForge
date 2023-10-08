@@ -88,7 +88,7 @@ type CleanupAct interface {
 // validation errors, validating the step, fetching arguments, getting output,
 // searching output, setting output success status, checking success status,
 // returning the step name, and getting the step type.
-type Step interface {
+type StepInterface interface {
 	SetDir(dir string)
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
