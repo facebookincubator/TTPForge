@@ -36,10 +36,11 @@ import (
 // a cleanup action, and additional metadata.
 type FileStep struct {
 	*Act        `yaml:",inline"`
-	FilePath    string     `yaml:"file,omitempty"`
-	Executor    string     `yaml:"executor,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	Args        []string   `yaml:"args,omitempty,flow"`
+	FilePath    string                  `yaml:"file,omitempty"`
+	Executor    string                  `yaml:"executor,omitempty"`
+	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	CleanupStep CleanupAct              `yaml:"cleanup,omitempty,flow"`
+	Args        []string                `yaml:"args,omitempty,flow"`
 }
 
 // NewFileStep creates a new FileStep instance and returns a pointer to it.
@@ -66,10 +67,11 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 
 	type fileStepTmpl struct {
 		Act         `yaml:",inline"`
-		FilePath    string    `yaml:"file,omitempty"`
-		Executor    string    `yaml:"executor,omitempty"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
-		Args        []string  `yaml:"args,omitempty,flow"`
+		FilePath    string                  `yaml:"file,omitempty"`
+		Executor    string                  `yaml:"executor,omitempty"`
+		Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
+		CleanupStep yaml.Node               `yaml:"cleanup,omitempty,flow"`
+		Args        []string                `yaml:"args,omitempty,flow"`
 	}
 
 	// Decode the YAML node into the provided template.
@@ -83,6 +85,7 @@ func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
 	f.Args = tmpl.Args
 	f.FilePath = tmpl.FilePath
 	f.Executor = tmpl.Executor
+	f.Outputs = tmpl.Outputs
 
 	// Check for invalid steps.
 	if f.IsNil() {

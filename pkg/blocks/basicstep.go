@@ -37,9 +37,10 @@ import (
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
 	*Act        `yaml:",inline"`
-	Executor    string     `yaml:"executor,omitempty"`
-	Inline      string     `yaml:"inline,flow"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty"`
+	Executor    string                  `yaml:"executor,omitempty"`
+	Inline      string                  `yaml:"inline,flow"`
+	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	CleanupStep CleanupAct              `yaml:"cleanup,omitempty"`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
@@ -55,9 +56,10 @@ func NewBasicStep() *BasicStep {
 func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	type BasicStepTmpl struct {
 		Act         `yaml:",inline"`
-		Executor    string    `yaml:"executor,omitempty"`
-		Inline      string    `yaml:"inline,flow"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty"`
+		Executor    string                  `yaml:"executor,omitempty"`
+		Inline      string                  `yaml:"inline,flow"`
+		Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
+		CleanupStep yaml.Node               `yaml:"cleanup,omitempty"`
 	}
 
 	var tmpl BasicStepTmpl
@@ -69,6 +71,7 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	b.Act = &tmpl.Act
 	b.Executor = tmpl.Executor
 	b.Inline = tmpl.Inline
+	b.Outputs = tmpl.Outputs
 
 	if b.IsNil() {
 		return b.ExplainInvalid()
