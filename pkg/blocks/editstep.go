@@ -126,7 +126,7 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
 		var err error
-		targetPath, err = FetchAbs(targetPath, s.WorkDir)
+		targetPath, err = FetchAbs(targetPath, execCtx.WorkDir)
 		if err != nil {
 			return nil, err
 		}

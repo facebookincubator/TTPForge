@@ -116,7 +116,7 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		return nil, err
 	}
 	cmd.Env = expandedEnvAsList
-	cmd.Dir = f.WorkDir
+	cmd.Dir = execCtx.WorkDir
 	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 	if err != nil {
 		return nil, err
@@ -153,14 +153,14 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// If FilePath is set, ensure that the file exists.
-	fullpath, err := FindFilePath(f.FilePath, f.WorkDir, nil)
+	fullpath, err := FindFilePath(f.FilePath, execCtx.WorkDir, nil)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Retrieve the absolute path to the file.
-	f.FilePath, err = FetchAbs(fullpath, f.WorkDir)
+	f.FilePath, err = FetchAbs(fullpath, execCtx.WorkDir)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err

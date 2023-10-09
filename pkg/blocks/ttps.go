@@ -204,7 +204,8 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 
 	// validate all of the steps
 	execCtx := TTPExecutionContext{
-		Cfg: execCfg,
+		Cfg:     execCfg,
+		WorkDir: t.WorkDir,
 	}
 	if err := t.ValidateSteps(execCtx); err != nil {
 		return nil, err

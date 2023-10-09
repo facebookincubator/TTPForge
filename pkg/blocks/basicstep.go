@@ -154,7 +154,7 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 		return nil, err
 	}
 
-	cmd := b.prepareCommand(ctx, expandedEnvAsList, expandedStrs[0])
+	cmd := b.prepareCommand(ctx, execCtx, expandedEnvAsList, expandedStrs[0])
 
 	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 	if err != nil {
@@ -168,10 +168,10 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	return result, nil
 }
 
-func (b *BasicStep) prepareCommand(ctx context.Context, envAsList []string, inline string) *exec.Cmd {
+func (b *BasicStep) prepareCommand(ctx context.Context, execCtx TTPExecutionContext, envAsList []string, inline string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, b.Executor)
 	cmd.Env = envAsList
-	cmd.Dir = b.WorkDir
+	cmd.Dir = execCtx.WorkDir
 	cmd.Stdin = strings.NewReader(inline)
 
 	return cmd

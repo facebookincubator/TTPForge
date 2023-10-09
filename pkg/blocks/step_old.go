@@ -62,9 +62,8 @@ const (
 // stepRef: Reference to other steps in the sequence.
 // output: The output of the Act's execution.
 type Act struct {
-	Name    string   `yaml:"name"`
-	WorkDir string   `yaml:"-"`
-	Type    StepType `yaml:"-"`
+	Name string   `yaml:"name"`
+	Type StepType `yaml:"-"`
 }
 
 // CleanupAct interface is implemented by anything that requires a cleanup step.
