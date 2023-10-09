@@ -69,28 +69,42 @@ func (p *compileParams) populateFromEnv() {
 	}
 }
 
-// Compile is used for the compilation of the Go project using goreleaser.
-// If the GOOS and GOARCH environment variables are not set, this function
-// will default to the current system's OS and architecture.
-//
-// **Parameters:**
-//
-// release: If true, this function will compile all supported releases
-// for TTPForge. If false, it will compile only the binary for the specified
-// OS and architecture (based on environment variables) or for the current
-// OS and architecture (if environment variables aren't set).
+// Compile compiles the Go project using goreleaser. The behavior is
+// controlled by the 'release' environment variable. If the GOOS and
+// GOARCH environment variables are not set, the function defaults
+// to the current system's OS and architecture.
 //
 // **Environment Variables:**
 //
-// GOOS: The target operating system for which the Go project should be
-// compiled. Defaults to the system's current OS if not set.
-// GOARCH: The target architecture for which the Go project should be
-// compiled. Defaults to the system's current architecture if not set.
+// release: Determines the compilation mode.
+//   - If "true", compiles all supported releases for TTPForge.
+//   - If "false", compiles only the binary for the specified OS
+//     and architecture (based on GOOS and GOARCH) or the current
+//     system's default if the vars aren't set.
+//
+// GOOS: Target operating system for compilation. Defaults to the
+// current system's OS if not set.
+//
+// GOARCH: Target architecture for compilation. Defaults to the
+// current system's architecture if not set.
 //
 // **Returns:**
 //
-// error: An error if any issue occurs during the compilation or moving process.
-func Compile(release bool) error {
+// error: An error if any issue occurs during compilation.
+func Compile() error {
+	// Check for the presence of the 'release' environment variable
+	release, ok := os.LookupEnv("release")
+	if !ok {
+		return fmt.Errorf("'release' environment variable not set. It should be 'true' or 'false'. Example: release=true mage Compile")
+	}
+
+	isRelease := false
+	if release == "true" {
+		isRelease = true
+	} else if release != "false" {
+		return fmt.Errorf("invalid value for 'release' environment variable. It should be 'true' or 'false'")
+	}
+
 	if !sys.CmdExists("goreleaser") {
 		return fmt.Errorf("goreleaser is not installed, please run mage installdeps")
 	}
@@ -121,7 +135,7 @@ func Compile(release bool) error {
 		return nil
 	}
 
-	return doCompile(release)
+	return doCompile(isRelease)
 }
 
 // InstallDeps installs the TTPForge's Go dependencies necessary for developing
@@ -290,7 +304,8 @@ func getBinaryDirName() (string, error) {
 func RunIntegrationTests() error {
 	// Call Compile to generate the binary.
 	mg.Deps(func() error {
-		return Compile(false)
+		os.Setenv("release", "false")
+		return Compile()
 	})
 
 	home, err := sys.GetHomeDir()
