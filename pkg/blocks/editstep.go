@@ -48,13 +48,6 @@ func NewEditStep() *EditStep {
 	return &EditStep{}
 }
 
-// GetCleanup returns the cleanup steps for a EditStep.
-// Currently this is always empty because we use backup
-// files instead for this type of step
-func (s *EditStep) GetCleanup() []CleanupAct {
-	return []CleanupAct{}
-}
-
 // IsNil checks if an EditStep is considered empty or uninitialized.
 func (s *EditStep) IsNil() bool {
 	switch {

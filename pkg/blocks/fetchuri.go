@@ -49,11 +49,6 @@ func NewFetchURIStep() *FetchURIStep {
 	return &FetchURIStep{}
 }
 
-// GetType returns the type of the step as StepType.
-func (f *FetchURIStep) GetType() StepType {
-	return StepFetchURI
-}
-
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.

@@ -33,6 +33,16 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	ExecutorPython     = "python3"
+	ExecutorBash       = "bash"
+	ExecutorSh         = "sh"
+	ExecutorPowershell = "powershell"
+	ExecutorRuby       = "ruby"
+	ExecutorBinary     = "binary"
+	ExecutorCmd        = "cmd.exe"
+)
+
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
 	Executor    string                  `yaml:"executor,omitempty"`
