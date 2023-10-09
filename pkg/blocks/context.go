@@ -45,6 +45,7 @@ type TTPExecutionConfig struct {
 // TTPExecutionContext - holds config and context for the currently executing TTP
 type TTPExecutionContext struct {
 	Cfg         TTPExecutionConfig
+	WorkDir     string
 	StepResults *StepResultsRecord
 }
 

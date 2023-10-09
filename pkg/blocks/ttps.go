@@ -48,7 +48,7 @@ type TTP struct {
 	Description        string            `yaml:"description"`
 	MitreAttackMapping MitreAttack       `yaml:"mitre,omitempty"`
 	Environment        map[string]string `yaml:"env,flow,omitempty"`
-	Steps              []StepInterface   `yaml:"steps,omitempty,flow"`
+	Steps              []Step            `yaml:"steps,omitempty,flow"`
 	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
@@ -119,114 +119,6 @@ func reduceIndentation(b []byte, n int) []byte {
 	return bytes.Join(lines, []byte("\n"))
 }
 
-// UnmarshalYAML is a custom unmarshalling implementation for the TTP structure.
-// It decodes a YAML Node into a TTP object, handling the decoding and
-// validation of the individual steps within the TTP.
-//
-// Why we need a highly customized unmarshal implementation:
-//
-//  1. The YAML for TTP contains a slice of Steps in YAML format
-//  2. For each of these YAML steps, non-trivial logic is required to determine:
-//     a. Which strongly-typed Golang struct it maps to, OR
-//     b. Whether the YAML step is invalid and does not map to any strongly-type Golang struct
-//
-// **Parameters:**
-//
-// node: A pointer to a yaml.Node that represents the TTP structure
-// to be unmarshalled.
-//
-// **Returns:**
-//
-// error: An error if the decoding process fails or if the TTP structure contains invalid steps.
-func (t *TTP) UnmarshalYAML(node *yaml.Node) error {
-	type TTPTmpl struct {
-		Name        string            `yaml:"name,omitempty"`
-		Description string            `yaml:"description"`
-		Environment map[string]string `yaml:"env,flow,omitempty"`
-		Steps       []yaml.Node       `yaml:"steps,omitempty,flow"`
-		ArgSpecs    []args.Spec       `yaml:"args,omitempty,flow"`
-	}
-
-	var tmpl TTPTmpl
-	if err := node.Decode(&tmpl); err != nil {
-		return err
-	}
-
-	t.Name = tmpl.Name
-	t.Description = tmpl.Description
-	t.Environment = tmpl.Environment
-	t.ArgSpecs = tmpl.ArgSpecs
-
-	// Check for and handle a mitre node
-	var mitreNode *yaml.Node
-	for i := 0; i < len(node.Content)-1; i += 2 {
-		keyNode := node.Content[i]
-		if keyNode.Value == "mitre" {
-			mitreNode = node.Content[i+1]
-			break
-		}
-	}
-
-	if mitreNode != nil {
-		if err := mitreNode.Decode(&t.MitreAttackMapping); err != nil {
-			return err
-		}
-		// if we have a MitreAttackMapping, ensure there's a tactic
-		if len(t.MitreAttackMapping.Tactics) == 0 {
-			return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", t.Name)
-		}
-	}
-
-	return t.decodeSteps(tmpl.Steps)
-}
-
-func (t *TTP) decodeSteps(steps []yaml.Node) error {
-	for stepIdx, stepNode := range steps {
-		decoded := false
-		// these candidate steps are pointers, so this line
-		// MUST be inside the outer step loop or horrible things will happen
-		// #justpointerthings
-		stepTypes := []StepInterface{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
-		for _, stepType := range stepTypes {
-			err := stepNode.Decode(stepType)
-			if err == nil && !stepType.IsNil() {
-				// Must catch bad steps with ambiguous types, such as:
-				// - name: hello
-				//   file: bar
-				//   ttp: foo
-				//
-				// we can't use KnownFields to solve this without a massive
-				// refactor due to https://github.com/go-yaml/yaml/issues/460
-				if decoded {
-					return fmt.Errorf("step #%v has ambiguous type", stepIdx+1)
-				}
-				logging.L().Debugw("decoded step", "step", stepType)
-				t.Steps = append(t.Steps, stepType)
-				decoded = true
-			}
-		}
-
-		if !decoded {
-			return fmt.Errorf("Step #%v does not match any supported step type", stepIdx+1)
-		}
-	}
-
-	return nil
-}
-
-func (t *TTP) setWorkingDirectory() error {
-	if t.WorkDir != "" {
-		return nil
-	}
-
-	path, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	t.WorkDir = path
-	return nil
-}
-
 // ValidateSteps iterates through each step in the TTP and validates it.
 // It sets the working directory for each step before calling its Validate
 // method. If any step fails validation, the method returns an error.
@@ -244,8 +136,6 @@ func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 
 	for _, step := range t.Steps {
 		stepCopy := step
-		// pass in the directory
-		stepCopy.SetDir(t.WorkDir)
 		if err := stepCopy.Validate(execCtx); err != nil {
 			logging.L().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
@@ -255,31 +145,31 @@ func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []CleanupAct, error) {
+func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, int, error) {
 	logging.L().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()
 	execCtx.StepResults = stepResults
-	var cleanup []CleanupAct
 
+	lastStepToSucceedIdx := -1
 	for _, step := range t.Steps {
 		stepCopy := step
-		logging.L().Infof("[+] Running current step: %s", step.StepName())
+		logging.L().Infof("[+] Running current step: %s", step.Name)
 
 		stepResult, err := stepCopy.Execute(execCtx)
 		if err != nil {
-			return stepResults, cleanup, err
+			return stepResults, lastStepToSucceedIdx, err
 		}
+		lastStepToSucceedIdx += 1
 		execResult := &ExecutionResult{
 			ActResult: *stepResult,
 		}
-		stepResults.ByName[step.StepName()] = execResult
+		stepResults.ByName[step.Name] = execResult
 		stepResults.ByIndex = append(stepResults.ByIndex, execResult)
 
 		// Enters in reverse order
-		cleanup = append(stepCopy.GetCleanup(), cleanup...)
-		logging.L().Infof("[+] Finished running step: %s", step.StepName())
+		logging.L().Infof("[+] Finished running step: %s", step.Name)
 	}
-	return stepResults, cleanup, nil
+	return stepResults, lastStepToSucceedIdx, nil
 }
 
 // RunSteps executes all of the steps in the given TTP.
@@ -293,64 +183,71 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, []C
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
-	if err := t.setWorkingDirectory(); err != nil {
-		return nil, err
+
+	// go to the configuration directory for this TTP
+	// note: t.WorkDir may not be set in tests but should
+	// be set when actualy using `ttpforge run`
+	if t.WorkDir != "" {
+		origDir, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		if err := os.Chdir(t.WorkDir); err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err := os.Chdir(origDir); err != nil {
+				logging.L().Errorf("could not restore original directory %v: %v", origDir, err)
+			}
+		}()
 	}
 
+	// validate all of the steps
 	execCtx := TTPExecutionContext{
 		Cfg: execCfg,
 	}
-
 	if err := t.ValidateSteps(execCtx); err != nil {
 		return nil, err
 	}
-
 	// stop after validation for dry run
 	if execCtx.Cfg.DryRun {
 		logging.L().Info("[*] Dry-Run Requested - Returning Early")
 		return nil, nil
 	}
 
-	stepResults, cleanup, err := t.executeSteps(execCtx)
+	stepResults, lastStepToSucceedIdx, err := t.executeSteps(execCtx)
 	if err != nil {
 		// we need to run cleanup so we don't return here
 		logging.L().Errorf("[*] Error executing TTP: %v", err)
 	}
-
 	logging.L().Info("[*] Completed TTP")
+	execCtx.StepResults = stepResults
 
 	if !execCtx.Cfg.NoCleanup {
 		if execCtx.Cfg.CleanupDelaySeconds > 0 {
 			logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
 			time.Sleep(time.Duration(execCtx.Cfg.CleanupDelaySeconds) * time.Second)
 		}
-		if len(cleanup) > 0 {
-			logging.L().Info("[*] Beginning Cleanup")
-			if err := t.executeCleanupSteps(execCtx, cleanup, *stepResults); err != nil {
-				logging.L().Errorw("error encountered in cleanup step: %v", err)
-				return nil, err
-			}
-			logging.L().Info("[*] Finished Cleanup")
-		} else {
-			logging.L().Info("[*] No Cleanup Steps Found")
-		}
+		t.startCleanupAtStepIdx(lastStepToSucceedIdx, execCtx)
 	}
 
 	return stepResults, err
 }
 
-func (t *TTP) executeCleanupSteps(execCtx TTPExecutionContext, cleanupSteps []CleanupAct, stepResults StepResultsRecord) error {
-	for cleanupIdx, step := range cleanupSteps {
-		stepCopy := step
-
-		cleanupResult, err := stepCopy.Cleanup(execCtx)
+func (t *TTP) startCleanupAtStepIdx(lastStepToSucceedIdx int, execCtx TTPExecutionContext) {
+	logging.L().Info("[*] Beginning Cleanup")
+	for cleanupIdx := lastStepToSucceedIdx; cleanupIdx >= 0; cleanupIdx -= 1 {
+		stepToCleanup := t.Steps[cleanupIdx]
+		cleanupResult, err := stepToCleanup.Cleanup(execCtx)
 		if err != nil {
-			logging.L().Errorw("error encountered in stepCopy cleanup: %v", err)
-			return err
+			logging.L().Errorw("error cleaning up step: %v", err)
+			logging.L().Errorw("will continue to try to cleanup other steps", err)
+			continue
 		}
 		// since ByIndex and ByName both contain pointers to
 		// the same underlying struct, this will update both
-		stepResults.ByIndex[len(cleanupSteps)-cleanupIdx-1].Cleanup = cleanupResult
+		execCtx.StepResults.ByIndex[cleanupIdx].Cleanup = cleanupResult
 	}
-	return nil
+	logging.L().Info("[*] Finished Cleanup")
+
 }

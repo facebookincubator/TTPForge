@@ -131,18 +131,6 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 		}
 		ttp.WorkDir = wd
 	}
-
-	// TODO: refactor directory handling - this is in-elegant
-	// but has less bugs than previous way
-	for _, step := range ttp.Steps {
-		step.SetDir(ttp.WorkDir)
-		if cleanups := step.GetCleanup(); cleanups != nil {
-			for _, c := range cleanups {
-				c.SetDir(ttp.WorkDir)
-			}
-		}
-	}
-
 	return ttp, nil
 }
 

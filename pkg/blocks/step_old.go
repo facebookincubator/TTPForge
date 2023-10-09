@@ -76,7 +76,6 @@ type Act struct {
 type CleanupAct interface {
 	Cleanup(execCtx TTPExecutionContext) (*ActResult, error)
 	StepName() string
-	SetDir(dir string)
 	IsNil() bool
 	Validate(execCtx TTPExecutionContext) error
 }
@@ -89,7 +88,6 @@ type CleanupAct interface {
 // searching output, setting output success status, checking success status,
 // returning the step name, and getting the step type.
 type StepInterface interface {
-	SetDir(dir string)
 	// Need list in case some steps are encapsulating many cleanup steps
 	GetCleanup() []CleanupAct
 	// Execute will need to take care of the condition checks/etc...
@@ -99,16 +97,6 @@ type StepInterface interface {
 	Validate(execCtx TTPExecutionContext) error
 	StepName() string
 	GetType() StepType
-}
-
-// SetDir sets the working directory for the Act.
-//
-// **Parameters:**
-//
-// dir: A string representing the directory path to be set
-// as the working directory.
-func (a *Act) SetDir(dir string) {
-	a.WorkDir = dir
 }
 
 // IsNil checks whether the Act is nil (i.e., it does not have a name).
