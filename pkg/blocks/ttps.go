@@ -172,6 +172,26 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, int
 	return stepResults, lastStepToSucceedIdx, nil
 }
 
+func (t *TTP) chdir() (func(), error) {
+	// note: t.WorkDir may not be set in tests but should
+	// be set when actualy using `ttpforge run`
+	if t.WorkDir == "" {
+		return func() {}, nil
+	}
+	origDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.Chdir(t.WorkDir); err != nil {
+		return nil, err
+	}
+	return func() {
+		if err := os.Chdir(origDir); err != nil {
+			logging.L().Errorf("could not restore original directory %v: %v", origDir, err)
+		}
+	}, nil
+}
+
 // RunSteps executes all of the steps in the given TTP.
 //
 // **Parameters:**
@@ -183,24 +203,12 @@ func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, int
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
-
 	// go to the configuration directory for this TTP
-	// note: t.WorkDir may not be set in tests but should
-	// be set when actualy using `ttpforge run`
-	if t.WorkDir != "" {
-		origDir, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		if err := os.Chdir(t.WorkDir); err != nil {
-			return nil, err
-		}
-		defer func() {
-			if err := os.Chdir(origDir); err != nil {
-				logging.L().Errorf("could not restore original directory %v: %v", origDir, err)
-			}
-		}()
+	changeBack, err := t.chdir()
+	if err != nil {
+		return nil, err
 	}
+	defer changeBack()
 
 	// validate all of the steps
 	execCtx := TTPExecutionContext{
