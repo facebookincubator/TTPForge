@@ -34,7 +34,6 @@ import (
 // through an editor program or via a C2, where there is no
 // corresponding shell history telemetry
 type CreateFileStep struct {
-	*Act       `yaml:",inline"`
 	Path       string   `yaml:"create_file,omitempty"`
 	Contents   string   `yaml:"contents,omitempty"`
 	Overwrite  bool     `yaml:"overwrite,omitempty"`
@@ -44,16 +43,7 @@ type CreateFileStep struct {
 
 // NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
 func NewCreateFileStep() *CreateFileStep {
-	return &CreateFileStep{
-		Act: &Act{
-			Type: StepCreateFile,
-		},
-	}
-}
-
-// GetType returns the type of the step as StepType.
-func (s *CreateFileStep) GetType() StepType {
-	return StepCreateFile
+	return &CreateFileStep{}
 }
 
 // ExplainInvalid returns an error message explaining why the step
@@ -72,8 +62,6 @@ func (s *CreateFileStep) ExplainInvalid() error {
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *CreateFileStep) IsNil() bool {
 	switch {
-	case s.Act.IsNil():
-		return true
 	case s.Path == "":
 		return true
 	default:
@@ -122,10 +110,6 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error
 //
 // error: An error if any validation checks fail.
 func (s *CreateFileStep) Validate(execCtx TTPExecutionContext) error {
-	if err := s.Act.Validate(); err != nil {
-		return err
-	}
-
 	if s.Path == "" {
 		return fmt.Errorf("path field cannot be empty")
 	}

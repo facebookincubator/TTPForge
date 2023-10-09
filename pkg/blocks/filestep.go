@@ -21,7 +21,6 @@ package blocks
 
 import (
 	"errors"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -34,7 +33,6 @@ import (
 // FileStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FileStep struct {
-	*Act        `yaml:",inline"`
 	FilePath    string                  `yaml:"file,omitempty"`
 	Executor    string                  `yaml:"executor,omitempty"`
 	Environment map[string]string       `yaml:"env,omitempty"`
@@ -44,16 +42,7 @@ type FileStep struct {
 
 // NewFileStep creates a new FileStep instance and returns a pointer to it.
 func NewFileStep() *FileStep {
-	return &FileStep{
-		Act: &Act{
-			Type: StepFile,
-		},
-	}
-}
-
-// GetType returns the type of the step as StepType.
-func (f *FileStep) GetType() StepType {
-	return StepFile
+	return &FileStep{}
 }
 
 // Cleanup is a method to establish a link with the Cleanup interface.
@@ -63,30 +52,9 @@ func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	return f.Execute(execCtx)
 }
 
-// ExplainInvalid returns an error message explaining why the FileStep
-// is invalid.
-//
-// **Returns:**
-//
-// error: An error message explaining why the FileStep is invalid.
-func (f *FileStep) ExplainInvalid() error {
-	var err error
-	if f.FilePath == "" {
-		err = errors.New("empty FilePath provided")
-	}
-
-	if f.Name != "" && err != nil {
-		err = fmt.Errorf("[!] invalid FileStep: [%s] %v", f.Name, zap.Error(err))
-	}
-
-	return err
-}
-
 // IsNil checks if the FileStep is nil or empty and returns a boolean value.
 func (f *FileStep) IsNil() bool {
 	switch {
-	case f.Act.IsNil():
-		return true
 	case f.FilePath == "":
 		return true
 	default:
@@ -141,11 +109,6 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 //
 // error: An error if any validation checks fail.
 func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
-	if err := f.Act.Validate(); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
 	if f.FilePath == "" {
 		err := errors.New("a TTP must include inline logic or path to a file with the logic")
 		logging.L().Error(zap.Error(err))

@@ -37,7 +37,6 @@ type Edit struct {
 
 // EditStep represents one or more edits to a specific file
 type EditStep struct {
-	*Act       `yaml:",inline"`
 	FileToEdit string   `yaml:"edit_file,omitempty"`
 	Edits      []*Edit  `yaml:"edits,omitempty"`
 	FileSystem afero.Fs `yaml:"-,omitempty"`
@@ -46,11 +45,7 @@ type EditStep struct {
 
 // NewEditStep creates a new EditStep instance with an initialized Act struct.
 func NewEditStep() *EditStep {
-	return &EditStep{
-		Act: &Act{
-			Type: StepEdit,
-		},
-	}
+	return &EditStep{}
 }
 
 // GetCleanup returns the cleanup steps for a EditStep.
@@ -60,16 +55,9 @@ func (s *EditStep) GetCleanup() []CleanupAct {
 	return []CleanupAct{}
 }
 
-// GetType returns the step type for a EditStep.
-func (s *EditStep) GetType() StepType {
-	return s.Type
-}
-
 // IsNil checks if an EditStep is considered empty or uninitialized.
 func (s *EditStep) IsNil() bool {
 	switch {
-	case s.Act.IsNil():
-		return true
 	case s.FileToEdit == "":
 		return true
 	default:
@@ -77,15 +65,8 @@ func (s *EditStep) IsNil() bool {
 	}
 }
 
-// wrapped by exported Validate to standardize
-// the error message prefix
-func (s *EditStep) check() error {
-	// Validate Act
-	if err := s.Act.Validate(); err != nil {
-		return err
-	}
-
-	var err error
+// Validate validates the EditStep, checking for the necessary attributes and dependencies.
+func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	if len(s.Edits) == 0 {
 		return fmt.Errorf("no edits specified")
 	}
@@ -98,6 +79,7 @@ func (s *EditStep) check() error {
 			return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
 		}
 
+		var err error
 		if edit.Regexp {
 			edit.oldRegexp, err = regexp.Compile(edit.Old)
 			if err != nil {
@@ -106,15 +88,6 @@ func (s *EditStep) check() error {
 		} else {
 			edit.oldRegexp = regexp.MustCompile(regexp.QuoteMeta(edit.Old))
 		}
-	}
-	return nil
-}
-
-// Validate validates the EditStep, checking for the necessary attributes and dependencies.
-func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
-	err := s.check()
-	if err != nil {
-		return fmt.Errorf("[!] invalid editstep: [%s] %w", s.Name, err)
 	}
 	return nil
 }

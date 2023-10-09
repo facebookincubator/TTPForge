@@ -36,7 +36,6 @@ import (
 // FetchURIStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FetchURIStep struct {
-	*Act       `yaml:",inline"`
 	FetchURI   string   `yaml:"fetch_uri,omitempty"`
 	Retries    string   `yaml:"retries,omitempty"`
 	Location   string   `yaml:"location,omitempty"`
@@ -47,11 +46,7 @@ type FetchURIStep struct {
 
 // NewFetchURIStep creates a new FetchURIStep instance and returns a pointer to it.
 func NewFetchURIStep() *FetchURIStep {
-	return &FetchURIStep{
-		Act: &Act{
-			Type: StepFetchURI,
-		},
-	}
+	return &FetchURIStep{}
 }
 
 // GetType returns the type of the step as StepType.
@@ -66,34 +61,9 @@ func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) 
 	return f.Execute(execCtx)
 }
 
-// ExplainInvalid returns an error message explaining why the FetchURIStep
-// is invalid.
-//
-// **Returns:**
-//
-// error: An error message explaining why the FetchURIStep is invalid.
-func (f *FetchURIStep) ExplainInvalid() error {
-	var err error
-	if f.FetchURI == "" {
-		err = errors.New("empty FetchURI provided")
-	}
-
-	if f.Location == "" && err != nil {
-		err = errors.New("empty Location provided")
-	}
-
-	if f.Name != "" && err != nil {
-		err = fmt.Errorf("[!] invalid FetchURIStep: [%s] %v", f.Name, zap.Error(err))
-	}
-
-	return err
-}
-
 // IsNil checks if the FetchURIStep is nil or empty and returns a boolean value.
 func (f *FetchURIStep) IsNil() bool {
 	switch {
-	case f.Act.IsNil():
-		return true
 	case f.FetchURI == "":
 		return true
 	case f.Location == "":
@@ -184,11 +154,6 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 //
 // error: An error if any validation checks fail.
 func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
-	if err := f.Act.Validate(); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
 	if f.FetchURI == "" {
 		err := errors.New("require FetchURI to be set with fetchURI")
 		logging.L().Error(zap.Error(err))

@@ -35,7 +35,6 @@ import (
 
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	*Act        `yaml:",inline"`
 	Executor    string                  `yaml:"executor,omitempty"`
 	Inline      string                  `yaml:"inline,flow"`
 	Environment map[string]string       `yaml:"env,omitempty"`
@@ -44,28 +43,7 @@ type BasicStep struct {
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
 func NewBasicStep() *BasicStep {
-	return &BasicStep{
-		Act: &Act{
-			Type: StepBasic,
-		},
-	}
-}
-
-// GetType returns the step type for a BasicStep.
-func (b *BasicStep) GetType() StepType {
-	return b.Type
-}
-
-// ExplainInvalid returns an error with an explanation of why a BasicStep is invalid.
-func (b *BasicStep) ExplainInvalid() error {
-	var err error
-	if b.Inline == "" {
-		err = fmt.Errorf("(inline) empty")
-	}
-	if b.Name != "" && err != nil {
-		return fmt.Errorf("[!] invalid basicstep: [%s] %w", b.Name, err)
-	}
-	return err
+	return &BasicStep{}
 }
 
 // IsNil checks if a BasicStep is considered empty or uninitialized.
@@ -80,12 +58,6 @@ func (b *BasicStep) IsNil() bool {
 
 // Validate validates the BasicStep, checking for the necessary attributes and dependencies.
 func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
-	// Validate Act
-	if err := b.Act.Validate(); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
 	// Check if Inline is provided
 	if b.Inline == "" {
 		err := errors.New("inline must be provided")
