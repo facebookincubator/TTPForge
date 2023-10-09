@@ -57,10 +57,10 @@ type Step struct {
 }
 
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
-	// this stops infinite recursion
-	var csf CommonStepFields
 
-	// decode all of the shared fields
+	// Decode all of the shared fields.
+	// Use of this auxiliary type prevents infinite recursion
+	var csf CommonStepFields
 	err := node.Decode(&csf)
 	if err != nil {
 		return err

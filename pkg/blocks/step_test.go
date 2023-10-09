@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
@@ -30,16 +31,18 @@ import (
 
 func TestStep(t *testing.T) {
 	testCases := []struct {
-		name               string
-		content            string
-		wantUnmarshalError bool
-		wantExecuteError   bool
+		name                  string
+		content               string
+		wantUnmarshalError    bool
+		wantExecuteError      bool
+		expectedExecuteStdout string
 	}{
 		{
 			name: "Run inline command (no error)",
 			content: `name: inline_step
 description: runs a valid inline command
 inline: echo inline_step_test`,
+			expectedExecuteStdout: "inline_step_test\n",
 		},
 		{
 			name: "Run inline command (execution error)",
@@ -72,13 +75,15 @@ inline: this will error`,
 			err = s.Validate(execCtx)
 			require.NoError(t, err)
 
-			// execute the step
-			_, err = s.Execute(execCtx)
+			// execute the step and check output
+			result, err := s.Execute(execCtx)
 			if tc.wantExecuteError {
 				require.Error(t, err)
+				return
 			} else {
 				require.NoError(t, err)
 			}
+			assert.Equal(t, tc.expectedExecuteStdout, result.Stdout)
 		})
 	}
 }
