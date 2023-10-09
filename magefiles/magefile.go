@@ -47,9 +47,24 @@ func init() {
 }
 
 type compileParams struct {
-	GOOS            string
-	GOARCH          string
-	CompileForLocal bool
+	GOOS   string
+	GOARCH string
+}
+
+func (p *compileParams) populateFromEnv() {
+	if p.GOOS == "" {
+		p.GOOS = os.Getenv("GOOS")
+		if p.GOOS == "" {
+			p.GOOS = runtime.GOOS
+		}
+	}
+
+	if p.GOARCH == "" {
+		p.GOARCH = os.Getenv("GOARCH")
+		if p.GOARCH == "" {
+			p.GOARCH = runtime.GOARCH
+		}
+	}
 }
 
 // Compile is used for the compilation of the Go project using goreleaser.
@@ -78,22 +93,11 @@ func Compile(release bool) error {
 		return fmt.Errorf("goreleaser is not installed, please run mage installdeps")
 	}
 
-	repoRoot, err := git.RepoRoot()
+	cwd, err := changeToRepoRoot()
 	if err != nil {
-		return fmt.Errorf("failed to get repo root: %v", err)
+		return err
 	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %v", err)
-	}
-
-	if cwd != repoRoot {
-		if err := os.Chdir(repoRoot); err != nil {
-			return fmt.Errorf("failed to change directory to repo root: %v", err)
-		}
-		defer os.Chdir(cwd)
-	}
+	defer os.Chdir(cwd)
 
 	doCompile := func(release bool) error {
 		var p compileParams
@@ -116,22 +120,6 @@ func Compile(release bool) error {
 	}
 
 	return doCompile(release)
-}
-
-func (p *compileParams) populateFromEnv() {
-	if p.GOOS == "" {
-		p.GOOS = os.Getenv("GOOS")
-		if p.GOOS == "" {
-			p.GOOS = runtime.GOOS
-		}
-	}
-
-	if p.GOARCH == "" {
-		p.GOARCH = os.Getenv("GOARCH")
-		if p.GOARCH == "" {
-			p.GOARCH = runtime.GOARCH
-		}
-	}
 }
 
 // InstallDeps installs the TTPForge's Go dependencies necessary for developing
@@ -275,6 +263,51 @@ func RunTests() error {
 	return nil
 }
 
+func changeToRepoRoot() (originalCwd string, err error) {
+	repoRoot, err := git.RepoRoot()
+	if err != nil {
+		return "", fmt.Errorf("failed to get repo root: %v", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %v", err)
+	}
+
+	if cwd != repoRoot {
+		if err := os.Chdir(repoRoot); err != nil {
+			return "", fmt.Errorf("failed to change directory to repo root: %v", err)
+		}
+	}
+
+	return cwd, nil
+}
+
+func getBinaryDirName() (string, error) {
+	goos := os.Getenv("GOOS")
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	goarch := os.Getenv("GOARCH")
+	if goarch == "" {
+		goarch = runtime.GOARCH
+	}
+	baseBinaryDir := fmt.Sprintf("ttpforge_%s_%s", goos, goarch)
+
+	dirs, err := os.ReadDir("dist")
+	if err != nil {
+		return "", err
+	}
+
+	for _, dir := range dirs {
+		if strings.HasPrefix(dir.Name(), baseBinaryDir) {
+			return dir.Name(), nil
+		}
+	}
+
+	return "", fmt.Errorf("binary directory matching pattern %s not found", baseBinaryDir)
+}
+
 // RunIntegrationTests executes all integration tests by extracting the commands
 // described in README files of TTP examples and then executing them. This
 // dynamic testing approach ensures the reliability of TTP examples.
@@ -288,38 +321,48 @@ func RunIntegrationTests() error {
 		return err
 	}
 
-	// Capture existing environment variable values to restore them later
-	originalBinPath := os.Getenv("BIN_PATH")
-	originalDestPath := os.Getenv("DEST_PATH")
 	originalPath := os.Getenv("PATH")
-	defer func() {
-		// Restore original environment variable values after the tests
-		os.Setenv("BIN_PATH", originalBinPath)
-		os.Setenv("DEST_PATH", originalDestPath)
-		os.Setenv("PATH", originalPath)
-	}()
 
-	// Set predefined values for the environment variables required by Compile.
-	binDirectory, err := filepath.Abs("./ttpforge_tmp") // Convert to absolute path
+	// Change to repo root and defer returning to the original directory.
+	cwd, err := changeToRepoRoot()
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for temporary directory: %v", err)
+		return err
 	}
-	os.Setenv("BIN_PATH", filepath.Join(binDirectory, "ttpforge"))
+	defer os.Chdir(cwd)
 
-	// // Build the ttpforge binary first.
-	// if err := Compile(""); err != nil {
-	// 	return fmt.Errorf("failed to compile ttpforge binary: %v", err)
-	// }
+	// Call Compile to generate the binary.
+	if err := Compile(false); err != nil {
+		return fmt.Errorf("failed to compile ttpforge binary: %v", err)
+	}
 
-	if err := os.Chmod(filepath.Join(binDirectory, "ttpforge"), 0755); err != nil {
+	binaryDirName, err := getBinaryDirName()
+	if err != nil {
+		return err
+	}
+	binDirectory := filepath.Join("dist", binaryDirName)
+	// Clean up the dist directory built by goreleaser.
+	defer os.RemoveAll(filepath.Dir(binDirectory))
+
+	// Get the absolute path to the binary.
+	repoRoot, err := git.RepoRoot()
+	if err != nil {
+		return fmt.Errorf("failed to get repo root: %v", err)
+	}
+	absoluteBinPath := filepath.Join(repoRoot, binDirectory)
+
+	// Ensure the binary is in the expected location.
+	binaryPath := filepath.Join(absoluteBinPath, "ttpforge")
+	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+		return fmt.Errorf("binary not found in expected location: %s", binaryPath)
+	}
+
+	if err := os.Chmod(binaryPath, 0755); err != nil {
 		return fmt.Errorf("failed to set executable permissions on ttpforge binary: %v", err)
 	}
 
 	// Adjust the PATH to prioritize the freshly built binary.
-	newPath := binDirectory + string(os.PathListSeparator) + originalPath
+	newPath := absoluteBinPath + string(os.PathListSeparator) + originalPath
 	os.Setenv("PATH", newPath)
-
-	defer os.RemoveAll(binDirectory) // Remove the temporary directory after tests
 
 	armoryTTPs := filepath.Join(home, ".ttpforge", "repos", "forgearmory", "ttps")
 
