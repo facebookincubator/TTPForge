@@ -188,7 +188,6 @@ func (t *TTP) Execute(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 	} else {
 		logging.L().Info("[*] Completed TTP - No Errors :)")
 	}
-	execCtx.StepResults = stepResults
 	if !execCtx.Cfg.NoCleanup {
 		if execCtx.Cfg.CleanupDelaySeconds > 0 {
 			logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
@@ -229,10 +228,10 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 		return nil, -1, nil
 	}
 
+	// actually run all the steps
 	logging.L().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()
 	execCtx.StepResults = stepResults
-
 	lastStepToSucceedIdx := -1
 	for _, step := range t.Steps {
 		stepCopy := step
@@ -255,7 +254,14 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 	return stepResults, lastStepToSucceedIdx, nil
 }
 
-func (t *TTP) startCleanupAtStepIdx(lastStepToSucceedIdx int, execCtx *TTPExecutionContext) {
+func (t *TTP) startCleanupAtStepIdx(lastStepToSucceedIdx int, execCtx *TTPExecutionContext) error {
+	// go to the configuration directory for this TTP
+	changeBack, err := t.chdir()
+	if err != nil {
+		return err
+	}
+	defer changeBack()
+
 	logging.L().Info("[*] Beginning Cleanup")
 	for cleanupIdx := lastStepToSucceedIdx; cleanupIdx >= 0; cleanupIdx -= 1 {
 		stepToCleanup := t.Steps[cleanupIdx]
@@ -270,5 +276,5 @@ func (t *TTP) startCleanupAtStepIdx(lastStepToSucceedIdx int, execCtx *TTPExecut
 		execCtx.StepResults.ByIndex[cleanupIdx].Cleanup = cleanupResult
 	}
 	logging.L().Info("[*] Finished Cleanup")
-
+	return nil
 }
