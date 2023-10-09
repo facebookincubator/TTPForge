@@ -42,7 +42,11 @@ type SubTTPStep struct {
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
 func NewSubTTPStep() *SubTTPStep {
-	return &SubTTPStep{}
+	return &SubTTPStep{
+		Act: &Act{
+			Type: StepSubTTP,
+		},
+	}
 }
 
 // GetCleanup returns a slice of CleanupAct associated with the SubTTPStep.

@@ -36,6 +36,8 @@ func TestStep(t *testing.T) {
 		wantUnmarshalError    bool
 		wantExecuteError      bool
 		expectedExecuteStdout string
+		wantCleanupError      bool
+		expectedCleanupStdout string
 	}{
 		{
 			name: "Run inline command (no error)",
@@ -43,6 +45,16 @@ func TestStep(t *testing.T) {
 description: runs a valid inline command
 inline: echo inline_step_test`,
 			expectedExecuteStdout: "inline_step_test\n",
+		},
+		{
+			name: "Run Cleanup (inline - no error)",
+			content: `name: inline_step
+description: runs an invalid inline command
+inline: echo executing
+cleanup:
+  inline: echo cleanup`,
+			expectedExecuteStdout: "executing\n",
+			expectedCleanupStdout: "cleanup\n",
 		},
 		{
 			name: "Run inline command (execution error)",
@@ -84,6 +96,16 @@ inline: this will error`,
 				require.NoError(t, err)
 			}
 			assert.Equal(t, tc.expectedExecuteStdout, result.Stdout)
+
+			// run cleanup and check output
+			cleanupResult, err := s.Cleanup(execCtx)
+			if tc.wantCleanupError {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tc.expectedCleanupStdout, cleanupResult.Stdout)
 		})
 	}
 }

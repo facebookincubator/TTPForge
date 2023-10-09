@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
 
@@ -40,7 +41,7 @@ type CommonStepFields struct {
 	// can see it - however, it should be considered
 	// to be a private detail of this file
 	// and not referenced elsewhere in the codebase
-	CleanupSpec *yaml.Node `yaml:"cleanup,omitempty"`
+	CleanupSpec yaml.Node `yaml:"cleanup,omitempty"`
 }
 
 // Step contains a TTPForge executable action
@@ -80,8 +81,8 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 	// figure out what kind of action is
 	// associated with cleaning up this step
-	if csf.CleanupSpec != nil {
-		s.cleanup, err = s.ParseAction(csf.CleanupSpec)
+	if !csf.CleanupSpec.IsZero() {
+		s.cleanup, err = s.ParseAction(&csf.CleanupSpec)
 		if err != nil {
 			return err
 		}
@@ -91,6 +92,14 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	return s.action.Execute(execCtx)
+}
+
+func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	if s.cleanup != nil {
+		return s.cleanup.Execute(execCtx)
+	}
+	logging.L().Infof("No Cleanup Action Defined for Step %v", s.Name)
+	return &ActResult{}, nil
 }
 
 func (s *Step) Validate(execCtx TTPExecutionContext) error {

@@ -61,7 +61,6 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 		Inline      string                  `yaml:"inline,flow"`
 		Environment map[string]string       `yaml:"env,omitempty"`
 		Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
-		CleanupStep yaml.Node               `yaml:"cleanup,omitempty"`
 	}
 
 	var tmpl BasicStepTmpl
@@ -79,20 +78,6 @@ func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
 	if b.IsNil() {
 		return b.ExplainInvalid()
 	}
-
-	// we do it piecemiel to build our struct
-	if tmpl.CleanupStep.IsZero() || b.Type == StepCleanup {
-		return nil
-	}
-
-	logging.L().Debugw("step", "name", tmpl.Name)
-	cleanup, err := b.MakeCleanupStep(&tmpl.CleanupStep)
-	logging.L().Debugw("step", "err", err)
-	if err != nil {
-		return err
-	}
-
-	b.CleanupStep = cleanup
 
 	return nil
 }
@@ -130,8 +115,6 @@ func (b *BasicStep) ExplainInvalid() error {
 // IsNil checks if a BasicStep is considered empty or uninitialized.
 func (b *BasicStep) IsNil() bool {
 	switch {
-	case b.Act.IsNil():
-		return true
 	case b.Inline == "":
 		return true
 	default:
