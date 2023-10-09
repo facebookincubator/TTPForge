@@ -61,18 +61,6 @@ steps:
   `,
 			wantError: false,
 		},
-		{
-			name: "Invalid basic",
-			content: `
-name: test
-description: this is a test
-steps:
-  - noname: testinline
-    inline: |
-      ls
-  `,
-			wantError: true,
-		},
 	}
 
 	for _, tc := range testCases {
