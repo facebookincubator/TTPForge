@@ -31,7 +31,6 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // BasicStep is a type that represents a basic execution step.
@@ -41,7 +40,6 @@ type BasicStep struct {
 	Inline      string                  `yaml:"inline,flow"`
 	Environment map[string]string       `yaml:"env,omitempty"`
 	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
-	CleanupStep CleanupAct              `yaml:"cleanup,omitempty"`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
@@ -51,48 +49,6 @@ func NewBasicStep() *BasicStep {
 			Type: StepBasic,
 		},
 	}
-}
-
-// UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
-func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
-	type BasicStepTmpl struct {
-		Act         `yaml:",inline"`
-		Executor    string                  `yaml:"executor,omitempty"`
-		Inline      string                  `yaml:"inline,flow"`
-		Environment map[string]string       `yaml:"env,omitempty"`
-		Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
-	}
-
-	var tmpl BasicStepTmpl
-	// there is an issue with strict fields not being managed https://github.com/go-yaml/yaml/issues/460
-	if err := node.Decode(&tmpl); err != nil {
-		return err
-	}
-
-	b.Act = &tmpl.Act
-	b.Executor = tmpl.Executor
-	b.Inline = tmpl.Inline
-	b.Environment = tmpl.Environment
-	b.Outputs = tmpl.Outputs
-
-	if b.IsNil() {
-		return b.ExplainInvalid()
-	}
-
-	return nil
-}
-
-// Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	return b.Execute(execCtx)
-}
-
-// GetCleanup returns the cleanup steps for a BasicStep.
-func (b *BasicStep) GetCleanup() []CleanupAct {
-	if b.CleanupStep != nil {
-		return []CleanupAct{b.CleanupStep}
-	}
-	return []CleanupAct{}
 }
 
 // GetType returns the step type for a BasicStep.
@@ -152,14 +108,6 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	if _, err := exec.LookPath(b.Executor); err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
-	}
-
-	// Validate CleanupStep if it is not nil
-	if b.CleanupStep != nil {
-		if err := b.CleanupStep.Validate(execCtx); err != nil {
-			logging.L().Errorw("error validating cleanup step", zap.Error(err))
-			return err
-		}
 	}
 
 	logging.L().Debugw("command found in path", "executor", b.Executor)

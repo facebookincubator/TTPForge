@@ -31,20 +31,18 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // FetchURIStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FetchURIStep struct {
-	*Act        `yaml:",inline"`
-	FetchURI    string     `yaml:"fetch_uri,omitempty"`
-	Retries     string     `yaml:"retries,omitempty"`
-	Location    string     `yaml:"location,omitempty"`
-	Proxy       string     `yaml:"proxy,omitempty"`
-	Overwrite   bool       `yaml:"overwrite,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	FileSystem  afero.Fs   `yaml:"-,omitempty"`
+	*Act       `yaml:",inline"`
+	FetchURI   string   `yaml:"fetch_uri,omitempty"`
+	Retries    string   `yaml:"retries,omitempty"`
+	Location   string   `yaml:"location,omitempty"`
+	Proxy      string   `yaml:"proxy,omitempty"`
+	Overwrite  bool     `yaml:"overwrite,omitempty"`
+	FileSystem afero.Fs `yaml:"-,omitempty"`
 }
 
 // NewFetchURIStep creates a new FetchURIStep instance and returns a pointer to it.
@@ -54,67 +52,6 @@ func NewFetchURIStep() *FetchURIStep {
 			Type: StepFetchURI,
 		},
 	}
-}
-
-// UnmarshalYAML decodes a YAML node into a FetchURIStep instance. It uses
-// the provided struct as a template for the YAML data, and initializes the
-// FetchURIStep instance with the decoded values.
-//
-// **Parameters:**
-//
-// node: A pointer to a yaml.Node representing the YAML data to decode.
-//
-// **Returns:**
-//
-// error: An error if there is a problem decoding the YAML data.
-func (f *FetchURIStep) UnmarshalYAML(node *yaml.Node) error {
-
-	type fileStepTmpl struct {
-		Act         `yaml:",inline"`
-		FetchURI    string    `yaml:"fetch_uri,omitempty"`
-		Retries     string    `yaml:"retries,omitempty"`
-		Location    string    `yaml:"location,omitempty"`
-		Proxy       string    `yaml:"proxy,omitempty"`
-		Overwrite   bool      `yaml:"overwrite,omitempty"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
-	}
-
-	// Decode the YAML node into the provided template.
-	var tmpl fileStepTmpl
-	if err := node.Decode(&tmpl); err != nil {
-		return err
-	}
-
-	// Initialize the FetchURIStep instance with the decoded values.
-	f.Act = &tmpl.Act
-	f.FetchURI = tmpl.FetchURI
-	f.Location = tmpl.Location
-	f.Retries = tmpl.Retries
-	f.Proxy = tmpl.Proxy
-	f.Overwrite = tmpl.Overwrite
-
-	// Check for invalid steps.
-	if f.IsNil() {
-		return f.ExplainInvalid()
-	}
-
-	// If there is no cleanup step or if this step is the cleanup step, exit.
-	if tmpl.CleanupStep.IsZero() || f.Type == StepCleanup {
-		return nil
-	}
-
-	// Create a CleanupStep instance and add it to the FetchURIStep instance.
-	logging.L().Debugw("step", "name", tmpl.Name)
-	cleanup, err := f.MakeCleanupStep(&tmpl.CleanupStep)
-	logging.L().Debugw("step", zap.Error(err))
-	if err != nil {
-		logging.L().Errorw("error creating cleanup step", zap.Error(err))
-		return err
-	}
-
-	f.CleanupStep = cleanup
-
-	return nil
 }
 
 // GetType returns the type of the step as StepType.
@@ -127,14 +64,6 @@ func (f *FetchURIStep) GetType() StepType {
 // f.CleanupStep.Cleanup.
 func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	return f.Execute(execCtx)
-}
-
-// GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-func (f *FetchURIStep) GetCleanup() []CleanupAct {
-	if f.CleanupStep != nil {
-		return []CleanupAct{f.CleanupStep}
-	}
-	return []CleanupAct{}
 }
 
 // ExplainInvalid returns an error message explaining why the FetchURIStep
@@ -293,13 +222,5 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
 		return errors.New("file exists at location specified, remove and retry")
 	}
-
-	if f.CleanupStep != nil {
-		if err := f.CleanupStep.Validate(execCtx); err != nil {
-			logging.L().Errorw("error validating cleanup step", zap.Error(err))
-			return err
-		}
-	}
-
 	return nil
 }

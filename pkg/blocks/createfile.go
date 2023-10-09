@@ -26,8 +26,6 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // CreateFileStep creates a new file and populates it
@@ -36,13 +34,12 @@ import (
 // through an editor program or via a C2, where there is no
 // corresponding shell history telemetry
 type CreateFileStep struct {
-	*Act        `yaml:",inline"`
-	Path        string     `yaml:"create_file,omitempty"`
-	Contents    string     `yaml:"contents,omitempty"`
-	Overwrite   bool       `yaml:"overwrite,omitempty"`
-	Mode        int        `yaml:"mode,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	FileSystem  afero.Fs   `yaml:"-,omitempty"`
+	*Act       `yaml:",inline"`
+	Path       string   `yaml:"create_file,omitempty"`
+	Contents   string   `yaml:"contents,omitempty"`
+	Overwrite  bool     `yaml:"overwrite,omitempty"`
+	Mode       int      `yaml:"mode,omitempty"`
+	FileSystem afero.Fs `yaml:"-,omitempty"`
 }
 
 // NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
@@ -54,80 +51,9 @@ func NewCreateFileStep() *CreateFileStep {
 	}
 }
 
-// UnmarshalYAML decodes a YAML node into a CreateFileStep instance. It uses
-// the provided struct as a template for the YAML data, and initializes the
-// CreateFileStep instance with the decoded values.
-//
-// **Parameters:**
-//
-// node: A pointer to a yaml.Node representing the YAML data to decode.
-//
-// **Returns:**
-//
-// error: An error if there is a problem decoding the YAML data.
-func (s *CreateFileStep) UnmarshalYAML(node *yaml.Node) error {
-
-	type createFileStepTmpl struct {
-		Act         `yaml:",inline"`
-		Path        string    `yaml:"create_file,omitempty"`
-		Contents    string    `yaml:"contents,omitempty"`
-		Overwrite   bool      `yaml:"overwrite,omitempty"`
-		Mode        int       `yaml:"mode,omitempty"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
-	}
-
-	// Decode the YAML node into the provided template.
-	var tmpl createFileStepTmpl
-	if err := node.Decode(&tmpl); err != nil {
-		return err
-	}
-
-	// Initialize the instance with the decoded values.
-	s.Act = &tmpl.Act
-	s.Path = tmpl.Path
-	s.Contents = tmpl.Contents
-	s.Overwrite = tmpl.Overwrite
-	s.Mode = tmpl.Mode
-
-	// Check for invalid steps.
-	if s.IsNil() {
-		return s.ExplainInvalid()
-	}
-
-	// If there is no cleanup step or if this step is the cleanup step, exit.
-	if tmpl.CleanupStep.IsZero() || s.Type == StepCleanup {
-		return nil
-	}
-
-	// Create a CleanupStep instance and add it to this step
-	cleanup, err := s.MakeCleanupStep(&tmpl.CleanupStep)
-	if err != nil {
-		return err
-	}
-
-	s.CleanupStep = cleanup
-
-	return nil
-}
-
 // GetType returns the type of the step as StepType.
 func (s *CreateFileStep) GetType() StepType {
 	return StepCreateFile
-}
-
-// Cleanup is a method to establish a link with the Cleanup interface.
-// Assumes that the type is the cleanup step and is invoked by
-// s.CleanupStep.Cleanup.
-func (s *CreateFileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	return s.Execute(execCtx)
-}
-
-// GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-func (s *CreateFileStep) GetCleanup() []CleanupAct {
-	if s.CleanupStep != nil {
-		return []CleanupAct{s.CleanupStep}
-	}
-	return []CleanupAct{}
 }
 
 // ExplainInvalid returns an error message explaining why the step
@@ -203,13 +129,5 @@ func (s *CreateFileStep) Validate(execCtx TTPExecutionContext) error {
 	if s.Path == "" {
 		return fmt.Errorf("path field cannot be empty")
 	}
-
-	if s.CleanupStep != nil {
-		if err := s.CleanupStep.Validate(execCtx); err != nil {
-			logging.L().Errorw("error validating cleanup step", zap.Error(err))
-			return err
-		}
-	}
-
 	return nil
 }
