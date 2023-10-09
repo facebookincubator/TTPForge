@@ -27,6 +27,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/l50/goutils/v2/dev/lint"
@@ -38,13 +39,103 @@ import (
 
 	// mage utility functions
 	"github.com/magefile/mage/mg"
+	"github.com/magefile/mage/sh"
 )
 
 func init() {
 	os.Setenv("GO111MODULE", "on")
 }
 
-// InstallDeps installs the Go dependencies.
+type compileParams struct {
+	GOOS            string
+	GOARCH          string
+	CompileForLocal bool
+}
+
+// Compile is used for the compilation of the Go project using goreleaser.
+// If the GOOS and GOARCH environment variables are not set, this function
+// will default to the current system's OS and architecture.
+//
+// **Parameters:**
+//
+// release: If true, this function will compile all supported releases
+// for TTPForge. If false, it will compile only the binary for the specified
+// OS and architecture (based on environment variables) or for the current
+// OS and architecture (if environment variables aren't set).
+//
+// **Environment Variables:**
+//
+// GOOS: The target operating system for which the Go project should be
+// compiled. Defaults to the system's current OS if not set.
+// GOARCH: The target architecture for which the Go project should be
+// compiled. Defaults to the system's current architecture if not set.
+//
+// **Returns:**
+//
+// error: An error if any issue occurs during the compilation or moving process.
+func Compile(release bool) error {
+	if !sys.CmdExists("goreleaser") {
+		return fmt.Errorf("goreleaser is not installed, please run mage installdeps")
+	}
+
+	repoRoot, err := git.RepoRoot()
+	if err != nil {
+		return fmt.Errorf("failed to get repo root: %v", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %v", err)
+	}
+
+	if cwd != repoRoot {
+		if err := os.Chdir(repoRoot); err != nil {
+			return fmt.Errorf("failed to change directory to repo root: %v", err)
+		}
+		defer os.Chdir(cwd)
+	}
+
+	doCompile := func(release bool) error {
+		var p compileParams
+		p.populateFromEnv() // Populate the GOOS and GOARCH parameters
+
+		var args []string
+
+		if release {
+			fmt.Println("Compiling all supported releases for TTPForge with goreleaser")
+			args = []string{"release", "--snapshot", "--clean", "--skip", "validate"}
+		} else {
+			fmt.Printf("Compiling the TTPForge binary for %s/%s, please wait.\n", p.GOOS, p.GOARCH)
+			args = []string{"build", "--snapshot", "--clean", "--skip", "validate", "--single-target"}
+		}
+
+		if err := sh.RunV("goreleaser", args...); err != nil {
+			return fmt.Errorf("goreleaser failed to execute: %v", err)
+		}
+		return nil
+	}
+
+	return doCompile(release)
+}
+
+func (p *compileParams) populateFromEnv() {
+	if p.GOOS == "" {
+		p.GOOS = os.Getenv("GOOS")
+		if p.GOOS == "" {
+			p.GOOS = runtime.GOOS
+		}
+	}
+
+	if p.GOARCH == "" {
+		p.GOARCH = os.Getenv("GOARCH")
+		if p.GOARCH == "" {
+			p.GOARCH = runtime.GOARCH
+		}
+	}
+}
+
+// InstallDeps installs the TTPForge's Go dependencies necessary for developing
+// on the project.
 //
 // **Returns:**
 //
@@ -73,7 +164,7 @@ func InstallDeps() error {
 //
 // **Parameters:**
 //
-// pkg: The package name as a string.
+// pkg: A string representing the package name.
 //
 // **Returns:**
 //
@@ -136,6 +227,12 @@ func GeneratePackageDocs() error {
 // error: An error if any issue occurs at any of the three stages
 // of the process.
 func RunPreCommit() error {
+	if !sys.CmdExists("pre-commit") {
+		return fmt.Errorf("pre-commit is not installed, please follow the " +
+			"instructions in the dev doc: " +
+			"https://github.com/facebookincubator/TTPForge/tree/main/docs/dev")
+	}
+
 	fmt.Println("Updating pre-commit hooks.")
 	if err := lint.UpdatePCHooks(); err != nil {
 		return err
@@ -160,7 +257,10 @@ func RunPreCommit() error {
 //
 // error: An error if any issue occurs while running the tests.
 func RunTests() error {
-	mg.Deps(InstallDeps)
+	mg.Deps(
+		InstallDeps,
+		mg.F(Compile, "", ""),
+	)
 
 	fmt.Println("Running unit tests.")
 	if _, err := sys.RunCommand(filepath.Join(".hooks", "run-go-tests.sh"), "all"); err != nil {
@@ -187,6 +287,40 @@ func RunIntegrationTests() error {
 	if err != nil {
 		return err
 	}
+
+	// Capture existing environment variable values to restore them later
+	originalBinPath := os.Getenv("BIN_PATH")
+	originalDestPath := os.Getenv("DEST_PATH")
+	originalPath := os.Getenv("PATH")
+	defer func() {
+		// Restore original environment variable values after the tests
+		os.Setenv("BIN_PATH", originalBinPath)
+		os.Setenv("DEST_PATH", originalDestPath)
+		os.Setenv("PATH", originalPath)
+	}()
+
+	// Set predefined values for the environment variables required by Compile.
+	binDirectory, err := filepath.Abs("./ttpforge_tmp") // Convert to absolute path
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for temporary directory: %v", err)
+	}
+	os.Setenv("BIN_PATH", filepath.Join(binDirectory, "ttpforge"))
+
+	// // Build the ttpforge binary first.
+	// if err := Compile(""); err != nil {
+	// 	return fmt.Errorf("failed to compile ttpforge binary: %v", err)
+	// }
+
+	if err := os.Chmod(filepath.Join(binDirectory, "ttpforge"), 0755); err != nil {
+		return fmt.Errorf("failed to set executable permissions on ttpforge binary: %v", err)
+	}
+
+	// Adjust the PATH to prioritize the freshly built binary.
+	newPath := binDirectory + string(os.PathListSeparator) + originalPath
+	os.Setenv("PATH", newPath)
+
+	defer os.RemoveAll(binDirectory) // Remove the temporary directory after tests
+
 	armoryTTPs := filepath.Join(home, ".ttpforge", "repos", "forgearmory", "ttps")
 
 	// Parse README files to extract and run example commands, ensuring the
