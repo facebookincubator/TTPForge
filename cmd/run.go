@@ -56,7 +56,7 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}
 
-			if _, err := ttp.RunSteps(ttpCfg); err != nil {
+			if _, err := ttp.Execute(ttpCfg); err != nil {
 				return fmt.Errorf("failed to run TTP at %v: %v", ttpAbsPath, err)
 			}
 			return nil

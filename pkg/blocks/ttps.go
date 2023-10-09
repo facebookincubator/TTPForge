@@ -145,33 +145,6 @@ func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-func (t *TTP) executeSteps(execCtx TTPExecutionContext) (*StepResultsRecord, int, error) {
-	logging.L().Infof("[+] Running current TTP: %s", t.Name)
-	stepResults := NewStepResultsRecord()
-	execCtx.StepResults = stepResults
-
-	lastStepToSucceedIdx := -1
-	for _, step := range t.Steps {
-		stepCopy := step
-		logging.L().Infof("[+] Running current step: %s", step.Name)
-
-		stepResult, err := stepCopy.Execute(execCtx)
-		if err != nil {
-			return stepResults, lastStepToSucceedIdx, err
-		}
-		lastStepToSucceedIdx += 1
-		execResult := &ExecutionResult{
-			ActResult: *stepResult,
-		}
-		stepResults.ByName[step.Name] = execResult
-		stepResults.ByIndex = append(stepResults.ByIndex, execResult)
-
-		// Enters in reverse order
-		logging.L().Infof("[+] Finished running step: %s", step.Name)
-	}
-	return stepResults, lastStepToSucceedIdx, nil
-}
-
 func (t *TTP) chdir() (func(), error) {
 	// note: t.WorkDir may not be set in tests but should
 	// be set when actualy using `ttpforge run`
@@ -192,7 +165,8 @@ func (t *TTP) chdir() (func(), error) {
 	}, nil
 }
 
-// RunSteps executes all of the steps in the given TTP.
+// Execute,executes all of the steps in the given TTP,
+// then runs cleanup if appropriate
 //
 // **Parameters:**
 //
@@ -202,36 +176,19 @@ func (t *TTP) chdir() (func(), error) {
 //
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
-	// go to the configuration directory for this TTP
-	changeBack, err := t.chdir()
-	if err != nil {
-		return nil, err
-	}
-	defer changeBack()
-
-	// validate all of the steps
-	execCtx := TTPExecutionContext{
+func (t *TTP) Execute(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
+	execCtx := &TTPExecutionContext{
 		Cfg:     execCfg,
 		WorkDir: t.WorkDir,
 	}
-	if err := t.ValidateSteps(execCtx); err != nil {
-		return nil, err
-	}
-	// stop after validation for dry run
-	if execCtx.Cfg.DryRun {
-		logging.L().Info("[*] Dry-Run Requested - Returning Early")
-		return nil, nil
-	}
-
-	stepResults, lastStepToSucceedIdx, err := t.executeSteps(execCtx)
-	if err != nil {
+	stepResults, lastStepToSucceedIdx, runErr := t.RunSteps(execCtx)
+	if runErr != nil {
 		// we need to run cleanup so we don't return here
-		logging.L().Errorf("[*] Error executing TTP: %v", err)
+		logging.L().Errorf("[*] Error executing TTP: %v", runErr)
+	} else {
+		logging.L().Info("[*] Completed TTP - No Errors :)")
 	}
-	logging.L().Info("[*] Completed TTP")
 	execCtx.StepResults = stepResults
-
 	if !execCtx.Cfg.NoCleanup {
 		if execCtx.Cfg.CleanupDelaySeconds > 0 {
 			logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
@@ -239,15 +196,70 @@ func (t *TTP) RunSteps(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 		}
 		t.startCleanupAtStepIdx(lastStepToSucceedIdx, execCtx)
 	}
-
-	return stepResults, err
+	// still pass up the run error after our cleanup
+	return stepResults, runErr
 }
 
-func (t *TTP) startCleanupAtStepIdx(lastStepToSucceedIdx int, execCtx TTPExecutionContext) {
+// RunSteps executes all of the steps in the given TTP.
+//
+// **Parameters:**
+//
+// execCtx: The current TTPExecutionContext
+//
+// **Returns:**
+//
+// *StepResultsRecord: A StepResultsRecord containing the results of each step.
+// int: the index of the last successful step
+// error: An error if any of the steps fail to execute.
+func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, error) {
+	// go to the configuration directory for this TTP
+	changeBack, err := t.chdir()
+	if err != nil {
+		return nil, -1, err
+	}
+	defer changeBack()
+
+	// validate steps:
+	// stop after validation for dry run
+	if err := t.ValidateSteps(*execCtx); err != nil {
+		return nil, -1, err
+	}
+	if execCtx.Cfg.DryRun {
+		logging.L().Info("[*] Dry-Run Requested - Returning Early")
+		return nil, -1, nil
+	}
+
+	logging.L().Infof("[+] Running current TTP: %s", t.Name)
+	stepResults := NewStepResultsRecord()
+	execCtx.StepResults = stepResults
+
+	lastStepToSucceedIdx := -1
+	for _, step := range t.Steps {
+		stepCopy := step
+		logging.L().Infof("[+] Running current step: %s", step.Name)
+
+		stepResult, err := stepCopy.Execute(*execCtx)
+		if err != nil {
+			return stepResults, lastStepToSucceedIdx, err
+		}
+		lastStepToSucceedIdx += 1
+		execResult := &ExecutionResult{
+			ActResult: *stepResult,
+		}
+		stepResults.ByName[step.Name] = execResult
+		stepResults.ByIndex = append(stepResults.ByIndex, execResult)
+
+		// Enters in reverse order
+		logging.L().Infof("[+] Finished running step: %s", step.Name)
+	}
+	return stepResults, lastStepToSucceedIdx, nil
+}
+
+func (t *TTP) startCleanupAtStepIdx(lastStepToSucceedIdx int, execCtx *TTPExecutionContext) {
 	logging.L().Info("[*] Beginning Cleanup")
 	for cleanupIdx := lastStepToSucceedIdx; cleanupIdx >= 0; cleanupIdx -= 1 {
 		stepToCleanup := t.Steps[cleanupIdx]
-		cleanupResult, err := stepToCleanup.Cleanup(execCtx)
+		cleanupResult, err := stepToCleanup.Cleanup(*execCtx)
 		if err != nil {
 			logging.L().Errorw("error cleaning up step: %v", err)
 			logging.L().Errorw("will continue to try to cleanup other steps", err)

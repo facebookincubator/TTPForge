@@ -317,7 +317,7 @@ steps:
 				return
 			}
 
-			stepResults, err := ttp.RunSteps(tc.execConfig)
+			stepResults, err := ttp.Execute(tc.execConfig)
 			if tc.wantError && err == nil {
 				t.Error("expected an error from step execution but got none")
 				return
