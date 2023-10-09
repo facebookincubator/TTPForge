@@ -1,4 +1,5 @@
 //go:build mage
+// +build mage
 
 /*
 Copyright © 2023-present, Meta Platforms, Inc. and affiliates
@@ -38,6 +39,7 @@ import (
 	"github.com/spf13/afero"
 
 	// mage utility functions
+
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
@@ -147,31 +149,6 @@ func InstallDeps() error {
 	return nil
 }
 
-// FindExportedFuncsWithoutTests identifies exported functions
-// within a package that lack corresponding test functions.
-//
-// **Parameters:**
-//
-// pkg: A string representing the package name.
-//
-// **Returns:**
-//
-// []string: A list of exported functions without tests.
-// error: An error if any issue occurs during the identification
-// process.
-func FindExportedFuncsWithoutTests(pkg string) ([]string, error) {
-	funcs, err := mageutils.FindExportedFuncsWithoutTests(os.Args[1])
-	if err != nil {
-		return funcs, err
-	}
-
-	for _, funcName := range funcs {
-		fmt.Println(funcName)
-	}
-
-	return funcs, nil
-}
-
 // GeneratePackageDocs creates documentation for the various packages in TTPForge.
 //
 // **Returns:**
@@ -245,11 +222,6 @@ func RunPreCommit() error {
 //
 // error: An error if any issue occurs while running the tests.
 func RunTests() error {
-	mg.Deps(
-		InstallDeps,
-		mg.F(Compile, "", ""),
-	)
-
 	fmt.Println("Running unit tests.")
 	if _, err := sys.RunCommand(filepath.Join(".hooks", "run-go-tests.sh"), "all"); err != nil {
 		return fmt.Errorf("failed to run unit tests: %v", err)
@@ -316,6 +288,11 @@ func getBinaryDirName() (string, error) {
 //
 // error: An error if any issue occurs while running the tests.
 func RunIntegrationTests() error {
+	// Call Compile to generate the binary.
+	mg.Deps(func() error {
+		return Compile(false)
+	})
+
 	home, err := sys.GetHomeDir()
 	if err != nil {
 		return err
@@ -329,11 +306,6 @@ func RunIntegrationTests() error {
 		return err
 	}
 	defer os.Chdir(cwd)
-
-	// Call Compile to generate the binary.
-	if err := Compile(false); err != nil {
-		return fmt.Errorf("failed to compile ttpforge binary: %v", err)
-	}
 
 	binaryDirName, err := getBinaryDirName()
 	if err != nil {
