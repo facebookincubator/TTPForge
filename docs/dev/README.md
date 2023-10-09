@@ -120,3 +120,12 @@ Once you want to get feedback from pre-commit, reinstall it with:
 ```bash
 pre-commit install
 ```
+
+### Test all mage functions
+
+Run the following command to execute all mage functions
+and ensure they are working as expected:
+
+```bash
+bash magefiles/scripts/magefile_test.sh
+```
