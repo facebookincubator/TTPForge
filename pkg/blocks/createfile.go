@@ -33,12 +33,11 @@ import (
 // through an editor program or via a C2, where there is no
 // corresponding shell history telemetry
 type CreateFileStep struct {
-	actionDefaults `yaml:"-"`
-	Path           string   `yaml:"create_file,omitempty"`
-	Contents       string   `yaml:"contents,omitempty"`
-	Overwrite      bool     `yaml:"overwrite,omitempty"`
-	Mode           int      `yaml:"mode,omitempty"`
-	FileSystem     afero.Fs `yaml:"-,omitempty"`
+	Path       string   `yaml:"create_file,omitempty"`
+	Contents   string   `yaml:"contents,omitempty"`
+	Overwrite  bool     `yaml:"overwrite,omitempty"`
+	Mode       int      `yaml:"mode,omitempty"`
+	FileSystem afero.Fs `yaml:"-,omitempty"`
 }
 
 // NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
