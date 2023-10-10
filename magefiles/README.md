@@ -1,23 +1,14 @@
 # TTPForge/magefiles
 
-The `magefiles` are a part of TTPForge that provide the functionality that
-a traditional `Makefile` does in a project. It provides the functionality to
-build, test, and document the project. The `magefiles` are written in Go and
-use the [Mage](https://magefile.org/) library to provide the functionality.
+`magefiles` provides utilities that would normally be managed
+and executed with a `Makefile`. Instead of being written in the make language,
+magefiles are crafted in Go and leverage the [Mage](https://magefile.org/) library.
 
 ---
 
 ## Table of contents
 
 - [Functions](#functions)
-  - [Compile](#compile)
-  - [InstallDeps](#installdeps)
-  - [FindExportedFuncsWithoutTests](#findexportedfuncswithouttests)
-  - [GeneratePackageDocs](#generatepackagedocs)
-  - [RunPreCommit](#runprecommit)
-  - [RunTests](#runtests)
-  - [RunIntegrationTests](#runintegrationtests)
-- [Installation](#installation)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -25,131 +16,166 @@ use the [Mage](https://magefile.org/) library to provide the functionality.
 
 ## Functions
 
-### Compile
+### Compile()
 
 ```go
-Compile(release bool) error
+Compile() error
 ```
 
-`Compile` is used to compile the Go project with the help of `goreleaser`. The
-function checks for the `GOOS` and `GOARCH` environment variables to determine
-the operating system and architecture, respectively, for the compilation. If
-these variables are not set, it defaults to the current system's OS and
-architecture.
+Compile compiles the Go project using goreleaser. The behavior is
+controlled by the 'release' environment variable. If the GOOS and
+GOARCH environment variables are not set, the function defaults
+to the current system's OS and architecture.
 
-By using the `release` flag, you can control the behavior of the compilation
-process:
+**Environment Variables:**
 
-- If `release` is set to `true`, it will compile all supported releases for TTPForge.
+release: Determines the compilation mode.
 
-- If set to `false`, it will compile only the binary for the specified OS and
-  architecture (based on the environment variables) or for the current system's
-  OS and architecture (if the environment variables aren't set).
+If "true", compiles all supported releases for TTPForge.
+If "false", compiles only the binary for the specified OS
+and architecture (based on GOOS and GOARCH) or the current
+system's default if the vars aren't set.
 
-Here are some examples of how to use the supported environment variables to
-specify the OS, architecture, and invoke the `Compile` function:
+GOOS: Target operating system for compilation. Defaults to the
+current system's OS if not set.
 
-```bash
-# Compile all supported OS and architectures and output to the dist directory.
-mage Compile true
+GOARCH: Target architecture for compilation. Defaults to the
+current system's architecture if not set.
 
-# Compile for macOS on arm64
-GOOS=darwin \
-GOARCH=arm64 \
-mage Compile false
+Example usage:
 
-# Compile for Linux on amd64
-GOOS=linux \
-GOARCH=amd64 \
-mage Compile false
-
-# Compile for Windows on amd64
-GOOS=windows \
-GOARCH=amd64 \
-mage Compile false
+```go
+release=true mage compile # Compiles all supported releases for TTPForge
+GOOS=darwin GOARCH=arm64 mage compile false # Compiles the binary for darwin/arm64
+GOOS=linux GOARCH=amd64 mage compile false # Compiles the binary for linux/amd64
 ```
+
+**Returns:**
+
+error: An error if any issue occurs during compilation.
 
 ---
 
-### InstallDeps
-
-```go
-InstallDeps() error
-```
-
-Installs the TTPForge's Go dependencies necessary for developing on the project.
-
----
-
-### FindExportedFuncsWithoutTests
-
-```go
-FindExportedFuncsWithoutTests(pkg string) ([]string, error)
-```
-
-Identifies exported functions within a package that lack corresponding test functions.
-
----
-
-### GeneratePackageDocs
+### GeneratePackageDocs()
 
 ```go
 GeneratePackageDocs() error
 ```
 
-Creates documentation for the various packages in TTPForge.
+GeneratePackageDocs creates documentation for the various packages
+in the project.
 
----
-
-### RunPreCommit
-
-```go
-RunPreCommit() error
-```
-
-Updates, clears, and executes all pre-commit hooks locally.
-
----
-
-### RunTests
+Example usage:
 
 ```go
-RunTests() error
+mage generatepackagedocs
 ```
 
-Executes all TTPForge unit and integration tests.
+**Returns:**
+
+error: An error if any issue occurs during documentation generation.
 
 ---
 
-### RunIntegrationTests
+### InstallDeps()
+
+```go
+InstallDeps() error
+```
+
+InstallDeps installs the Go dependencies necessary for developing
+on the project.
+
+Example usage:
+
+```go
+mage installdeps
+```
+
+**Returns:**
+
+error: An error if any issue occurs while trying to
+install the dependencies.
+
+---
+
+### RunIntegrationTests()
 
 ```go
 RunIntegrationTests() error
 ```
 
-Executes all TTPForge integration tests by extracting commands described in
-README files of TTP examples and then executing them. Before running the tests,
-it compiles the project's binary and ensures that it's accessible from the
-system's PATH.
+RunIntegrationTests executes all integration tests by extracting the commands
+described in README files of TTP examples and then executing them.
+
+Example usage:
+
+```go
+mage runintegrationtests
+```
+
+**Returns:**
+
+error: An error if any issue occurs while running the tests.
 
 ---
 
-## Installation
+### RunPreCommit()
 
-To use the functions from `TTPForge/magefiles`, ensure you have Mage installed
-and then simply invoke them using the mage command in the TTPForge directory.
+```go
+RunPreCommit() error
+```
+
+RunPreCommit updates, clears, and executes all pre-commit hooks
+locally. The function follows a three-step process:
+
+First, it updates the pre-commit hooks.
+Next, it clears the pre-commit cache to ensure a clean environment.
+Lastly, it executes all pre-commit hooks locally.
+
+Example usage:
+
+```go
+mage runprecommit
+```
+
+**Returns:**
+
+error: An error if any issue occurs at any of the three stages
+of the process.
+
+---
+
+### RunTests()
+
+```go
+RunTests() error
+```
+
+RunTests executes all unit tests.
+
+Example usage:
+
+```go
+mage runtests
+```
+
+**Returns:**
+
+error: An error if any issue occurs while running the tests.
 
 ---
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to
-discuss what you would like to change.
+Pull requests are welcome. For major changes,
+please open an issue first to discuss what
+you would like to change.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the
-[LICENSE](https://github.com/facebookincubator/TTPForge/blob/main/LICENSE)
+This project is licensed under the MIT
+License - see the [LICENSE](https://github.com/facebookincubator/TTPForge/blob/main/LICENSE)
 file for details.

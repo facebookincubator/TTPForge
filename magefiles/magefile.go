@@ -39,7 +39,6 @@ import (
 	"github.com/spf13/afero"
 
 	// mage utility functions
-
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
@@ -77,16 +76,25 @@ func (p *compileParams) populateFromEnv() {
 // **Environment Variables:**
 //
 // release: Determines the compilation mode.
-//   - If "true", compiles all supported releases for TTPForge.
-//   - If "false", compiles only the binary for the specified OS
-//     and architecture (based on GOOS and GOARCH) or the current
-//     system's default if the vars aren't set.
+//
+// If "true", compiles all supported releases for TTPForge.
+// If "false", compiles only the binary for the specified OS
+// and architecture (based on GOOS and GOARCH) or the current
+// system's default if the vars aren't set.
 //
 // GOOS: Target operating system for compilation. Defaults to the
 // current system's OS if not set.
 //
 // GOARCH: Target architecture for compilation. Defaults to the
 // current system's architecture if not set.
+//
+// Example usage:
+//
+// ```go
+// release=true mage compile # Compiles all supported releases for TTPForge
+// GOOS=darwin GOARCH=arm64 mage compile false # Compiles the binary for darwin/arm64
+// GOOS=linux GOARCH=amd64 mage compile false # Compiles the binary for linux/amd64
+// ```
 //
 // **Returns:**
 //
@@ -138,8 +146,14 @@ func Compile() error {
 	return doCompile(isRelease)
 }
 
-// InstallDeps installs the TTPForge's Go dependencies necessary for developing
+// InstallDeps installs the Go dependencies necessary for developing
 // on the project.
+//
+// Example usage:
+//
+// ```go
+// mage installdeps
+// ```
 //
 // **Returns:**
 //
@@ -163,12 +177,18 @@ func InstallDeps() error {
 	return nil
 }
 
-// GeneratePackageDocs creates documentation for the various packages in TTPForge.
+// GeneratePackageDocs creates documentation for the various packages
+// in the project.
+//
+// Example usage:
+//
+// ```go
+// mage generatepackagedocs
+// ```
 //
 // **Returns:**
 //
-// error: An error if any issue occurs during documentation
-// generation.
+// error: An error if any issue occurs during documentation generation.
 func GeneratePackageDocs() error {
 	fs := afero.NewOsFs()
 
@@ -189,17 +209,21 @@ func GeneratePackageDocs() error {
 		return fmt.Errorf("failed to create package docs: %v", err)
 	}
 
-	fmt.Println("Package docs created.")
-
 	return nil
 }
 
 // RunPreCommit updates, clears, and executes all pre-commit hooks
 // locally. The function follows a three-step process:
-//  1. Updates the pre-commit hooks using lint.UpdatePCHooks.
-//  2. Clears the pre-commit cache with lint.ClearPCCache to ensure
-//     a clean environment.
-//  3. Executes all pre-commit hooks locally using lint.RunPCHooks.
+//
+// First, it updates the pre-commit hooks.
+// Next, it clears the pre-commit cache to ensure a clean environment.
+// Lastly, it executes all pre-commit hooks locally.
+//
+// Example usage:
+//
+// ```go
+// mage runprecommit
+// ```
 //
 // **Returns:**
 //
@@ -230,7 +254,13 @@ func RunPreCommit() error {
 	return nil
 }
 
-// RunTests executes all unit and integration tests.
+// RunTests executes all unit tests.
+//
+// Example usage:
+//
+// ```go
+// mage runtests
+// ```
 //
 // **Returns:**
 //
@@ -295,8 +325,13 @@ func getBinaryDirName() (string, error) {
 }
 
 // RunIntegrationTests executes all integration tests by extracting the commands
-// described in README files of TTP examples and then executing them. This
-// dynamic testing approach ensures the reliability of TTP examples.
+// described in README files of TTP examples and then executing them.
+//
+// Example usage:
+//
+// ```go
+// mage runintegrationtests
+// ```
 //
 // **Returns:**
 //

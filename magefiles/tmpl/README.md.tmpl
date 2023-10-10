@@ -1,15 +1,17 @@
 # TTPForge/{{.PackageName}}
 
-The `{{.PackageName}}` package is a part of the TTPForge.
+{{if ne .PackageName "magefiles"}}The `{{.PackageName}}` package is a part of the TTPForge.{{else}}`{{.PackageName}}` provides utilities that would normally be managed
+and executed with a `Makefile`. Instead of being written in the make language,
+magefiles are crafted in Go and leverage the [Mage](https://magefile.org/) library.{{end}}
 
 ---
 
 ## Table of contents
 
-- [Functions](#functions)
+- [Functions](#functions){{if ne .PackageName "magefiles"}}
 - [Installation](#installation)
 - [Usage](#usage)
-- [Tests](#tests)
+- [Tests](#tests){{end}}
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -25,7 +27,7 @@ The `{{.PackageName}}` package is a part of the TTPForge.
 
 {{.Description}}
 ---
-{{end}}
+{{end}}{{if ne .PackageName "magefiles"}}
 ## Installation
 
 To use the TTPForge/{{.PackageName}} package, you first need to install it.
@@ -58,7 +60,7 @@ go test -v
 ```
 
 ---
-
+{{end}}
 ## Contributing
 
 Pull requests are welcome. For major changes,
