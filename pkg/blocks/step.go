@@ -51,6 +51,21 @@ type Step struct {
 	cleanup Action
 }
 
+func isDefaultCleanup(cleanupNode *yaml.Node) (bool, error) {
+	var testStr string
+	// is it a string? if not, let the subsequent decoding
+	// in the calling function deal with it
+	if err := cleanupNode.Decode(&testStr); err != nil {
+		return false, nil
+	}
+
+	// if it is a string, it must be a valid string
+	if testStr == "default" {
+		return true, nil
+	}
+	return false, fmt.Errorf("invalid cleanup value specified: %v", testStr)
+}
+
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 	// Decode all of the shared fields.
@@ -76,12 +91,23 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	// figure out what kind of action is
 	// associated with cleaning up this step
 	if !csf.CleanupSpec.IsZero() {
+		useDefaultCleanup, err := isDefaultCleanup(&csf.CleanupSpec)
+		if err != nil {
+			return err
+		}
+		if useDefaultCleanup {
+			if dca := s.action.GetDefaultCleanupAction(); dca != nil {
+				s.cleanup = dca
+				return nil
+			} else {
+				return fmt.Errorf("`cleanup: default` was specified but step %v is not an action type that has a default cleanup action", s.Name)
+			}
+		}
+
 		s.cleanup, err = s.ParseAction(&csf.CleanupSpec)
 		if err != nil {
 			return err
 		}
-	} else if dca := s.action.GetDefaultCleanupAction(); dca != nil {
-		s.cleanup = dca
 	}
 	return nil
 }

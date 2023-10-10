@@ -91,6 +91,12 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error
 	return &ActResult{}, nil
 }
 
+func (s *CreateFileStep) GetDefaultCleanupAction() Action {
+	return &BasicStep{
+		Inline: "echo default cleanup!",
+	}
+}
+
 // Validate validates the step
 //
 // **Returns:**

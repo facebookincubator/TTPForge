@@ -20,6 +20,9 @@ THE SOFTWARE.
 package blocks_test
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
@@ -106,6 +109,70 @@ inline: this will error`,
 				require.NoError(t, err)
 			}
 			assert.Equal(t, tc.expectedCleanupStdout, cleanupResult.Stdout)
+		})
+	}
+}
+
+func TestCleanupDefault(t *testing.T) {
+	tmpFile := filepath.Join(os.TempDir(), "ttpforge-test-cleanup-default")
+	testCases := []struct {
+		name                 string
+		content              string
+		wantUnmarshalError   bool
+		wantExecuteError     bool
+		filePath             string
+		expectedFileContents string
+		wantCleanupError     bool
+	}{
+		{
+			name:     "create_file Default Cleanup",
+			filePath: tmpFile,
+			content: fmt.Sprintf(`name: inline_step
+description: runs an invalid inline command
+create_file: %v
+contents: this is a test
+cleanup: default`, tmpFile),
+			expectedFileContents: "this is a test",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var s blocks.Step
+			var execCtx blocks.TTPExecutionContext
+
+			// parse the step
+			err := yaml.Unmarshal([]byte(tc.content), &s)
+			if tc.wantUnmarshalError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// validate the step
+			err = s.Validate(execCtx)
+			require.NoError(t, err)
+
+			// execute the step and check file contents
+			_, err = s.Execute(execCtx)
+			if tc.wantExecuteError {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+			contentBytes, err := os.ReadFile(tc.filePath)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedFileContents, string(contentBytes))
+
+			// run cleanup
+			_, err = s.Cleanup(execCtx)
+			if tc.wantCleanupError {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
