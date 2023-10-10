@@ -27,12 +27,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Action interface {
-	Execute(execCtx TTPExecutionContext) (*ActResult, error)
-	Validate(execCtx TTPExecutionContext) error
-	IsNil() bool
-}
-
 type CommonStepFields struct {
 	Name        string `yaml:"name,omitempty"`
 	Description string `yaml:"description,omitempty"`
@@ -86,6 +80,8 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 		if err != nil {
 			return err
 		}
+	} else if dca := s.action.GetDefaultCleanupAction(); dca != nil {
+		s.cleanup = dca
 	}
 	return nil
 }

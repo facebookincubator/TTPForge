@@ -37,10 +37,11 @@ type Edit struct {
 
 // EditStep represents one or more edits to a specific file
 type EditStep struct {
-	FileToEdit string   `yaml:"edit_file,omitempty"`
-	Edits      []*Edit  `yaml:"edits,omitempty"`
-	FileSystem afero.Fs `yaml:"-,omitempty"`
-	BackupFile string   `yaml:"backup_file,omitempty"`
+	actionDefaults `yaml:"-"`
+	FileToEdit     string   `yaml:"edit_file,omitempty"`
+	Edits          []*Edit  `yaml:"edits,omitempty"`
+	FileSystem     afero.Fs `yaml:"-,omitempty"`
+	BackupFile     string   `yaml:"backup_file,omitempty"`
 }
 
 // NewEditStep creates a new EditStep instance with an initialized Act struct.

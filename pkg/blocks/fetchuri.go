@@ -36,12 +36,13 @@ import (
 // FetchURIStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FetchURIStep struct {
-	FetchURI   string   `yaml:"fetch_uri,omitempty"`
-	Retries    string   `yaml:"retries,omitempty"`
-	Location   string   `yaml:"location,omitempty"`
-	Proxy      string   `yaml:"proxy,omitempty"`
-	Overwrite  bool     `yaml:"overwrite,omitempty"`
-	FileSystem afero.Fs `yaml:"-,omitempty"`
+	actionDefaults `yaml:"-"`
+	FetchURI       string   `yaml:"fetch_uri,omitempty"`
+	Retries        string   `yaml:"retries,omitempty"`
+	Location       string   `yaml:"location,omitempty"`
+	Proxy          string   `yaml:"proxy,omitempty"`
+	Overwrite      bool     `yaml:"overwrite,omitempty"`
+	FileSystem     afero.Fs `yaml:"-,omitempty"`
 }
 
 // NewFetchURIStep creates a new FetchURIStep instance and returns a pointer to it.

@@ -45,10 +45,11 @@ const (
 
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	Executor    string                  `yaml:"executor,omitempty"`
-	Inline      string                  `yaml:"inline,flow"`
-	Environment map[string]string       `yaml:"env,omitempty"`
-	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	actionDefaults `yaml:"-"`
+	Executor       string                  `yaml:"executor,omitempty"`
+	Inline         string                  `yaml:"inline,flow"`
+	Environment    map[string]string       `yaml:"env,omitempty"`
+	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.

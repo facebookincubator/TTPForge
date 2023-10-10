@@ -33,11 +33,12 @@ import (
 // FileStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FileStep struct {
-	FilePath    string                  `yaml:"file,omitempty"`
-	Executor    string                  `yaml:"executor,omitempty"`
-	Environment map[string]string       `yaml:"env,omitempty"`
-	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
-	Args        []string                `yaml:"args,omitempty,flow"`
+	actionDefaults `yaml:"-"`
+	FilePath       string                  `yaml:"file,omitempty"`
+	Executor       string                  `yaml:"executor,omitempty"`
+	Environment    map[string]string       `yaml:"env,omitempty"`
+	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	Args           []string                `yaml:"args,omitempty,flow"`
 }
 
 // NewFileStep creates a new FileStep instance and returns a pointer to it.
