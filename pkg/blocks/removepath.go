@@ -21,33 +21,19 @@ package blocks
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
 )
 
-// CreateFileStep creates a new file and populates it
-// with the specified contents.
-// Its intended use is simulating malicious file creation
-// through an editor program or via a C2, where there is no
-// corresponding shell history telemetry
-type CreateFileStep struct {
+type RemovePathAction struct {
 	actionDefaults `yaml:"-"`
-	Path           string   `yaml:"create_file,omitempty"`
-	Contents       string   `yaml:"contents,omitempty"`
-	Overwrite      bool     `yaml:"overwrite,omitempty"`
-	Mode           int      `yaml:"mode,omitempty"`
+	Path           string   `yaml:"remove_path,omitempty"`
 	FileSystem     afero.Fs `yaml:"-,omitempty"`
 }
 
-// NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
-func NewCreateFileStep() *CreateFileStep {
-	return &CreateFileStep{}
-}
-
 // IsNil checks if the step is nil or empty and returns a boolean value.
-func (s *CreateFileStep) IsNil() bool {
+func (s *RemovePathAction) IsNil() bool {
 	switch {
 	case s.Path == "":
 		return true
@@ -57,44 +43,28 @@ func (s *CreateFileStep) IsNil() bool {
 }
 
 // Execute runs the step and returns an error if any occur.
-func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	logging.L().Infof("Creating file %v", s.Path)
+func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	logging.L().Infof("Removing path %v", s.Path)
 	fsys := s.FileSystem
 	if fsys == nil {
 		fsys = afero.NewOsFs()
 	}
 
+	// cannot remove a non-existent path
 	exists, err := afero.Exists(fsys, s.Path)
 	if err != nil {
 		return nil, err
 	}
+	if !exists {
+		return nil, fmt.Errorf("path %v does not exist", s.Path)
+	}
 
-	var f afero.File
-	if exists && !s.Overwrite {
-		return nil, fmt.Errorf("path %v already exists and overwrite was not set", s.Path)
-	}
-	// use the default umask
-	// https://stackoverflow.com/questions/23842247/reading-default-filemode-when-using-os-o-create
-	mode := s.Mode
-	if mode == 0 {
-		mode = 0666
-	}
-	f, err = fsys.OpenFile(s.Path, os.O_WRONLY|os.O_CREATE, os.FileMode(mode))
+	// actually remove the file
+	err = fsys.RemoveAll(s.Path)
 	if err != nil {
 		return nil, err
 	}
-	_, err = f.Write([]byte(s.Contents))
-	if err != nil {
-		return nil, err
-	}
-
 	return &ActResult{}, nil
-}
-
-func (s *CreateFileStep) GetDefaultCleanupAction() Action {
-	return &RemovePathAction{
-		Path: s.Path,
-	}
 }
 
 // Validate validates the step
@@ -102,7 +72,7 @@ func (s *CreateFileStep) GetDefaultCleanupAction() Action {
 // **Returns:**
 //
 // error: An error if any validation checks fail.
-func (s *CreateFileStep) Validate(execCtx TTPExecutionContext) error {
+func (s *RemovePathAction) Validate(execCtx TTPExecutionContext) error {
 	if s.Path == "" {
 		return fmt.Errorf("path field cannot be empty")
 	}

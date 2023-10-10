@@ -22,10 +22,10 @@ package blocks_test
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -114,25 +114,43 @@ inline: this will error`,
 }
 
 func TestCleanupDefault(t *testing.T) {
-	tmpFile := filepath.Join(os.TempDir(), "ttpforge-test-cleanup-default")
 	testCases := []struct {
-		name                 string
-		content              string
-		wantUnmarshalError   bool
-		wantExecuteError     bool
-		filePath             string
-		expectedFileContents string
-		wantCleanupError     bool
+		name                        string
+		contentFmtStr               string
+		wantUnmarshalError          bool
+		wantExecuteError            bool
+		expectedFileContents        string
+		wantCleanupError            bool
+		fileShouldExistAfterCleanup bool
 	}{
 		{
-			name:     "create_file Default Cleanup",
-			filePath: tmpFile,
-			content: fmt.Sprintf(`name: inline_step
-description: runs an invalid inline command
+			name: "create_file Default Cleanup",
+			contentFmtStr: `name: create_file_step
+description: creates a file and then deletes it
 create_file: %v
 contents: this is a test
-cleanup: default`, tmpFile),
+cleanup: default`,
 			expectedFileContents: "this is a test",
+		},
+		{
+			name: "create_file with invalid cleanup",
+			contentFmtStr: `name: create_file_step
+description: invalid cleanup value
+create_file: %v
+contents: this is a test
+cleanup: invalid`,
+			wantUnmarshalError: true,
+		},
+		{
+			name: "create_file with non-default cleanup",
+			contentFmtStr: `name: create_file_step
+description: non-default cleanup value
+create_file: %v
+contents: testing non default cleanup
+cleanup:
+  inline: echo "will not delete file"`,
+			expectedFileContents:        "testing non default cleanup",
+			fileShouldExistAfterCleanup: true,
 		},
 	}
 
@@ -141,8 +159,15 @@ cleanup: default`, tmpFile),
 			var s blocks.Step
 			var execCtx blocks.TTPExecutionContext
 
-			// parse the step
-			err := yaml.Unmarshal([]byte(tc.content), &s)
+			// hack to get a valid temporary path without creating it
+			tmpFile, err := os.CreateTemp("", "ttpforge-test-cleanup-default")
+			require.NoError(t, err)
+			filePath := tmpFile.Name()
+			err = os.Remove(filePath)
+			require.NoError(t, err)
+
+			content := fmt.Sprintf(tc.contentFmtStr, filePath)
+			err = yaml.Unmarshal([]byte(content), &s)
 			if tc.wantUnmarshalError {
 				require.Error(t, err)
 				return
@@ -161,7 +186,7 @@ cleanup: default`, tmpFile),
 			} else {
 				require.NoError(t, err)
 			}
-			contentBytes, err := os.ReadFile(tc.filePath)
+			contentBytes, err := os.ReadFile(filePath)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedFileContents, string(contentBytes))
 
@@ -173,6 +198,12 @@ cleanup: default`, tmpFile),
 			} else {
 				require.NoError(t, err)
 			}
+
+			// verify that file was deleted
+			fsys := afero.NewOsFs()
+			exists, err := afero.Exists(fsys, filePath)
+			require.NoError(t, err)
+			assert.Equal(t, tc.fileShouldExistAfterCleanup, exists)
 		})
 	}
 }
