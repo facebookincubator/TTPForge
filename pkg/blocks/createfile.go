@@ -20,7 +20,6 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -44,19 +43,6 @@ type CreateFileStep struct {
 // NewCreateFileStep creates a new CreateFileStep instance and returns a pointer to it.
 func NewCreateFileStep() *CreateFileStep {
 	return &CreateFileStep{}
-}
-
-// ExplainInvalid returns an error message explaining why the step
-// is invalid.
-//
-// **Returns:**
-//
-// error: An error message explaining why the step is invalid.
-func (s *CreateFileStep) ExplainInvalid() error {
-	if s.Path == "" {
-		return errors.New("empty `create_file:` provided")
-	}
-	return nil
 }
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
