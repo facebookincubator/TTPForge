@@ -193,7 +193,15 @@ func (t *TTP) Execute(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
 			logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
 			time.Sleep(time.Duration(execCtx.Cfg.CleanupDelaySeconds) * time.Second)
 		}
-		t.startCleanupAtStepIdx(firstStepToCleanupIdx, execCtx)
+		cleanupResults, err := t.startCleanupAtStepIdx(firstStepToCleanupIdx, execCtx)
+		if err != nil {
+			return nil, err
+		}
+		// since ByIndex and ByName both contain pointers to
+		// the same underlying struct, this will update both
+		for cleanupIdx, cleanupResult := range cleanupResults {
+			execCtx.StepResults.ByIndex[cleanupIdx].Cleanup = cleanupResult
+		}
 	}
 	// still pass up the run error after our cleanup
 	return stepResults, runErr
@@ -237,11 +245,27 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 		stepCopy := step
 		logging.L().Infof("[+] Running current step: %s", step.Name)
 
+		// core execution - run the step action
 		stepResult, err := stepCopy.Execute(*execCtx)
+
+		// this part is tricky - SubTTP steps
+		// must be cleaned up even on failure
+		// (because substeps may have succeeded)
+		// so in those cases, we need to save the result
+		// even if nil
 		if err != nil {
-			return stepResults, firstStepToCleanupIdx, err
+			if step.ShouldCleanupOnFailure() {
+				logging.L().Infof("[+] Cleaning up failed step %s", step.Name)
+				logging.L().Infof("[+] Full Cleanup will Run Afterward")
+				_, cleanupErr := step.Cleanup(*execCtx)
+				if cleanupErr != nil {
+					logging.L().Errorf("error cleaning up failed step %v: %v", step.Name, err)
+				}
+			}
+			return nil, firstStepToCleanupIdx, err
 		}
 		firstStepToCleanupIdx += 1
+
 		execResult := &ExecutionResult{
 			ActResult: *stepResult,
 		}
@@ -254,27 +278,27 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 	return stepResults, firstStepToCleanupIdx, nil
 }
 
-func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecutionContext) error {
+func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecutionContext) ([]*ActResult, error) {
 	// go to the configuration directory for this TTP
 	changeBack, err := t.chdir()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer changeBack()
 
 	logging.L().Info("[*] Beginning Cleanup")
+	var cleanupResults []*ActResult
 	for cleanupIdx := firstStepToCleanupIdx; cleanupIdx >= 0; cleanupIdx -= 1 {
 		stepToCleanup := t.Steps[cleanupIdx]
 		cleanupResult, err := stepToCleanup.Cleanup(*execCtx)
+		// must be careful to put these in step order, not in execution (reverse) order
+		cleanupResults = append([]*ActResult{cleanupResult}, cleanupResults...)
 		if err != nil {
-			logging.L().Errorw("error cleaning up step: %v", err)
-			logging.L().Errorw("will continue to try to cleanup other steps", err)
+			logging.L().Errorf("error cleaning up step: %v", err)
+			logging.L().Errorf("will continue to try to cleanup other steps")
 			continue
 		}
-		// since ByIndex and ByName both contain pointers to
-		// the same underlying struct, this will update both
-		execCtx.StepResults.ByIndex[cleanupIdx].Cleanup = cleanupResult
 	}
 	logging.L().Info("[*] Finished Cleanup")
-	return nil
+	return cleanupResults, nil
 }

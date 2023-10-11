@@ -318,14 +318,11 @@ steps:
 			}
 
 			stepResults, err := ttp.Execute(tc.execConfig)
-			if tc.wantError && err == nil {
-				t.Error("expected an error from step execution but got none")
+			if tc.wantError {
+				require.Error(t, err)
 				return
 			}
-			if !tc.wantError && err != nil {
-				t.Errorf("didn't expect an error from step execution but got: %s", err)
-				return
-			}
+			require.NoError(t, err)
 
 			for index, output := range tc.expectedByIndexOut {
 				require.Equal(t, output, stepResults.ByIndex[index].Stdout)

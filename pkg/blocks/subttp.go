@@ -31,8 +31,9 @@ type SubTTPStep struct {
 	TtpFile string            `yaml:"ttp"`
 	Args    map[string]string `yaml:"args"`
 
-	ttp        *TTP
-	subExecCtx TTPExecutionContext
+	ttp                   *TTP
+	subExecCtx            TTPExecutionContext
+	firstStepToCleanupIdx int
 }
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
@@ -40,7 +41,34 @@ func NewSubTTPStep() *SubTTPStep {
 	return &SubTTPStep{}
 }
 
-func aggregateResults(results []*ExecutionResult) *ActResult {
+type subTTPCleanupAction struct {
+	actionDefaults
+	step *SubTTPStep
+}
+
+func (a *subTTPCleanupAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	cleanupResults, err := a.step.ttp.startCleanupAtStepIdx(a.step.firstStepToCleanupIdx, &execCtx)
+	if err != nil {
+		return nil, err
+	}
+	return aggregateResults(cleanupResults), nil
+}
+
+func (a *subTTPCleanupAction) IsNil() bool {
+	return false
+}
+
+func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
+	return nil
+}
+
+func (s *SubTTPStep) GetDefaultCleanupAction() Action {
+	return &subTTPCleanupAction{
+		step: s,
+	}
+}
+
+func aggregateResults(results []*ActResult) *ActResult {
 	var subStdouts []string
 	var subStderrs []string
 	for _, result := range results {
@@ -71,19 +99,19 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpFile)
-
-	var runErr error
-	stepResults, lastStepToSucceedIdx, runErr := s.ttp.RunSteps(&execCtx)
+	execResults, firstStepToCleanupIdx, runErr := s.ttp.RunSteps(&execCtx)
+	s.firstStepToCleanupIdx = firstStepToCleanupIdx
 	if runErr != nil {
-		// for subTTPs, we need to start cleanup now - cleanup of previous steps
-		// will proceed according to the normal LIFO process
-		logging.L().Errorf("[*] Error executing SubTTP: %v", runErr)
-		logging.L().Errorf("[*] Beginning SubTTP cleanup")
-		s.ttp.startCleanupAtStepIdx(lastStepToSucceedIdx, &execCtx)
 		return nil, runErr
 	}
-	logging.L().Info("[*] Completed TTP - No Errors :)")
-	return aggregateResults(stepResults.ByIndex), nil
+	logging.L().Info("[*] Completed SubTTP - No Errors :)")
+
+	// just a little annoying plumbing due to subtle type differences0
+	var actResults []*ActResult
+	for _, execResult := range execResults.ByIndex {
+		actResults = append(actResults, &execResult.ActResult)
+	}
+	return aggregateResults(actResults), nil
 }
 
 // loadSubTTP loads a TTP file into a SubTTPStep instance

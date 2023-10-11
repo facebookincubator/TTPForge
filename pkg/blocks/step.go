@@ -66,6 +66,20 @@ func isDefaultCleanup(cleanupNode *yaml.Node) (bool, error) {
 	return false, fmt.Errorf("invalid cleanup value specified: %v", testStr)
 }
 
+// ShouldCleanupOnFailure specifies that this step should be cleaned
+// up even if its Execute(...)  failed.
+// We usually don't want to do this - for example,
+// you shouldn't try to remove_path a create_file that failed)
+// However, certain step types (especially SubTTPs) need to run cleanup even if they fail
+func (s *Step) ShouldCleanupOnFailure() bool {
+	switch s.action.(type) {
+	case *SubTTPStep:
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 	// Decode all of the shared fields.
@@ -137,8 +151,8 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 }
 
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
-	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
-	// actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
+	// actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
+	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
 	var action Action
 	for _, actionType := range actionCandidates {
 		err := node.Decode(actionType)
