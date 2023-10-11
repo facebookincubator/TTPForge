@@ -19,143 +19,120 @@ THE SOFTWARE.
 
 package blocks
 
-// import (
-// 	"errors"
-// 	"strings"
+import (
+	"errors"
+	"strings"
 
-// 	"github.com/facebookincubator/ttpforge/pkg/logging"
-// )
+	"github.com/facebookincubator/ttpforge/pkg/logging"
+)
 
-// // SubTTPStep represents a step within a parent TTP that references a separate TTP file.
-// type SubTTPStep struct {
-// 	TtpFile string            `yaml:"ttp"`
-// 	Args    map[string]string `yaml:"args"`
+// SubTTPStep represents a step within a parent TTP that references a separate TTP file.
+type SubTTPStep struct {
+	TtpFile string            `yaml:"ttp"`
+	Args    map[string]string `yaml:"args"`
 
-// 	ttp                  *TTP
-// 	subExecCtx           TTPExecutionContext
-// 	lastStepToSucceedIdx int
-// }
+	ttp        *TTP
+	subExecCtx TTPExecutionContext
+}
 
-// // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
-// func NewSubTTPStep() *SubTTPStep {
-// 	return &SubTTPStep{}
-// }
+// NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
+func NewSubTTPStep() *SubTTPStep {
+	return &SubTTPStep{}
+}
 
-// func aggregateResults(results []*ActResult) *ActResult {
-// 	var subStdouts []string
-// 	var subStderrs []string
-// 	for _, result := range results {
-// 		subStdouts = append(subStdouts, result.Stdout)
-// 		subStderrs = append(subStderrs, result.Stderr)
-// 	}
+func aggregateResults(results []*ExecutionResult) *ActResult {
+	var subStdouts []string
+	var subStderrs []string
+	for _, result := range results {
+		subStdouts = append(subStdouts, result.Stdout)
+		subStderrs = append(subStderrs, result.Stderr)
+	}
 
-// 	return &ActResult{
-// 		Stdout: strings.Join(subStdouts, ""),
-// 		Stderr: strings.Join(subStderrs, ""),
-// 	}
-// }
+	return &ActResult{
+		Stdout: strings.Join(subStdouts, ""),
+		Stderr: strings.Join(subStderrs, ""),
+	}
+}
 
-// func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, error) {
-// 	var argKvStrs []string
-// 	for k, v := range s.Args {
-// 		argKvStrs = append(argKvStrs, k+"="+v)
-// 	}
+func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, error) {
+	var argKvStrs []string
+	for k, v := range s.Args {
+		argKvStrs = append(argKvStrs, k+"="+v)
+	}
 
-// 	expandedArgKvStrs, err := execCtx.ExpandVariables(argKvStrs)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return expandedArgKvStrs, nil
-// }
+	expandedArgKvStrs, err := execCtx.ExpandVariables(argKvStrs)
+	if err != nil {
+		return nil, err
+	}
+	return expandedArgKvStrs, nil
+}
 
-// // Execute runs each step of the TTP file associated with the SubTTPStep
-// // and manages the outputs and cleanup steps.
-// func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-// 	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpFile)
+// Execute runs each step of the TTP file associated with the SubTTPStep
+// and manages the outputs and cleanup steps.
+func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpFile)
 
-// 	var runErr error
-// 	stepResults, s.lastStepToSucceedIdx, runErr = s.ttp.RunSteps(&execCtx)
-// 	if runErr != nil {
-// 		// for subTTPs, we need to start cleanup now - cleanup of previous steps
-// 		// will proceed according to the normal LIFO process
-// 		logging.L().Errorf("[*] Error executing SubTTP: %v", runErr)
-// 		logging.L().Errorf("[*] Beginning SubTTP cleanup")
-// 		s.ttp.startCleanupAtStepIdx(s.lastStepToSucceedIdx, &execCtx)
-// 	} else {
-// 		logging.L().Info("[*] Completed TTP - No Errors :)")
-// 	}
+	var runErr error
+	stepResults, lastStepToSucceedIdx, runErr := s.ttp.RunSteps(&execCtx)
+	if runErr != nil {
+		// for subTTPs, we need to start cleanup now - cleanup of previous steps
+		// will proceed according to the normal LIFO process
+		logging.L().Errorf("[*] Error executing SubTTP: %v", runErr)
+		logging.L().Errorf("[*] Beginning SubTTP cleanup")
+		s.ttp.startCleanupAtStepIdx(lastStepToSucceedIdx, &execCtx)
+		return nil, runErr
+	}
+	logging.L().Info("[*] Completed TTP - No Errors :)")
+	return aggregateResults(stepResults.ByIndex), nil
+}
 
-// 	// for _, step := range s.ttp.Steps {
-// 	// 	stepCopy := step
-// 	// 	logging.L().Infof("[+] Running current step: %s", step.Name)
+// loadSubTTP loads a TTP file into a SubTTPStep instance
+// and validates the contained steps.
+func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
+	repo := execCtx.Cfg.Repo
+	subTTPAbsPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpFile)
+	if err != nil {
+		return err
+	}
 
-// 	// 	result, err := stepCopy.Execute(s.subExecCtx)
-// 	// 	if err != nil {
-// 	// 		return nil, err
-// 	// 	}
-// 	// 	results = append(results, result)
+	subArgsKv, err := s.processSubTTPArgs(execCtx)
+	if err != nil {
+		return err
+	}
 
-// 	// 	stepClean := stepCopy.GetCleanup()
-// 	// 	if stepClean != nil {
-// 	// 		logging.L().Debugw("adding cleanup step", "cleanup", stepClean)
-// 	// 		s.CleanupSteps = append(stepCopy.GetCleanup(), s.CleanupSteps...)
-// 	// 	}
+	ttps, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &s.subExecCtx.Cfg, subArgsKv)
+	if err != nil {
+		return err
+	}
+	s.ttp = ttps
+	return nil
+}
 
-// 	// 	logging.L().Infof("[+] Finished running step: %s", stepCopy.StepName())
-// 	// // }
+// IsNil checks if the SubTTPStep is empty or uninitialized.
+func (s *SubTTPStep) IsNil() bool {
+	switch {
+	case s.TtpFile == "":
+		return true
+	default:
+		return false
+	}
+}
 
-// 	logging.L().Info("Finished execution of sub ttp file")
+// Validate checks the validity of the SubTTPStep by ensuring
+// the following conditions are met:
+// The associated Act is valid.
+// The TTP file associated with the SubTTPStep can be successfully unmarshalled.
+// The TTP file path is not empty.
+// The steps within the TTP file do not contain any nested SubTTPSteps.
+// If any of these conditions are not met, an error is returned.
+func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
+	if s.TtpFile == "" {
+		return errors.New("a TTP file path is required and must not be empty")
+	}
 
-// 	return aggregateResults(results), nil
+	if err := s.loadSubTTP(execCtx); err != nil {
+		return err
+	}
 
-// // loadSubTTP loads a TTP file into a SubTTPStep instance
-// // and validates the contained steps.
-// func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
-
-// 	repo := execCtx.Cfg.Repo
-// 	subTTPAbsPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpFile)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	subArgsKv, err := s.processSubTTPArgs(execCtx)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	ttps, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &s.subExecCtx.Cfg, subArgsKv)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	s.ttp = ttps
-// 	return nil
-// }
-
-// // IsNil checks if the SubTTPStep is empty or uninitialized.
-// func (s *SubTTPStep) IsNil() bool {
-// 	switch {
-// 	case s.TtpFile == "":
-// 		return true
-// 	default:
-// 		return false
-// 	}
-// }
-
-// // Validate checks the validity of the SubTTPStep by ensuring
-// // the following conditions are met:
-// // The associated Act is valid.
-// // The TTP file associated with the SubTTPStep can be successfully unmarshalled.
-// // The TTP file path is not empty.
-// // The steps within the TTP file do not contain any nested SubTTPSteps.
-// // If any of these conditions are not met, an error is returned.
-// func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
-// 	if s.TtpFile == "" {
-// 		return errors.New("a TTP file path is required and must not be empty")
-// 	}
-
-// 	if err := s.loadSubTTP(execCtx); err != nil {
-// 		return err
-// 	}
-
-// 	return s.ttp.ValidateSteps(execCtx)
-// }
+	return s.ttp.ValidateSteps(execCtx)
+}
