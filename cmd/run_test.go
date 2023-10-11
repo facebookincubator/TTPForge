@@ -70,6 +70,17 @@ func TestRun(t *testing.T) {
 			expectedStdout: "simple inline was executed\n",
 		},
 		{
+			name:        "subttp-cleanup",
+			description: "verify that execution of a subTTP with cleanup succeeds",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"another-repo//sub-ttp-example/ttp.yaml",
+			},
+			expectedStdout: "subttp1_step_1\nsubttp1_step_2\nsubttp2_step_1\nsubttp2_step_1_cleanup\nsubttp1_step_2_cleanup\nsubttp1_step_1_cleanup\n",
+			wantError:      true,
+		},
+		{
 			name:        "dry-run-success",
 			description: "validating a TTP with `--dry-run` should work for a syntactically valid TTP",
 			args: []string{

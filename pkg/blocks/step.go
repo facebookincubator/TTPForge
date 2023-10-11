@@ -80,6 +80,20 @@ func (s *Step) ShouldCleanupOnFailure() bool {
 	}
 }
 
+// ShouldUseImplicitDefaultCleanup is a hack
+// to make subTTPs always run their default
+// cleanup process even when `cleanup: default` is
+// not explicitly specified - this is purely for backward
+// compatibility
+func ShouldUseImplicitDefaultCleanup(action Action) bool {
+	switch action.(type) {
+	case *SubTTPStep:
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 	// Decode all of the shared fields.
@@ -104,7 +118,12 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 	// figure out what kind of action is
 	// associated with cleaning up this step
-	if !csf.CleanupSpec.IsZero() {
+	if csf.CleanupSpec.IsZero() {
+		// hack for subTTPs - they should always use their default cleanup
+		if ShouldUseImplicitDefaultCleanup(s.action) {
+			s.cleanup = s.action.GetDefaultCleanupAction()
+		}
+	} else {
 		useDefaultCleanup, err := isDefaultCleanup(&csf.CleanupSpec)
 		if err != nil {
 			return err

@@ -1,0 +1,11 @@
+---
+name: subttp1
+steps:
+  - name: subttp1_step_1
+    inline: echo subttp1_step_1
+    cleanup:
+      inline: echo subttp1_step_1_cleanup
+  - name: subttp1_step_2
+    inline: echo subttp1_step_2
+    cleanup:
+      inline: echo subttp1_step_2_cleanup

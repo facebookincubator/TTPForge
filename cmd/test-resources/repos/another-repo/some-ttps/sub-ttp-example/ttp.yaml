@@ -1,0 +1,7 @@
+---
+name: subttp_cleanup_test
+steps:
+  - name: first_sub_ttp
+    ttp: sub-ttp-example/subttp1.yaml
+  - name: second_sub_ttp
+    ttp: sub-ttp-example/subttp2.yaml

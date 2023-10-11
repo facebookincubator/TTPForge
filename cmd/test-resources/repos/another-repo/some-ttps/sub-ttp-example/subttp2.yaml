@@ -1,0 +1,11 @@
+---
+name: subttp2
+steps:
+  - name: subttp2_step_1
+    inline: echo subttp2_step_1
+    cleanup:
+      inline: echo subttp2_step_1_cleanup
+  - name: intentional_failure
+    inline: foobarbaz
+    cleanup:
+      inline: echo subttp2_step_2_cleanup
