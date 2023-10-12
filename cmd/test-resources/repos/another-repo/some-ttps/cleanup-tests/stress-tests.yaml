@@ -13,7 +13,7 @@ steps:
     print_str: execute_step_2
     cleanup:
       file: test.sh
-      args:  
+      args:
         - cleanup_step_2
   - name: ttp-with-print-cleanup
     ttp: cleanup-tests/subttp/ttp.yaml

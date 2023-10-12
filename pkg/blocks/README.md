@@ -17,170 +17,13 @@ The `blocks` package is a part of the TTPForge.
 
 ## Functions
 
-### Act.CheckCondition()
-
-```go
-CheckCondition() bool, error
-```
-
-CheckCondition checks the condition specified for an Act and returns true
-if it matches the current OS, false otherwise. If the condition is "always",
-the function returns true.
-If an error occurs while checking the condition, it is returned.
-
-**Returns:**
-
-bool: true if the condition matches the current OS or the
-condition is "always", false otherwise.
-
-error: An error if an error occurs while checking the condition.
-
----
-
-### Act.ExplainInvalid()
-
-```go
-ExplainInvalid() error
-```
-
-ExplainInvalid returns an error explaining why the Act is invalid.
-
-**Returns:**
-
-error: An error explaining why the Act is invalid, or nil
-if the Act is valid.
-
----
-
-### Act.IsNil()
-
-```go
-IsNil() bool
-```
-
-IsNil checks whether the Act is nil (i.e., it does not have a name).
-
-**Returns:**
-
-bool: True if the Act has no name, false otherwise.
-
----
-
-### Act.MakeCleanupStep(*yaml.Node)
-
-```go
-MakeCleanupStep(*yaml.Node) CleanupAct, error
-```
-
-MakeCleanupStep creates a CleanupAct based on the given yaml.Node.
-If the node is empty or invalid, it returns nil. If the node contains a
-BasicStep or FileStep, the corresponding CleanupAct is created and returned.
-
-**Parameters:**
-
-node: A pointer to a yaml.Node containing the parameters to
-create the CleanupAct.
-
-**Returns:**
-
-CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
-
-error: An error if the node contains invalid parameters.
-
----
-
-### Act.SetDir(string)
-
-```go
-SetDir(string)
-```
-
-SetDir sets the working directory for the Act.
-
-**Parameters:**
-
-dir: A string representing the directory path to be set
-as the working directory.
-
----
-
-### Act.StepName()
-
-```go
-StepName() string
-```
-
-StepName returns the name of the Act.
-
-**Returns:**
-
-string: The name of the Act.
-
----
-
-### Act.Validate()
-
-```go
-Validate() error
-```
-
-Validate checks the Act for any validation errors, such as the presence of
-spaces in the name.
-
-**Returns:**
-
-error: An error if any validation errors are found, or nil if
-the Act is valid.
-
----
-
-### BasicStep.Cleanup(TTPExecutionContext)
-
-```go
-Cleanup(TTPExecutionContext) *ActResult, error
-```
-
-Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-
----
-
 ### BasicStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) *ExecutionResult, error
+Execute(TTPExecutionContext) *ActResult, error
 ```
 
 Execute runs the BasicStep and returns an error if any occur.
-
----
-
-### BasicStep.ExplainInvalid()
-
-```go
-ExplainInvalid() error
-```
-
-ExplainInvalid returns an error with an explanation of why a BasicStep is invalid.
-
----
-
-### BasicStep.GetCleanup()
-
-```go
-GetCleanup() []CleanupAct
-```
-
-GetCleanup returns the cleanup steps for a BasicStep.
-
----
-
-### BasicStep.GetType()
-
-```go
-GetType() StepType
-```
-
-GetType returns the step type for a BasicStep.
 
 ---
 
@@ -194,16 +37,6 @@ IsNil checks if a BasicStep is considered empty or uninitialized.
 
 ---
 
-### BasicStep.UnmarshalYAML(*yaml.Node)
-
-```go
-UnmarshalYAML(*yaml.Node) error
-```
-
-UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
-
----
-
 ### BasicStep.Validate(TTPExecutionContext)
 
 ```go
@@ -214,60 +47,22 @@ Validate validates the BasicStep, checking for the necessary attributes and depe
 
 ---
 
-### CreateFileStep.Cleanup(TTPExecutionContext)
-
-```go
-Cleanup(TTPExecutionContext) *ActResult, error
-```
-
-Cleanup is a method to establish a link with the Cleanup interface.
-Assumes that the type is the cleanup step and is invoked by
-s.CleanupStep.Cleanup.
-
----
-
 ### CreateFileStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) *ExecutionResult, error
+Execute(TTPExecutionContext) *ActResult, error
 ```
 
 Execute runs the step and returns an error if any occur.
 
 ---
 
-### CreateFileStep.ExplainInvalid()
+### CreateFileStep.GetDefaultCleanupAction()
 
 ```go
-ExplainInvalid() error
+GetDefaultCleanupAction() Action
 ```
 
-ExplainInvalid returns an error message explaining why the step
-is invalid.
-
-**Returns:**
-
-error: An error message explaining why the step is invalid.
-
----
-
-### CreateFileStep.GetCleanup()
-
-```go
-GetCleanup() []CleanupAct
-```
-
-GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-
----
-
-### CreateFileStep.GetType()
-
-```go
-GetType() StepType
-```
-
-GetType returns the type of the step as StepType.
 
 ---
 
@@ -278,26 +73,6 @@ IsNil() bool
 ```
 
 IsNil checks if the step is nil or empty and returns a boolean value.
-
----
-
-### CreateFileStep.UnmarshalYAML(*yaml.Node)
-
-```go
-UnmarshalYAML(*yaml.Node) error
-```
-
-UnmarshalYAML decodes a YAML node into a CreateFileStep instance. It uses
-the provided struct as a template for the YAML data, and initializes the
-CreateFileStep instance with the decoded values.
-
-**Parameters:**
-
-node: A pointer to a yaml.Node representing the YAML data to decode.
-
-**Returns:**
-
-error: An error if there is a problem decoding the YAML data.
 
 ---
 
@@ -318,32 +93,10 @@ error: An error if any validation checks fail.
 ### EditStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) *ExecutionResult, error
+Execute(TTPExecutionContext) *ActResult, error
 ```
 
 Execute runs the EditStep and returns an error if any occur.
-
----
-
-### EditStep.GetCleanup()
-
-```go
-GetCleanup() []CleanupAct
-```
-
-GetCleanup returns the cleanup steps for a EditStep.
-Currently this is always empty because we use backup
-files instead for this type of step
-
----
-
-### EditStep.GetType()
-
-```go
-GetType() StepType
-```
-
-GetType returns the step type for a EditStep.
 
 ---
 
@@ -427,45 +180,10 @@ f.CleanupStep.Cleanup.
 ### FetchURIStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) *ExecutionResult, error
+Execute(TTPExecutionContext) *ActResult, error
 ```
 
 Execute runs the FetchURIStep and returns an error if any occur.
-
----
-
-### FetchURIStep.ExplainInvalid()
-
-```go
-ExplainInvalid() error
-```
-
-ExplainInvalid returns an error message explaining why the FetchURIStep
-is invalid.
-
-**Returns:**
-
-error: An error message explaining why the FetchURIStep is invalid.
-
----
-
-### FetchURIStep.GetCleanup()
-
-```go
-GetCleanup() []CleanupAct
-```
-
-GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-
----
-
-### FetchURIStep.GetType()
-
-```go
-GetType() StepType
-```
-
-GetType returns the type of the step as StepType.
 
 ---
 
@@ -476,26 +194,6 @@ IsNil() bool
 ```
 
 IsNil checks if the FetchURIStep is nil or empty and returns a boolean value.
-
----
-
-### FetchURIStep.UnmarshalYAML(*yaml.Node)
-
-```go
-UnmarshalYAML(*yaml.Node) error
-```
-
-UnmarshalYAML decodes a YAML node into a FetchURIStep instance. It uses
-the provided struct as a template for the YAML data, and initializes the
-FetchURIStep instance with the decoded values.
-
-**Parameters:**
-
-node: A pointer to a yaml.Node representing the YAML data to decode.
-
-**Returns:**
-
-error: An error if there is a problem decoding the YAML data.
 
 ---
 
@@ -533,45 +231,10 @@ f.CleanupStep.Cleanup.
 ### FileStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) *ExecutionResult, error
+Execute(TTPExecutionContext) *ActResult, error
 ```
 
 Execute runs the FileStep and returns an error if any occur.
-
----
-
-### FileStep.ExplainInvalid()
-
-```go
-ExplainInvalid() error
-```
-
-ExplainInvalid returns an error message explaining why the FileStep
-is invalid.
-
-**Returns:**
-
-error: An error message explaining why the FileStep is invalid.
-
----
-
-### FileStep.GetCleanup()
-
-```go
-GetCleanup() []CleanupAct
-```
-
-GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-
----
-
-### FileStep.GetType()
-
-```go
-GetType() StepType
-```
-
-GetType returns the type of the step as StepType.
 
 ---
 
@@ -582,26 +245,6 @@ IsNil() bool
 ```
 
 IsNil checks if the FileStep is nil or empty and returns a boolean value.
-
----
-
-### FileStep.UnmarshalYAML(*yaml.Node)
-
-```go
-UnmarshalYAML(*yaml.Node) error
-```
-
-UnmarshalYAML decodes a YAML node into a FileStep instance. It uses
-the provided struct as a template for the YAML data, and initializes the
-FileStep instance with the decoded values.
-
-**Parameters:**
-
-node: A pointer to a yaml.Node representing the YAML data to decode.
-
-**Returns:**
-
-error: An error if there is a problem decoding the YAML data.
 
 ---
 
@@ -671,7 +314,7 @@ returns it as a string.
 ### LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string)
 
 ```go
-LoadTTP(string, afero.Fs, *TTPExecutionConfig, []string) *TTP, error
+LoadTTP(string afero.Fs *TTPExecutionConfig []string) *TTP *TTPExecutionContext error
 ```
 
 LoadTTP reads a TTP file and creates a TTP instance based on its contents.
@@ -684,7 +327,8 @@ fsys: an afero.Fs that contains the specified TTP file path
 
 **Returns:**
 
-ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
+*TTP: Pointer to the created TTP instance, or nil if the file is empty or invalid.
+TTPExecutionContext: the initialized TTPExecutionContext suitable for passing to TTP.Execute(...)
 err: An error if the file contains invalid data or cannot be read.
 
 ---
@@ -759,6 +403,74 @@ NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
 
 ---
 
+### PrintStrAction.Execute(TTPExecutionContext)
+
+```go
+Execute(TTPExecutionContext) *ActResult, error
+```
+
+Execute runs the step and returns an error if any occur.
+
+---
+
+### PrintStrAction.IsNil()
+
+```go
+IsNil() bool
+```
+
+IsNil checks if the step is nil or empty and returns a boolean value.
+
+---
+
+### PrintStrAction.Validate(TTPExecutionContext)
+
+```go
+Validate(TTPExecutionContext) error
+```
+
+Validate validates the step
+
+**Returns:**
+
+error: An error if any validation checks fail.
+
+---
+
+### RemovePathAction.Execute(TTPExecutionContext)
+
+```go
+Execute(TTPExecutionContext) *ActResult, error
+```
+
+Execute runs the step and returns an error if any occur.
+
+---
+
+### RemovePathAction.IsNil()
+
+```go
+IsNil() bool
+```
+
+IsNil checks if the step is nil or empty and returns a boolean value.
+
+---
+
+### RemovePathAction.Validate(TTPExecutionContext)
+
+```go
+Validate(TTPExecutionContext) error
+```
+
+Validate validates the step
+
+**Returns:**
+
+error: An error if any validation checks fail.
+
+---
+
 ### RenderTemplatedTTP(string, *TTPExecutionConfig)
 
 ```go
@@ -782,20 +494,83 @@ error: An error if the rendering or unmarshaling process fails.
 
 ---
 
-### SubTTPStep.Cleanup(TTPExecutionContext)
+### ShouldUseImplicitDefaultCleanup(Action)
+
+```go
+ShouldUseImplicitDefaultCleanup(Action) bool
+```
+
+ShouldUseImplicitDefaultCleanup is a hack
+to make subTTPs always run their default
+cleanup process even when `cleanup: default` is
+not explicitly specified - this is purely for backward
+compatibility
+
+---
+
+### Step.Cleanup(TTPExecutionContext)
 
 ```go
 Cleanup(TTPExecutionContext) *ActResult, error
 ```
 
-Cleanup runs the cleanup actions associated with all successful sub-steps
+
+---
+
+### Step.Execute(TTPExecutionContext)
+
+```go
+Execute(TTPExecutionContext) *ActResult, error
+```
+
+
+---
+
+### Step.ParseAction(*yaml.Node)
+
+```go
+ParseAction(*yaml.Node) Action, error
+```
+
+
+---
+
+### Step.ShouldCleanupOnFailure()
+
+```go
+ShouldCleanupOnFailure() bool
+```
+
+ShouldCleanupOnFailure specifies that this step should be cleaned
+up even if its Execute(...)  failed.
+We usually don't want to do this - for example,
+you shouldn't try to remove_path a create_file that failed)
+However, certain step types (especially SubTTPs) need to run cleanup even if they fail
+
+---
+
+### Step.UnmarshalYAML(*yaml.Node)
+
+```go
+UnmarshalYAML(*yaml.Node) error
+```
+
+
+---
+
+### Step.Validate(TTPExecutionContext)
+
+```go
+Validate(TTPExecutionContext) error
+```
+
 
 ---
 
 ### SubTTPStep.Execute(TTPExecutionContext)
 
 ```go
-Execute(TTPExecutionContext) *ExecutionResult, error
+Execute(TTPExecutionContext) *ActResult, error
 ```
 
 Execute runs each step of the TTP file associated with the SubTTPStep
@@ -803,35 +578,12 @@ and manages the outputs and cleanup steps.
 
 ---
 
-### SubTTPStep.ExplainInvalid()
+### SubTTPStep.GetDefaultCleanupAction()
 
 ```go
-ExplainInvalid() error
+GetDefaultCleanupAction() Action
 ```
 
-ExplainInvalid checks for invalid data in the SubTTPStep
-and returns an error explaining any issues found.
-Currently, it checks if the TtpFile field is empty.
-
----
-
-### SubTTPStep.GetCleanup()
-
-```go
-GetCleanup() []CleanupAct
-```
-
-GetCleanup returns a slice of CleanupAct associated with the SubTTPStep.
-
----
-
-### SubTTPStep.GetType()
-
-```go
-GetType() StepType
-```
-
-GetType returns the type of the step (StepSubTTP for SubTTPStep).
 
 ---
 
@@ -842,17 +594,6 @@ IsNil() bool
 ```
 
 IsNil checks if the SubTTPStep is empty or uninitialized.
-
----
-
-### SubTTPStep.UnmarshalYAML(*yaml.Node)
-
-```go
-UnmarshalYAML(*yaml.Node) error
-```
-
-UnmarshalYAML is a custom unmarshaller for SubTTPStep which decodes
-a YAML node into a SubTTPStep instance.
 
 ---
 
@@ -869,6 +610,26 @@ The TTP file associated with the SubTTPStep can be successfully unmarshalled.
 The TTP file path is not empty.
 The steps within the TTP file do not contain any nested SubTTPSteps.
 If any of these conditions are not met, an error is returned.
+
+---
+
+### TTP.Execute(*TTPExecutionContext)
+
+```go
+Execute(*TTPExecutionContext) *StepResultsRecord, error
+```
+
+Execute,executes all of the steps in the given TTP,
+then runs cleanup if appropriate
+
+**Parameters:**
+
+execCfg: The TTPExecutionConfig for the current TTP.
+
+**Returns:**
+
+*StepResultsRecord: A StepResultsRecord containing the results of each step.
+error: An error if any of the steps fail to execute.
 
 ---
 
@@ -889,56 +650,35 @@ error: An error if the encoding process fails.
 
 ---
 
-### TTP.RunSteps(TTPExecutionConfig)
+### TTP.RunSteps(*TTPExecutionContext)
 
 ```go
-RunSteps(TTPExecutionConfig) *StepResultsRecord, error
+RunSteps(*TTPExecutionContext) *StepResultsRecord, int, error
 ```
 
 RunSteps executes all of the steps in the given TTP.
 
 **Parameters:**
 
-execCfg: The TTPExecutionConfig for the current TTP.
+execCtx: The current TTPExecutionContext
 
 **Returns:**
 
 *StepResultsRecord: A StepResultsRecord containing the results of each step.
+int: the index of the step where cleanup shoudl start (usually the last successful step)
 error: An error if any of the steps fail to execute.
 
 ---
 
-### TTP.UnmarshalYAML(*yaml.Node)
+### TTP.Validate(TTPExecutionContext)
 
 ```go
-UnmarshalYAML(*yaml.Node) error
+Validate(TTPExecutionContext) error
 ```
 
-UnmarshalYAML is a custom unmarshalling implementation for the TTP structure.
-It decodes a YAML Node into a TTP object, handling the decoding and
-validation of the individual steps within the TTP.
-
-**Parameters:**
-
-node: A pointer to a yaml.Node that represents the TTP structure
-to be unmarshalled.
-
-**Returns:**
-
-error: An error if the decoding process fails or if the TTP structure contains invalid steps.
-
----
-
-### TTP.ValidateSteps(TTPExecutionContext)
-
-```go
-ValidateSteps(TTPExecutionContext) error
-```
-
-ValidateSteps iterates through each step in the TTP and validates it.
-It sets the working directory for each step before calling its Validate
-method. If any step fails validation, the method returns an error.
-If all steps are successfully validated, the method returns nil.
+Validate ensures that all components of the TTP are valid
+It checks key fields, then iterates through each step
+and validates them in turn
 
 **Parameters:**
 
@@ -946,7 +686,7 @@ execCtx: The TTPExecutionContext for the current TTP.
 
 **Returns:**
 
-error: An error if any step validation fails, otherwise nil.
+error: An error if any part of the validation fails, otherwise nil.
 
 ---
 
@@ -969,6 +709,47 @@ inStrs: the list of strings that have variables expanded
 
 []string: the corresponding strings with variables expanded
 error: an error if there is a problem
+
+---
+
+### actionDefaults.GetDefaultCleanupAction()
+
+```go
+GetDefaultCleanupAction() Action
+```
+
+GetDefaultCleanupAction provides a default implementation
+of the GetDefaultCleanupAction method from the Action interface.
+This saves us from having to declare this function for every steps
+If a specific action needs a default cleanup action (such as a create_file action),
+it can override this step
+
+---
+
+### subTTPCleanupAction.Execute(TTPExecutionContext)
+
+```go
+Execute(TTPExecutionContext) *ActResult, error
+```
+
+
+---
+
+### subTTPCleanupAction.IsNil()
+
+```go
+IsNil() bool
+```
+
+
+---
+
+### subTTPCleanupAction.Validate(TTPExecutionContext)
+
+```go
+Validate(TTPExecutionContext) error
+```
+
 
 ---
 
