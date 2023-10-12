@@ -113,6 +113,16 @@ func TestRun(t *testing.T) {
 			},
 			expectedStdout: "simple inline was executed\n",
 		},
+		{
+			name:        "cleanup-stress-test",
+			description: "run many different execute+cleanup combinations",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"another-repo//cleanup-tests/stress-tests.yaml",
+			},
+			expectedStdout: "execute_step_1\nexecute_step_2\nexecute_step_3\nexecute_step_4\ncleanup_step_4\ncleanup_step_3\ncleanup_step_2\ncleanup_step_1\n",
+		},
 	}
 
 	for _, tc := range testCases {

@@ -133,7 +133,7 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	// Infer executor if it's not set.
 	if f.Executor == "" {
 		f.Executor = InferExecutor(f.FilePath)
-		logging.L().Infow("executor set via extension", "exec", f.Executor)
+		logging.L().Debugw("executor set via extension", "exec", f.Executor)
 	}
 
 	if f.Executor == ExecutorBinary {

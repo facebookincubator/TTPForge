@@ -27,7 +27,6 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -141,7 +140,6 @@ func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	for _, step := range t.Steps {
 		stepCopy := step
 		if err := stepCopy.Validate(execCtx); err != nil {
-			logging.L().Errorw("failed to validate %s step: %v", step, zap.Error(err))
 			return err
 		}
 	}

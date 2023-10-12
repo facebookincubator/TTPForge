@@ -171,7 +171,7 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 	// actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
-	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
+	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep(), &PrintStrAction{}}
 	var action Action
 	for _, actionType := range actionCandidates {
 		err := node.Decode(actionType)
