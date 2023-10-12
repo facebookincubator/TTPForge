@@ -167,7 +167,7 @@ func (t *TTP) chdir() (func(), error) {
 	}, nil
 }
 
-// Execute,executes all of the steps in the given TTP,
+// Execute executes all of the steps in the given TTP,
 // then runs cleanup if appropriate
 //
 // **Parameters:**
@@ -257,7 +257,7 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 			}
 			return nil, firstStepToCleanupIdx, err
 		}
-		firstStepToCleanupIdx += 1
+		firstStepToCleanupIdx++
 
 		execResult := &ExecutionResult{
 			ActResult: *stepResult,
@@ -281,7 +281,7 @@ func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecu
 
 	logging.L().Info("[*] Beginning Cleanup")
 	var cleanupResults []*ActResult
-	for cleanupIdx := firstStepToCleanupIdx; cleanupIdx >= 0; cleanupIdx -= 1 {
+	for cleanupIdx := firstStepToCleanupIdx; cleanupIdx >= 0; cleanupIdx-- {
 		stepToCleanup := t.Steps[cleanupIdx]
 		cleanupResult, err := stepToCleanup.Cleanup(*execCtx)
 		// must be careful to put these in step order, not in execution (reverse) order

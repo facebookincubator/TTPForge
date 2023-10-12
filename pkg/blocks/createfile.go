@@ -90,6 +90,8 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error
 	return &ActResult{}, nil
 }
 
+// GetDefaultCleanupAction will instruct the calling code
+// to remove the path created by this action
 func (s *CreateFileStep) GetDefaultCleanupAction() Action {
 	return &RemovePathAction{
 		Path: s.Path,

@@ -63,6 +63,8 @@ Execute runs the step and returns an error if any occur.
 GetDefaultCleanupAction() Action
 ```
 
+GetDefaultCleanupAction will instruct the calling code
+to remove the path created by this action
 
 ---
 
@@ -514,6 +516,7 @@ compatibility
 Cleanup(TTPExecutionContext) *ActResult, error
 ```
 
+Cleanup runs the cleanup action associated with this step
 
 ---
 
@@ -523,6 +526,7 @@ Cleanup(TTPExecutionContext) *ActResult, error
 Execute(TTPExecutionContext) *ActResult, error
 ```
 
+Execute runs the action associated with this step
 
 ---
 
@@ -532,6 +536,8 @@ Execute(TTPExecutionContext) *ActResult, error
 ParseAction(*yaml.Node) Action, error
 ```
 
+ParseAction decodes an action (from step or cleanup) in YAML
+format into the appropriate struct
 
 ---
 
@@ -555,6 +561,9 @@ However, certain step types (especially SubTTPs) need to run cleanup even if the
 UnmarshalYAML(*yaml.Node) error
 ```
 
+UnmarshalYAML implements custom deserialization
+process to ensure that the step action and its
+cleanup action are decoded to the correct struct type
 
 ---
 
@@ -564,6 +573,8 @@ UnmarshalYAML(*yaml.Node) error
 Validate(TTPExecutionContext) error
 ```
 
+Validate checks that both the step action and cleanup
+action are valid
 
 ---
 
@@ -584,6 +595,8 @@ and manages the outputs and cleanup steps.
 GetDefaultCleanupAction() Action
 ```
 
+GetDefaultCleanupAction will instruct the calling code
+to cleanup all successful steps of this subTTP
 
 ---
 
@@ -619,7 +632,7 @@ If any of these conditions are not met, an error is returned.
 Execute(*TTPExecutionContext) *StepResultsRecord, error
 ```
 
-Execute,executes all of the steps in the given TTP,
+Execute executes all of the steps in the given TTP,
 then runs cleanup if appropriate
 
 **Parameters:**
@@ -732,6 +745,7 @@ it can override this step
 Execute(TTPExecutionContext) *ActResult, error
 ```
 
+Execute will cleanup the subTTP starting from the last successful step
 
 ---
 
@@ -741,6 +755,7 @@ Execute(TTPExecutionContext) *ActResult, error
 IsNil() bool
 ```
 
+IsNil is not needed here, as this is not a user-accessible step type
 
 ---
 
@@ -750,6 +765,7 @@ IsNil() bool
 Validate(TTPExecutionContext) error
 ```
 
+Validate is not needed here, as this is not a user-accessible step type
 
 ---
 

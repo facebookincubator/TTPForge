@@ -33,6 +33,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// These are all the different executors that could run
+// our inline command
 const (
 	ExecutorPython     = "python3"
 	ExecutorBash       = "bash"

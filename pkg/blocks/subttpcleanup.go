@@ -19,23 +19,28 @@ THE SOFTWARE.
 
 package blocks
 
-// Action is an interface that is implemented
-// by all action types used in steps/cleanups
-// (such as create_file, inline, etc)
-type Action interface {
-	Execute(execCtx TTPExecutionContext) (*ActResult, error)
-	Validate(execCtx TTPExecutionContext) error
-	GetDefaultCleanupAction() Action
-	IsNil() bool
+// subTTPCleanupAction ensures that individual
+// steps of the subTTP are appropriately cleaned up
+type subTTPCleanupAction struct {
+	actionDefaults
+	step *SubTTPStep
 }
 
-type actionDefaults struct{}
+// Execute will cleanup the subTTP starting from the last successful step
+func (a *subTTPCleanupAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	cleanupResults, err := a.step.ttp.startCleanupAtStepIdx(a.step.firstStepToCleanupIdx, &execCtx)
+	if err != nil {
+		return nil, err
+	}
+	return aggregateResults(cleanupResults), nil
+}
 
-// GetDefaultCleanupAction provides a default implementation
-// of the GetDefaultCleanupAction method from the Action interface.
-// This saves us from having to declare this function for every steps
-// If a specific action needs a default cleanup action (such as a create_file action),
-// it can override this step
-func (ad *actionDefaults) GetDefaultCleanupAction() Action {
+// IsNil is not needed here, as this is not a user-accessible step type
+func (a *subTTPCleanupAction) IsNil() bool {
+	return false
+}
+
+// Validate is not needed here, as this is not a user-accessible step type
+func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }

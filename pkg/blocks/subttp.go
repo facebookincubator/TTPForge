@@ -41,27 +41,8 @@ func NewSubTTPStep() *SubTTPStep {
 	return &SubTTPStep{}
 }
 
-type subTTPCleanupAction struct {
-	actionDefaults
-	step *SubTTPStep
-}
-
-func (a *subTTPCleanupAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	cleanupResults, err := a.step.ttp.startCleanupAtStepIdx(a.step.firstStepToCleanupIdx, &execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return aggregateResults(cleanupResults), nil
-}
-
-func (a *subTTPCleanupAction) IsNil() bool {
-	return false
-}
-
-func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
-	return nil
-}
-
+// GetDefaultCleanupAction will instruct the calling code
+// to cleanup all successful steps of this subTTP
 func (s *SubTTPStep) GetDefaultCleanupAction() Action {
 	return &subTTPCleanupAction{
 		step: s,

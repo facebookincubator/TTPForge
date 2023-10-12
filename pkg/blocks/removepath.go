@@ -26,6 +26,10 @@ import (
 	"github.com/spf13/afero"
 )
 
+// RemovePathAction is invoked by
+// adding remove_path to a given YAML step.
+// It will delete the file at the specified path
+// You must pass `recursive: true` to delete directories
 type RemovePathAction struct {
 	actionDefaults `yaml:"-"`
 	Path           string   `yaml:"remove_path,omitempty"`

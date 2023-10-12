@@ -27,6 +27,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// CommonStepFields contains the fields
+// common to every type of step (such as Name).
+// It centralizes validation to simplify the code
 type CommonStepFields struct {
 	Name        string `yaml:"name,omitempty"`
 	Description string `yaml:"description,omitempty"`
@@ -94,6 +97,9 @@ func ShouldUseImplicitDefaultCleanup(action Action) bool {
 	}
 }
 
+// UnmarshalYAML implements custom deserialization
+// process to ensure that the step action and its
+// cleanup action are decoded to the correct struct type
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 	// Decode all of the shared fields.
@@ -132,9 +138,8 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 			if dca := s.action.GetDefaultCleanupAction(); dca != nil {
 				s.cleanup = dca
 				return nil
-			} else {
-				return fmt.Errorf("`cleanup: default` was specified but step %v is not an action type that has a default cleanup action", s.Name)
 			}
+			return fmt.Errorf("`cleanup: default` was specified but step %v is not an action type that has a default cleanup action", s.Name)
 		}
 
 		s.cleanup, err = s.ParseAction(&csf.CleanupSpec)
@@ -145,10 +150,12 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// Execute runs the action associated with this step
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	return s.action.Execute(execCtx)
 }
 
+// Cleanup runs the cleanup action associated with this step
 func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	if s.cleanup != nil {
 		return s.cleanup.Execute(execCtx)
@@ -157,6 +164,8 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	return &ActResult{}, nil
 }
 
+// Validate checks that both the step action and cleanup
+// action are valid
 func (s *Step) Validate(execCtx TTPExecutionContext) error {
 	if err := s.action.Validate(execCtx); err != nil {
 		return err
@@ -169,6 +178,8 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// ParseAction decodes an action (from step or cleanup) in YAML
+// format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 	// actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
 	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep(), &PrintStrAction{}}

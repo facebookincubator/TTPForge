@@ -26,6 +26,7 @@ import (
 	"os"
 )
 
+// PrintStrAction is used to print a string to the console
 type PrintStrAction struct {
 	actionDefaults `yaml:"-"`
 	Message        string `yaml:"print_str,omitempty"`

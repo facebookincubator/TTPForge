@@ -95,9 +95,8 @@ inline: this will error`,
 			if tc.wantExecuteError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 			assert.Equal(t, tc.expectedExecuteStdout, result.Stdout)
 
 			// run cleanup and check output
@@ -105,9 +104,8 @@ inline: this will error`,
 			if tc.wantCleanupError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 			assert.Equal(t, tc.expectedCleanupStdout, cleanupResult.Stdout)
 		})
 	}
@@ -183,9 +181,8 @@ cleanup:
 			if tc.wantExecuteError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 			contentBytes, err := os.ReadFile(filePath)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedFileContents, string(contentBytes))
@@ -195,9 +192,8 @@ cleanup:
 			if tc.wantCleanupError {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 
 			// verify that file was deleted
 			fsys := afero.NewOsFs()
