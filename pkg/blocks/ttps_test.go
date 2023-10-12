@@ -132,7 +132,7 @@ steps:
 	}
 }
 
-func TestTTP_ValidateSteps(t *testing.T) {
+func TestTTP_Validate(t *testing.T) {
 	testCases := []struct {
 		name      string
 		content   string
@@ -165,7 +165,7 @@ steps:
 				assert.NoError(t, err)
 			}
 
-			err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
+			err = ttp.Validate(blocks.TTPExecutionContext{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
@@ -317,6 +317,11 @@ steps:
 				return
 			}
 
+			// validate the TTP
+			err = ttp.Validate(blocks.TTPExecutionContext{})
+			require.NoError(t, err)
+
+			// run it
 			stepResults, err := ttp.Execute(&blocks.TTPExecutionContext{
 				Cfg: tc.execConfig,
 			})

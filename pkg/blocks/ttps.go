@@ -119,10 +119,9 @@ func reduceIndentation(b []byte, n int) []byte {
 	return bytes.Join(lines, []byte("\n"))
 }
 
-// ValidateSteps iterates through each step in the TTP and validates it.
-// It sets the working directory for each step before calling its Validate
-// method. If any step fails validation, the method returns an error.
-// If all steps are successfully validated, the method returns nil.
+// Validate ensures that all components of the TTP are valid
+// It checks key fields, then iterates through each step
+// and validates them in turn
 //
 // **Parameters:**
 //
@@ -130,8 +129,8 @@ func reduceIndentation(b []byte, n int) []byte {
 //
 // **Returns:**
 //
-// error: An error if any step validation fails, otherwise nil.
-func (t *TTP) ValidateSteps(execCtx TTPExecutionContext) error {
+// error: An error if any part of the validation fails, otherwise nil.
+func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	logging.L().Info("[*] Validating Steps")
 
 	for _, step := range t.Steps {
@@ -222,11 +221,6 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 	}
 	defer changeBack()
 
-	// validate steps:
-	// stop after validation for dry run
-	if err := t.ValidateSteps(*execCtx); err != nil {
-		return nil, -1, err
-	}
 	if execCtx.Cfg.DryRun {
 		logging.L().Info("[*] Dry-Run Requested - Returning Early")
 		return nil, -1, nil

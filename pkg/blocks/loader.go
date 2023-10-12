@@ -136,6 +136,11 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 		Cfg:     *execCfg,
 		WorkDir: ttp.WorkDir,
 	}
+
+	err = ttp.Validate(*execCtx)
+	if err != nil {
+		return nil, nil, err
+	}
 	return ttp, execCtx, nil
 }
 

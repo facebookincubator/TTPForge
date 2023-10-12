@@ -162,5 +162,5 @@ func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	return s.ttp.ValidateSteps(execCtx)
+	return s.ttp.Validate(execCtx)
 }
