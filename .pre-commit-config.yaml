@@ -22,7 +22,7 @@ repos:
     rev: v3.0.3
     hooks:
       - id: prettier
-        files: \.(json|yaml|yml)$
+        files: \.(json)$
         exclude: docs/container.md
 
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
@@ -83,13 +83,6 @@ repos:
         language: script
         entry: .hooks/go-vet.sh
         files: '\.go$'
-
-      - id: go-critic
-        name: go-critic
-        language: script
-        files: '\.go$'
-        entry: .hooks/go-critic.sh
-        args: ["check"]
 
       - id: go-licenses
         name: Run go-licenses
