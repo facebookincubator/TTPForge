@@ -149,7 +149,7 @@ func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 
 func (t *TTP) chdir() (func(), error) {
 	// note: t.WorkDir may not be set in tests but should
-	// be set when actualy using `ttpforge run`
+	// be set when actually using `ttpforge run`
 	if t.WorkDir == "" {
 		return func() {}, nil
 	}
@@ -214,7 +214,7 @@ func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) 
 // **Returns:**
 //
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
-// int: the index of the step where cleanup shoudl start (usually the last successful step)
+// int: the index of the step where cleanup should start (usually the last successful step)
 // error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, error) {
 	// go to the configuration directory for this TTP

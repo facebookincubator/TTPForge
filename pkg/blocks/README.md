@@ -665,7 +665,7 @@ execCtx: The current TTPExecutionContext
 **Returns:**
 
 *StepResultsRecord: A StepResultsRecord containing the results of each step.
-int: the index of the step where cleanup shoudl start (usually the last successful step)
+int: the index of the step where cleanup should start (usually the last successful step)
 error: An error if any of the steps fail to execute.
 
 ---

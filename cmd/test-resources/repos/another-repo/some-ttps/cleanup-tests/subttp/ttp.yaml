@@ -1,7 +1,7 @@
 ---
 name: print-stuff
 args:
-- name: to_print
+  - name: to_print
 steps:
-- name: print-arg
-  print_str: {{ .Args.to_print }}
+  - name: print-arg
+    print_str: {{.Args.to_print}}
