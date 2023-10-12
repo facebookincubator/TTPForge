@@ -176,11 +176,7 @@ func (t *TTP) chdir() (func(), error) {
 //
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
-func (t *TTP) Execute(execCfg TTPExecutionConfig) (*StepResultsRecord, error) {
-	execCtx := &TTPExecutionContext{
-		Cfg:     execCfg,
-		WorkDir: t.WorkDir,
-	}
+func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) {
 	stepResults, firstStepToCleanupIdx, runErr := t.RunSteps(execCtx)
 	if runErr != nil {
 		// we need to run cleanup so we don't return here

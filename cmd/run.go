@@ -51,12 +51,12 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 			// based on the TTPs argument value specifications
 			ttpCfg.Repo = foundRepo
 
-			ttp, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList)
+			ttp, execCtx, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
 			}
 
-			if _, err := ttp.Execute(ttpCfg); err != nil {
+			if _, err := ttp.Execute(execCtx); err != nil {
 				return fmt.Errorf("failed to run TTP at %v: %v", ttpAbsPath, err)
 			}
 			return nil

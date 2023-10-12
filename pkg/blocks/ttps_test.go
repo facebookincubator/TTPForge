@@ -317,7 +317,9 @@ steps:
 				return
 			}
 
-			stepResults, err := ttp.Execute(tc.execConfig)
+			stepResults, err := ttp.Execute(&blocks.TTPExecutionContext{
+				Cfg: tc.execConfig,
+			})
 			if tc.wantError {
 				require.Error(t, err)
 				return
