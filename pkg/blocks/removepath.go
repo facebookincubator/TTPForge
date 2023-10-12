@@ -29,6 +29,7 @@ import (
 type RemovePathAction struct {
 	actionDefaults `yaml:"-"`
 	Path           string   `yaml:"remove_path,omitempty"`
+	Recursive      bool     `yaml:"recursive,omitempty"`
 	FileSystem     afero.Fs `yaml:"-,omitempty"`
 }
 
@@ -57,6 +58,20 @@ func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, err
 	}
 	if !exists {
 		return nil, fmt.Errorf("path %v does not exist", s.Path)
+	}
+
+	// afero fsys.Remove(...) appears to be buggy
+	// and will remove a directory even if it is not empty
+	// so we check manually - we use the semantics
+	// of the macOS `rm` command and refuse to remove even
+	// empty directories unless recursive is specified
+	isDir, err := afero.IsDir(fsys, s.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if isDir && !s.Recursive {
+		return nil, fmt.Errorf("path %v is a directory and `recursive: true` was not specified - refusing to remove", s.Path)
 	}
 
 	// actually remove the file
