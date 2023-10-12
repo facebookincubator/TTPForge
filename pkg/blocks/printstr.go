@@ -20,7 +20,9 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -46,8 +48,17 @@ func (s *PrintStrAction) Execute(execCtx TTPExecutionContext) (*ActResult, error
 	if stdout == nil {
 		stdout = os.Stdout
 	}
-	fmt.Fprintln(stdout, s.Message)
-	return &ActResult{}, nil
+	expandedStrs, err := execCtx.ExpandVariables([]string{s.Message})
+	if err != nil {
+		return nil, err
+	}
+	var stdoutBuf bytes.Buffer
+	multi := io.MultiWriter(stdout, &stdoutBuf)
+	fmt.Fprintln(multi, expandedStrs[0])
+	result := &ActResult{
+		Stdout: stdoutBuf.String(),
+	}
+	return result, nil
 }
 
 // Validate validates the step
