@@ -341,51 +341,53 @@ steps:
 	}
 }
 
-// func TestMitreAttackMapping(t *testing.T) {
-// 	testCases := []struct {
-// 		name      string
-// 		content   string
-// 		wantError bool
-// 	}{
-// 		{
-// 			name: "Valid MITRE Mapping",
-// 			content: `
-// name: TestTTP
-// description: Test description
-// mitre:
-//   tactics:
-//     - Initial Access
-//     - Execution
-//   techniques:
-//     - Spearphishing Link
-//   subtechniques:
-//     - Attachment
-// `,
-// 			wantError: false,
-// 		},
-// 		{
-// 			name: "Invalid MITRE Mapping - Missing Tactic",
-// 			content: `
-// name: TestTTP
-// description: Test description
-// mitre:
-//   techniques:
-//     - Spearphishing Link
-// `,
-// 			wantError: true,
-// 		},
-// 	}
+func TestMitreAttackMapping(t *testing.T) {
+	testCases := []struct {
+		name      string
+		content   string
+		wantError bool
+	}{
+		{
+			name: "Valid MITRE Mapping",
+			content: `
+name: TestTTP
+description: Test description
+mitre:
+  tactics:
+    - Initial Access
+    - Execution
+  techniques:
+    - Spearphishing Link
+  subtechniques:
+    - Attachment
+`,
+			wantError: false,
+		},
+		{
+			name: "Invalid MITRE Mapping - Missing Tactic",
+			content: `
+name: TestTTP
+description: Test description
+mitre:
+  techniques:
+    - Spearphishing Link
+`,
+			wantError: true,
+		},
+	}
 
-// 	for _, tc := range testCases {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			var ttp blocks.TTP
-// 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
-// 			if tc.wantError {
-// 				assert.Error(t, err)
-// 			} else {
-// 				assert.NoError(t, err)
-// 				assert.NotNil(t, ttp.MitreAttackMapping.Tactics)
-// 			}
-// 		})
-// 	}
-// }
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp blocks.TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			require.NoError(t, err)
+			err = ttp.Validate(blocks.TTPExecutionContext{})
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, ttp.MitreAttackMapping.Tactics)
+			}
+		})
+	}
+}

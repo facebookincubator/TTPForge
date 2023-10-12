@@ -46,7 +46,7 @@ import (
 type TTP struct {
 	Name               string            `yaml:"name,omitempty"`
 	Description        string            `yaml:"description"`
-	MitreAttackMapping MitreAttack       `yaml:"mitre,omitempty"`
+	MitreAttackMapping *MitreAttack      `yaml:"mitre,omitempty"`
 	Environment        map[string]string `yaml:"env,flow,omitempty"`
 	Steps              []Step            `yaml:"steps,omitempty,flow"`
 	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
@@ -132,6 +132,11 @@ func reduceIndentation(b []byte, n int) []byte {
 // error: An error if any part of the validation fails, otherwise nil.
 func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	logging.L().Info("[*] Validating Steps")
+
+	// validate MITRE mapping
+	if t.MitreAttackMapping != nil && len(t.MitreAttackMapping.Tactics) == 0 {
+		return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", t.Name)
+	}
 
 	for _, step := range t.Steps {
 		stepCopy := step
