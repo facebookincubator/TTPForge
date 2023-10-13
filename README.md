@@ -21,7 +21,6 @@ targets and mediums.
 - [Using the TTPForge Dev Container](docs/container.md)
 - [Code Standards](docs/code-standards.md)
 - [Creating a new release](docs/release.md)
-- [TTPForge Building Blocks](docs/building-blocks.md)
 
 ---
 
