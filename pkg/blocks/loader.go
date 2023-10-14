@@ -78,18 +78,19 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 //
 // **Returns:**
 //
-// ttp: Pointer to the created TTP instance, or nil if the file is empty or invalid.
+// *TTP: Pointer to the created TTP instance, or nil if the file is empty or invalid.
+// TTPExecutionContext: the initialized TTPExecutionContext suitable for passing to TTP.Execute(...)
 // err: An error if the file contains invalid data or cannot be read.
-func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, error) {
+func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, argsKvStrs []string) (*TTP, *TTPExecutionContext, error) {
 
 	ttpBytes, err := readTTPBytes(ttpFilePath, fsys)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	result, err := preprocess.Parse(ttpBytes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// linting above establishes that the TTP yaml will be
@@ -100,18 +101,18 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 	var tmpContainer ArgSpecContainer
 	err = yaml.Unmarshal(result.PreambleBytes, &tmpContainer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argValues, err := args.ParseAndValidate(tmpContainer.ArgSpecs, argsKvStrs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
 	}
 	execCfg.Args = argValues
 
 	ttp, err := RenderTemplatedTTP(string(ttpBytes), execCfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// embedded fs has no notion of workdirs
@@ -121,29 +122,26 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 	case *afero.OsFs:
 		absPath, err := filepath.Abs(ttpFilePath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		ttp.WorkDir = filepath.Dir(absPath)
 	default:
 		wd, err := os.Getwd()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		ttp.WorkDir = wd
 	}
-
-	// TODO: refactor directory handling - this is in-elegant
-	// but has less bugs than previous way
-	for _, step := range ttp.Steps {
-		step.SetDir(ttp.WorkDir)
-		if cleanups := step.GetCleanup(); cleanups != nil {
-			for _, c := range cleanups {
-				c.SetDir(ttp.WorkDir)
-			}
-		}
+	execCtx := &TTPExecutionContext{
+		Cfg:     *execCfg,
+		WorkDir: ttp.WorkDir,
 	}
 
-	return ttp, nil
+	err = ttp.Validate(*execCtx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ttp, execCtx, nil
 }
 
 func readTTPBytes(ttpFilePath string, system afero.Fs) ([]byte, error) {

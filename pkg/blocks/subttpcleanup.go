@@ -19,35 +19,28 @@ THE SOFTWARE.
 
 package blocks
 
-import (
-	"bytes"
-	"io"
-	"os"
-	"os/exec"
-)
+// subTTPCleanupAction ensures that individual
+// steps of the subTTP are appropriately cleaned up
+type subTTPCleanupAction struct {
+	actionDefaults
+	step *SubTTPStep
+}
 
-func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
-	if stdout == nil {
-		stdout = os.Stdout
-	}
-	if stderr == nil {
-		stderr = os.Stderr
-	}
-
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(stdout, &stdoutBuf)
-	cmd.Stderr = io.MultiWriter(stderr, &stderrBuf)
-
-	err := cmd.Run()
+// Execute will cleanup the subTTP starting from the last successful step
+func (a *subTTPCleanupAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	cleanupResults, err := a.step.ttp.startCleanupAtStepIdx(a.step.firstStepToCleanupIdx, &execCtx)
 	if err != nil {
 		return nil, err
 	}
-	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
-	result := ActResult{}
-	result.Stdout = outStr
-	result.Stderr = errStr
-	if err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return aggregateResults(cleanupResults), nil
+}
+
+// IsNil is not needed here, as this is not a user-accessible step type
+func (a *subTTPCleanupAction) IsNil() bool {
+	return false
+}
+
+// Validate is not needed here, as this is not a user-accessible step type
+func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
+	return nil
 }

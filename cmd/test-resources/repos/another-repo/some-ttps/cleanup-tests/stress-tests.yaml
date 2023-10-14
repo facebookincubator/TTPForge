@@ -1,0 +1,30 @@
+---
+name: cleanup-stress-test
+description: |
+  Cleanup a whole bunch of different ways
+steps:
+  - name: file-step-with-inline-cleanup
+    file: test.sh
+    args:
+      - execute_step_1
+    cleanup:
+      inline: |
+        echo "cleanup_step_1"
+  - name: print-with-file-cleanup
+    print_str: execute_step_2
+    cleanup:
+      file: test.sh
+      args:
+        - cleanup_step_2
+  - name: ttp-with-print-cleanup
+    ttp: cleanup-tests/subttp/ttp.yaml
+    args:
+      to_print: execute_step_3
+    cleanup:
+      print_str: cleanup_step_3
+  - name: inline-with-ttp-cleanup
+    inline: echo execute_step_4
+    cleanup:
+      ttp: cleanup-tests/subttp/ttp.yaml
+      args:
+        to_print: cleanup_step_4

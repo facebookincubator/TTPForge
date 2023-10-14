@@ -22,241 +22,187 @@ package blocks
 import (
 	"errors"
 	"fmt"
-	"runtime"
-	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"github.com/facebookincubator/ttpforge/pkg/outputs"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
-// Constants representing supported executor types.
-const (
-	ExecutorPython     = "python3"
-	ExecutorBash       = "bash"
-	ExecutorSh         = "sh"
-	ExecutorPowershell = "powershell"
-	ExecutorRuby       = "ruby"
-	ExecutorBinary     = "binary"
-	ExecutorCmd        = "cmd.exe"
-)
+// CommonStepFields contains the fields
+// common to every type of step (such as Name).
+// It centralizes validation to simplify the code
+type CommonStepFields struct {
+	Name        string `yaml:"name,omitempty"`
+	Description string `yaml:"description,omitempty"`
 
-// StepType denotes the type of a step in a TTP.
-type StepType string
-
-// Constants for defining the types of steps available.
-const (
-	StepCreateFile = "createFileStep"
-	StepUnset      = "unsetStep"
-	StepFile       = "fileStep"
-	StepFetchURI   = "fetchURIStep"
-	StepBasic      = "basicStep"
-	StepSubTTP     = "subTTPStep"
-	StepCleanup    = "cleanupStep"
-	StepEdit       = "editStep"
-)
-
-// Act represents a single action within a TTP (Tactics, Techniques,
-// and Procedures) step.
-//
-// Condition: The condition that needs to be satisfied for the Act to execute.
-// Environment: Environment variables used during the Act's execution.
-// Name: The unique name of the Act.
-// WorkDir: The working directory of the Act.
-// Type: The type of the Act (e.g., Command, File, or Setup).
-// success: Indicates whether the execution of the Act was successful.
-// stepRef: Reference to other steps in the sequence.
-// output: The output of the Act's execution.
-type Act struct {
-	Condition   string                  `yaml:"if,omitempty"`
-	Environment map[string]string       `yaml:"env,omitempty"`
-	Name        string                  `yaml:"name"`
-	WorkDir     string                  `yaml:"-"`
-	Outputs     map[string]outputs.Spec `yaml:"outputs,omitempty"`
-	Type        StepType                `yaml:"-"`
+	// CleanupSpec is exported so that UnmarshalYAML
+	// can see it - however, it should be considered
+	// to be a private detail of this file
+	// and not referenced elsewhere in the codebase
+	CleanupSpec yaml.Node `yaml:"cleanup,omitempty"`
 }
 
-// CleanupAct interface is implemented by anything that requires a cleanup step.
-type CleanupAct interface {
-	Cleanup(execCtx TTPExecutionContext) (*ActResult, error)
-	StepName() string
-	SetDir(dir string)
-	IsNil() bool
-	Validate(execCtx TTPExecutionContext) error
+// Step contains a TTPForge executable action
+// and its associated cleanup action (if specified)
+type Step struct {
+	CommonStepFields
+
+	// These are where the actual executable content
+	// of the step (and its associated cleanup process)
+	// live - they are not deserialized directly from YAML
+	// but rather must be decoded by ParseAction
+	action  Action
+	cleanup Action
 }
 
-// Step is an interface that represents a TTP step. Types that implement
-// this interface must provide methods for setting up the environment and
-// output references, setting the working directory, getting the cleanup
-// actions, executing the step, checking if the step is empty, explaining
-// validation errors, validating the step, fetching arguments, getting output,
-// searching output, setting output success status, checking success status,
-// returning the step name, and getting the step type.
-type Step interface {
-	SetDir(dir string)
-	// Need list in case some steps are encapsulating many cleanup steps
-	GetCleanup() []CleanupAct
-	// Execute will need to take care of the condition checks/etc...
-	Execute(execCtx TTPExecutionContext) (*ExecutionResult, error)
-	IsNil() bool
-	ExplainInvalid() error
-	Validate(execCtx TTPExecutionContext) error
-	StepName() string
-	GetType() StepType
+func isDefaultCleanup(cleanupNode *yaml.Node) (bool, error) {
+	var testStr string
+	// is it a string? if not, let the subsequent decoding
+	// in the calling function deal with it
+	if err := cleanupNode.Decode(&testStr); err != nil {
+		return false, nil
+	}
+
+	// if it is a string, it must be a valid string
+	if testStr == "default" {
+		return true, nil
+	}
+	return false, fmt.Errorf("invalid cleanup value specified: %v", testStr)
 }
 
-// SetDir sets the working directory for the Act.
-//
-// **Parameters:**
-//
-// dir: A string representing the directory path to be set
-// as the working directory.
-func (a *Act) SetDir(dir string) {
-	a.WorkDir = dir
-}
-
-// IsNil checks whether the Act is nil (i.e., it does not have a name).
-//
-// **Returns:**
-//
-// bool: True if the Act has no name, false otherwise.
-func (a *Act) IsNil() bool {
-	switch {
-	case a.Name == "":
+// ShouldCleanupOnFailure specifies that this step should be cleaned
+// up even if its Execute(...)  failed.
+// We usually don't want to do this - for example,
+// you shouldn't try to remove_path a create_file that failed)
+// However, certain step types (especially SubTTPs) need to run cleanup even if they fail
+func (s *Step) ShouldCleanupOnFailure() bool {
+	switch s.action.(type) {
+	case *SubTTPStep:
 		return true
 	default:
 		return false
 	}
 }
 
-// ExplainInvalid returns an error explaining why the Act is invalid.
-//
-// **Returns:**
-//
-// error: An error explaining why the Act is invalid, or nil
-// if the Act is valid.
-func (a *Act) ExplainInvalid() error {
-	switch {
-	case a.Name == "":
-		return errors.New("no name provided for current step")
+// ShouldUseImplicitDefaultCleanup is a hack
+// to make subTTPs always run their default
+// cleanup process even when `cleanup: default` is
+// not explicitly specified - this is purely for backward
+// compatibility
+func ShouldUseImplicitDefaultCleanup(action Action) bool {
+	switch action.(type) {
+	case *SubTTPStep:
+		return true
 	default:
-		return nil
+		return false
 	}
 }
 
-// StepName returns the name of the Act.
-//
-// **Returns:**
-//
-// string: The name of the Act.
-func (a *Act) StepName() string {
-	return a.Name
-}
+// UnmarshalYAML implements custom deserialization
+// process to ensure that the step action and its
+// cleanup action are decoded to the correct struct type
+func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
-// Validate checks the Act for any validation errors, such as the presence of
-// spaces in the name.
-//
-// **Returns:**
-//
-// error: An error if any validation errors are found, or nil if
-// the Act is valid.
-func (a *Act) Validate() error {
-	// Make sure name is of format we can index
-	if strings.Contains(a.Name, " ") {
-		return errors.New("name must not contain spaces")
+	// Decode all of the shared fields.
+	// Use of this auxiliary type prevents infinite recursion
+	var csf CommonStepFields
+	err := node.Decode(&csf)
+	if err != nil {
+		return err
+	}
+	s.CommonStepFields = csf
+
+	if s.Name == "" {
+		return errors.New("no name specified for step")
 	}
 
+	// figure out what kind of action is
+	// associated with executing this step
+	s.action, err = s.ParseAction(node)
+	if err != nil {
+		return err
+	}
+
+	// figure out what kind of action is
+	// associated with cleaning up this step
+	if csf.CleanupSpec.IsZero() {
+		// hack for subTTPs - they should always use their default cleanup
+		if ShouldUseImplicitDefaultCleanup(s.action) {
+			s.cleanup = s.action.GetDefaultCleanupAction()
+		}
+	} else {
+		useDefaultCleanup, err := isDefaultCleanup(&csf.CleanupSpec)
+		if err != nil {
+			return err
+		}
+		if useDefaultCleanup {
+			if dca := s.action.GetDefaultCleanupAction(); dca != nil {
+				s.cleanup = dca
+				return nil
+			}
+			return fmt.Errorf("`cleanup: default` was specified but step %v is not an action type that has a default cleanup action", s.Name)
+		}
+
+		s.cleanup, err = s.ParseAction(&csf.CleanupSpec)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// CheckCondition checks the condition specified for an Act and returns true
-// if it matches the current OS, false otherwise. If the condition is "always",
-// the function returns true.
-// If an error occurs while checking the condition, it is returned.
-//
-// **Returns:**
-//
-// bool: true if the condition matches the current OS or the
-// condition is "always", false otherwise.
-//
-// error: An error if an error occurs while checking the condition.
-func (a *Act) CheckCondition() (bool, error) {
-	switch a.Condition {
-	case "windows":
-		if runtime.GOOS == "windows" {
-			return true, nil
-		}
-	case "darwin":
-		if runtime.GOOS == "darwin" {
-			return true, nil
-		}
-	case "linux":
-		if runtime.GOOS == "linux" {
-			return true, nil
-		}
-	// Run even if a previous step has failed.
-	case "always":
-		return true, nil
-
-	default:
-		return false, nil
-	}
-	return false, nil
+// Execute runs the action associated with this step
+func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	return s.action.Execute(execCtx)
 }
 
-// MakeCleanupStep creates a CleanupAct based on the given yaml.Node.
-// If the node is empty or invalid, it returns nil. If the node contains a
-// BasicStep or FileStep, the corresponding CleanupAct is created and returned.
-//
-// **Parameters:**
-//
-// node: A pointer to a yaml.Node containing the parameters to
-// create the CleanupAct.
-//
-// **Returns:**
-//
-// CleanupAct: The created CleanupAct, or nil if the node is empty or invalid.
-//
-// error: An error if the node contains invalid parameters.
-func (a *Act) MakeCleanupStep(node *yaml.Node) (CleanupAct, error) {
-	if node.IsZero() {
-		return nil, nil
+// Cleanup runs the cleanup action associated with this step
+func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	if s.cleanup != nil {
+		return s.cleanup.Execute(execCtx)
 	}
-
-	basic, berr := a.tryDecodeBasicStep(node)
-	if berr == nil && !basic.IsNil() {
-		logging.L().Debugw("cleanup step found", "basicstep", basic)
-		return basic, nil
-	}
-
-	file, ferr := a.tryDecodeFileStep(node)
-	if ferr == nil && !file.IsNil() {
-		logging.L().Debugw("cleanup step found", "filestep", file)
-		return file, nil
-	}
-
-	err := fmt.Errorf("invalid parameters for cleanup steps with basic [%v], file [%v]", berr, ferr)
-	logging.L().Errorw(err.Error(), zap.Error(err))
-	return nil, err
+	logging.L().Infof("No Cleanup Action Defined for Step %v", s.Name)
+	return &ActResult{}, nil
 }
 
-func (a *Act) tryDecodeBasicStep(node *yaml.Node) (*BasicStep, error) {
-	basic := NewBasicStep()
-	err := node.Decode(&basic)
-	if err == nil && basic.Name == "" {
-		basic.Name = fmt.Sprintf("cleanup-%s", a.Name)
-		basic.Type = StepCleanup
+// Validate checks that both the step action and cleanup
+// action are valid
+func (s *Step) Validate(execCtx TTPExecutionContext) error {
+	if err := s.action.Validate(execCtx); err != nil {
+		return err
 	}
-	return basic, err
+	if s.cleanup != nil {
+		if err := s.cleanup.Validate(execCtx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (a *Act) tryDecodeFileStep(node *yaml.Node) (*FileStep, error) {
-	file := NewFileStep()
-	err := node.Decode(&file)
-	if err == nil && file.Name == "" {
-		file.Name = fmt.Sprintf("cleanup-%s", a.Name)
-		file.Type = StepCleanup
+// ParseAction decodes an action (from step or cleanup) in YAML
+// format into the appropriate struct
+func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
+	// actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
+	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep(), &PrintStrAction{}}
+	var action Action
+	for _, actionType := range actionCandidates {
+		err := node.Decode(actionType)
+		if err == nil && !actionType.IsNil() {
+			if action != nil {
+				// Must catch bad steps with ambiguous types, such as:
+				// - name: hello
+				//   file: bar
+				//   ttp: foo
+				//
+				// we can't use KnownFields to solve this without a massive
+				// refactor due to https://github.com/go-yaml/yaml/issues/460
+				// note: we check for non-empty name earlier so s.Name will be non-empty
+				return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
+			}
+			action = actionType
+		}
 	}
-	return file, err
+	if action == nil {
+		return nil, fmt.Errorf("step %v did not match any valid step type", s.Name)
+	}
+	return action, nil
 }

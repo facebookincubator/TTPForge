@@ -21,7 +21,6 @@ package blocks
 
 import (
 	"errors"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -29,133 +28,34 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // FileStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FileStep struct {
-	*Act        `yaml:",inline"`
-	FilePath    string     `yaml:"file,omitempty"`
-	Executor    string     `yaml:"executor,omitempty"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty,flow"`
-	Args        []string   `yaml:"args,omitempty,flow"`
+	actionDefaults `yaml:"-"`
+	FilePath       string                  `yaml:"file,omitempty"`
+	Executor       string                  `yaml:"executor,omitempty"`
+	Environment    map[string]string       `yaml:"env,omitempty"`
+	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	Args           []string                `yaml:"args,omitempty,flow"`
 }
 
 // NewFileStep creates a new FileStep instance and returns a pointer to it.
 func NewFileStep() *FileStep {
-	return &FileStep{
-		Act: &Act{
-			Type: StepFile,
-		},
-	}
-}
-
-// UnmarshalYAML decodes a YAML node into a FileStep instance. It uses
-// the provided struct as a template for the YAML data, and initializes the
-// FileStep instance with the decoded values.
-//
-// **Parameters:**
-//
-// node: A pointer to a yaml.Node representing the YAML data to decode.
-//
-// **Returns:**
-//
-// error: An error if there is a problem decoding the YAML data.
-func (f *FileStep) UnmarshalYAML(node *yaml.Node) error {
-
-	type fileStepTmpl struct {
-		Act         `yaml:",inline"`
-		FilePath    string    `yaml:"file,omitempty"`
-		Executor    string    `yaml:"executor,omitempty"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty,flow"`
-		Args        []string  `yaml:"args,omitempty,flow"`
-	}
-
-	// Decode the YAML node into the provided template.
-	var tmpl fileStepTmpl
-	if err := node.Decode(&tmpl); err != nil {
-		return err
-	}
-
-	// Initialize the FileStep instance with the decoded values.
-	f.Act = &tmpl.Act
-	f.Args = tmpl.Args
-	f.FilePath = tmpl.FilePath
-	f.Executor = tmpl.Executor
-
-	// Check for invalid steps.
-	if f.IsNil() {
-		return f.ExplainInvalid()
-	}
-
-	// If there is no cleanup step or if this step is the cleanup step, exit.
-	if tmpl.CleanupStep.IsZero() || f.Type == StepCleanup {
-		return nil
-	}
-
-	// Create a CleanupStep instance and add it to the FileStep instance.
-	logging.L().Debugw("step", "name", tmpl.Name)
-	cleanup, err := f.MakeCleanupStep(&tmpl.CleanupStep)
-	logging.L().Debugw("step", zap.Error(err))
-	if err != nil {
-		logging.L().Errorw("error creating cleanup step", zap.Error(err))
-		return err
-	}
-
-	f.CleanupStep = cleanup
-
-	return nil
-}
-
-// GetType returns the type of the step as StepType.
-func (f *FileStep) GetType() StepType {
-	return StepFile
+	return &FileStep{}
 }
 
 // Cleanup is a method to establish a link with the Cleanup interface.
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := f.Execute(execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return &result.ActResult, err
-}
-
-// GetCleanup returns a slice of CleanupAct if the CleanupStep is not nil.
-func (f *FileStep) GetCleanup() []CleanupAct {
-	if f.CleanupStep != nil {
-		return []CleanupAct{f.CleanupStep}
-	}
-	return []CleanupAct{}
-}
-
-// ExplainInvalid returns an error message explaining why the FileStep
-// is invalid.
-//
-// **Returns:**
-//
-// error: An error message explaining why the FileStep is invalid.
-func (f *FileStep) ExplainInvalid() error {
-	var err error
-	if f.FilePath == "" {
-		err = errors.New("empty FilePath provided")
-	}
-
-	if f.Name != "" && err != nil {
-		err = fmt.Errorf("[!] invalid FileStep: [%s] %v", f.Name, zap.Error(err))
-	}
-
-	return err
+	return f.Execute(execCtx)
 }
 
 // IsNil checks if the FileStep is nil or empty and returns a boolean value.
 func (f *FileStep) IsNil() bool {
 	switch {
-	case f.Act.IsNil():
-		return true
 	case f.FilePath == "":
 		return true
 	default:
@@ -164,7 +64,7 @@ func (f *FileStep) IsNil() bool {
 }
 
 // Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	var cmd *exec.Cmd
 	expandedArgs, err := execCtx.ExpandVariables(f.Args)
 	if err != nil {
@@ -185,13 +85,13 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 		return nil, err
 	}
 	cmd.Env = expandedEnvAsList
-	cmd.Dir = f.WorkDir
+	cmd.Dir = execCtx.WorkDir
 	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 	if err != nil {
 		return nil, err
 	}
 	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
-	return nil, err
+	return result, err
 }
 
 // Validate validates the FileStep. It checks that the
@@ -210,11 +110,6 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 //
 // error: An error if any validation checks fail.
 func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
-	if err := f.Act.Validate(); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
 	if f.FilePath == "" {
 		err := errors.New("a TTP must include inline logic or path to a file with the logic")
 		logging.L().Error(zap.Error(err))
@@ -222,14 +117,14 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// If FilePath is set, ensure that the file exists.
-	fullpath, err := FindFilePath(f.FilePath, f.WorkDir, nil)
+	fullpath, err := FindFilePath(f.FilePath, execCtx.WorkDir, nil)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Retrieve the absolute path to the file.
-	f.FilePath, err = FetchAbs(fullpath, f.WorkDir)
+	f.FilePath, err = FetchAbs(fullpath, execCtx.WorkDir)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
@@ -238,7 +133,7 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	// Infer executor if it's not set.
 	if f.Executor == "" {
 		f.Executor = InferExecutor(f.FilePath)
-		logging.L().Infow("executor set via extension", "exec", f.Executor)
+		logging.L().Debugw("executor set via extension", "exec", f.Executor)
 	}
 
 	if f.Executor == ExecutorBinary {
@@ -248,13 +143,6 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	if _, err := exec.LookPath(f.Executor); err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
-	}
-
-	if f.CleanupStep != nil {
-		if err := f.CleanupStep.Validate(execCtx); err != nil {
-			logging.L().Errorw("error validating cleanup step", zap.Error(err))
-			return err
-		}
 	}
 	logging.L().Debugw("command found in path", "executor", f.Executor)
 

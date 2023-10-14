@@ -23,84 +23,61 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
 
-func TestUnmarshalBasic(t *testing.T) {
+func TestPrintStrExecute(t *testing.T) {
 	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
+		name               string
+		description        string
+		action             *blocks.PrintStrAction
+		expectExecuteError bool
+		expectedStdout     string
 	}{
 		{
-			name: "Simple basic",
-			content: `name: test
-description: this is a test
-steps:
-  - name: testinline
-    inline: |
-      ls
-`,
-			wantError: false,
+			name:        "Simple Print",
+			description: "Just Print a String",
+			action: &blocks.PrintStrAction{
+				Message: "hello",
+			},
+			expectedStdout: "hello\n",
 		},
 		{
-			name: "Simple cleanup basic",
-			content: `name: test
-description: this is a test
-steps:
-  - name: testinline
-    inline: |
-      ls
-    cleanup:
-      name: test_cleanup
-      inline: |
-        ls -la
-  `,
-			wantError: false,
+			name:        "Print Step Output",
+			description: "Should be Expanded",
+			action: &blocks.PrintStrAction{
+				Message: "value is $forge.steps.first_step.stdout",
+			},
+			expectedStdout: "value is first-step-output\n",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
-			if tc.wantError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
+			// for use testing output variables
+			execCtx := blocks.TTPExecutionContext{
+				StepResults: &blocks.StepResultsRecord{
+					ByName: map[string]*blocks.ExecutionResult{
+						"first_step": {
+							ActResult: blocks.ActResult{
+								Stdout: "first-step-output",
+							},
+						},
+					},
+				},
 			}
+
+			// execute and check error
+			result, err := tc.action.Execute(execCtx)
+			if tc.expectExecuteError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// Check stdout
+			assert.Equal(t, tc.expectedStdout, result.Stdout)
 		})
 	}
-}
-
-func TestBasicStepExecuteWithOutput(t *testing.T) {
-
-	// prepare step
-	content := `name: test_basic_step
-inline: echo {\"foo\":{\"bar\":\"baz\"}}
-outputs:
-  first:
-    filters:
-    - json_path: foo.bar`
-	var s blocks.BasicStep
-	execCtx := blocks.TTPExecutionContext{
-		Cfg: blocks.TTPExecutionConfig{
-			Args: map[string]any{
-				"myarg": "baz",
-			},
-		},
-	}
-	err := yaml.Unmarshal([]byte(content), &s)
-	require.NoError(t, err)
-	err = s.Validate(execCtx)
-	require.NoError(t, err)
-
-	// execute and check result
-	result, err := s.Execute(execCtx)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(result.Outputs))
-	assert.Equal(t, "baz", result.Outputs["first"], "first output should be correct")
 }

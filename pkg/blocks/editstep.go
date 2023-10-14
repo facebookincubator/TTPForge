@@ -37,39 +37,21 @@ type Edit struct {
 
 // EditStep represents one or more edits to a specific file
 type EditStep struct {
-	*Act       `yaml:",inline"`
-	FileToEdit string   `yaml:"edit_file,omitempty"`
-	Edits      []*Edit  `yaml:"edits,omitempty"`
-	FileSystem afero.Fs `yaml:"-,omitempty"`
-	BackupFile string   `yaml:"backup_file,omitempty"`
+	actionDefaults `yaml:"-"`
+	FileToEdit     string   `yaml:"edit_file,omitempty"`
+	Edits          []*Edit  `yaml:"edits,omitempty"`
+	FileSystem     afero.Fs `yaml:"-,omitempty"`
+	BackupFile     string   `yaml:"backup_file,omitempty"`
 }
 
 // NewEditStep creates a new EditStep instance with an initialized Act struct.
 func NewEditStep() *EditStep {
-	return &EditStep{
-		Act: &Act{
-			Type: StepEdit,
-		},
-	}
-}
-
-// GetCleanup returns the cleanup steps for a EditStep.
-// Currently this is always empty because we use backup
-// files instead for this type of step
-func (s *EditStep) GetCleanup() []CleanupAct {
-	return []CleanupAct{}
-}
-
-// GetType returns the step type for a EditStep.
-func (s *EditStep) GetType() StepType {
-	return s.Type
+	return &EditStep{}
 }
 
 // IsNil checks if an EditStep is considered empty or uninitialized.
 func (s *EditStep) IsNil() bool {
 	switch {
-	case s.Act.IsNil():
-		return true
 	case s.FileToEdit == "":
 		return true
 	default:
@@ -77,15 +59,8 @@ func (s *EditStep) IsNil() bool {
 	}
 }
 
-// wrapped by exported Validate to standardize
-// the error message prefix
-func (s *EditStep) check() error {
-	// Validate Act
-	if err := s.Act.Validate(); err != nil {
-		return err
-	}
-
-	var err error
+// Validate validates the EditStep, checking for the necessary attributes and dependencies.
+func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	if len(s.Edits) == 0 {
 		return fmt.Errorf("no edits specified")
 	}
@@ -98,6 +73,7 @@ func (s *EditStep) check() error {
 			return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
 		}
 
+		var err error
 		if edit.Regexp {
 			edit.oldRegexp, err = regexp.Compile(edit.Old)
 			if err != nil {
@@ -110,23 +86,14 @@ func (s *EditStep) check() error {
 	return nil
 }
 
-// Validate validates the EditStep, checking for the necessary attributes and dependencies.
-func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
-	err := s.check()
-	if err != nil {
-		return fmt.Errorf("[!] invalid editstep: [%s] %w", s.Name, err)
-	}
-	return nil
-}
-
 // Execute runs the EditStep and returns an error if any occur.
-func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
 		var err error
-		targetPath, err = FetchAbs(targetPath, s.WorkDir)
+		targetPath, err = FetchAbs(targetPath, execCtx.WorkDir)
 		if err != nil {
 			return nil, err
 		}
@@ -169,5 +136,5 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error
 		return nil, err
 	}
 
-	return &ExecutionResult{}, nil
+	return &ActResult{}, nil
 }

@@ -189,7 +189,7 @@ steps:
 				},
 			}
 
-			err = ttps.ValidateSteps(execCtx)
+			err = ttps.Validate(execCtx)
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {

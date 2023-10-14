@@ -19,35 +19,23 @@ THE SOFTWARE.
 
 package blocks
 
-import (
-	"bytes"
-	"io"
-	"os"
-	"os/exec"
-)
+// Action is an interface that is implemented
+// by all action types used in steps/cleanups
+// (such as create_file, inline, etc)
+type Action interface {
+	Execute(execCtx TTPExecutionContext) (*ActResult, error)
+	Validate(execCtx TTPExecutionContext) error
+	GetDefaultCleanupAction() Action
+	IsNil() bool
+}
 
-func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
-	if stdout == nil {
-		stdout = os.Stdout
-	}
-	if stderr == nil {
-		stderr = os.Stderr
-	}
+type actionDefaults struct{}
 
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(stdout, &stdoutBuf)
-	cmd.Stderr = io.MultiWriter(stderr, &stderrBuf)
-
-	err := cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
-	result := ActResult{}
-	result.Stdout = outStr
-	result.Stderr = errStr
-	if err != nil {
-		return nil, err
-	}
-	return &result, nil
+// GetDefaultCleanupAction provides a default implementation
+// of the GetDefaultCleanupAction method from the Action interface.
+// This saves us from having to declare this function for every steps
+// If a specific action needs a default cleanup action (such as a create_file action),
+// it can override this step
+func (ad *actionDefaults) GetDefaultCleanupAction() Action {
+	return nil
 }

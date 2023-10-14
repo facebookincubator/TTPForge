@@ -21,33 +21,55 @@ package blocks
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
-	"os/exec"
 )
 
-func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
+// PrintStrAction is used to print a string to the console
+type PrintStrAction struct {
+	actionDefaults `yaml:"-"`
+	Message        string `yaml:"print_str,omitempty"`
+}
+
+// IsNil checks if the step is nil or empty and returns a boolean value.
+func (s *PrintStrAction) IsNil() bool {
+	switch {
+	case s.Message == "":
+		return true
+	default:
+		return false
+	}
+}
+
+// Execute runs the step and returns an error if any occur.
+func (s *PrintStrAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	// needs to be overwritable to capture output during testing
+	stdout := execCtx.Cfg.Stdout
 	if stdout == nil {
 		stdout = os.Stdout
 	}
-	if stderr == nil {
-		stderr = os.Stderr
-	}
-
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(stdout, &stdoutBuf)
-	cmd.Stderr = io.MultiWriter(stderr, &stderrBuf)
-
-	err := cmd.Run()
+	expandedStrs, err := execCtx.ExpandVariables([]string{s.Message})
 	if err != nil {
 		return nil, err
 	}
-	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
-	result := ActResult{}
-	result.Stdout = outStr
-	result.Stderr = errStr
-	if err != nil {
-		return nil, err
+	var stdoutBuf bytes.Buffer
+	multi := io.MultiWriter(stdout, &stdoutBuf)
+	fmt.Fprintln(multi, expandedStrs[0])
+	result := &ActResult{
+		Stdout: stdoutBuf.String(),
 	}
-	return &result, nil
+	return result, nil
+}
+
+// Validate validates the step
+//
+// **Returns:**
+//
+// error: An error if any validation checks fail.
+func (s *PrintStrAction) Validate(execCtx TTPExecutionContext) error {
+	if s.Message == "" {
+		return fmt.Errorf("message field cannot be empty")
+	}
+	return nil
 }

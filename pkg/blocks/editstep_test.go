@@ -45,7 +45,7 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
+	err = ttp.Validate(blocks.TTPExecutionContext{})
 	require.NoError(t, err)
 }
 
@@ -66,10 +66,10 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
+	err = ttp.Validate(blocks.TTPExecutionContext{})
 	require.Error(t, err)
 
-	assert.Equal(t, "[!] invalid editstep: [missing_new] edit #2 is missing 'new:'", err.Error())
+	assert.Equal(t, "edit #2 is missing 'new:'", err.Error())
 }
 
 func TestUnmarshalEditNoOld(t *testing.T) {
@@ -89,10 +89,10 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
+	err = ttp.Validate(blocks.TTPExecutionContext{})
 	require.Error(t, err)
 
-	assert.Equal(t, "[!] invalid editstep: [missing_old] edit #1 is missing 'old:'", err.Error())
+	assert.Equal(t, "edit #1 is missing 'old:'", err.Error())
 }
 
 func TestUnmarshalNonListEdits(t *testing.T) {
@@ -119,8 +119,8 @@ steps:
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
-	assert.Equal(t, "[!] invalid editstep: [no_edits] no edits specified", err.Error())
+	err = ttp.Validate(blocks.TTPExecutionContext{})
+	assert.Equal(t, "no edits specified", err.Error())
 }
 
 func TestExecuteSimple(t *testing.T) {

@@ -132,7 +132,7 @@ steps:
 	}
 }
 
-func TestTTP_ValidateSteps(t *testing.T) {
+func TestTTP_Validate(t *testing.T) {
 	testCases := []struct {
 		name      string
 		content   string
@@ -165,7 +165,7 @@ steps:
 				assert.NoError(t, err)
 			}
 
-			err = ttp.ValidateSteps(blocks.TTPExecutionContext{})
+			err = ttp.Validate(blocks.TTPExecutionContext{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
@@ -317,15 +317,19 @@ steps:
 				return
 			}
 
-			stepResults, err := ttp.RunSteps(tc.execConfig)
-			if tc.wantError && err == nil {
-				t.Error("expected an error from step execution but got none")
+			// validate the TTP
+			err = ttp.Validate(blocks.TTPExecutionContext{})
+			require.NoError(t, err)
+
+			// run it
+			stepResults, err := ttp.Execute(&blocks.TTPExecutionContext{
+				Cfg: tc.execConfig,
+			})
+			if tc.wantError {
+				require.Error(t, err)
 				return
 			}
-			if !tc.wantError && err != nil {
-				t.Errorf("didn't expect an error from step execution but got: %s", err)
-				return
-			}
+			require.NoError(t, err)
 
 			for index, output := range tc.expectedByIndexOut {
 				require.Equal(t, output, stepResults.ByIndex[index].Stdout)
@@ -376,6 +380,8 @@ mitre:
 		t.Run(tc.name, func(t *testing.T) {
 			var ttp blocks.TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			require.NoError(t, err)
+			err = ttp.Validate(blocks.TTPExecutionContext{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {

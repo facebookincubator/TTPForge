@@ -31,108 +31,37 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
+)
+
+// These are all the different executors that could run
+// our inline command
+const (
+	ExecutorPython     = "python3"
+	ExecutorBash       = "bash"
+	ExecutorSh         = "sh"
+	ExecutorPowershell = "powershell"
+	ExecutorRuby       = "ruby"
+	ExecutorBinary     = "binary"
+	ExecutorCmd        = "cmd.exe"
 )
 
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	*Act        `yaml:",inline"`
-	Executor    string     `yaml:"executor,omitempty"`
-	Inline      string     `yaml:"inline,flow"`
-	Args        []string   `yaml:"args,omitempty,flow"`
-	CleanupStep CleanupAct `yaml:"cleanup,omitempty"`
+	actionDefaults `yaml:"-"`
+	Executor       string                  `yaml:"executor,omitempty"`
+	Inline         string                  `yaml:"inline,flow"`
+	Environment    map[string]string       `yaml:"env,omitempty"`
+	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
 func NewBasicStep() *BasicStep {
-	return &BasicStep{
-		Act: &Act{
-			Type: StepBasic,
-		},
-	}
-}
-
-// UnmarshalYAML custom unmarshaler for BasicStep to handle decoding from YAML.
-func (b *BasicStep) UnmarshalYAML(node *yaml.Node) error {
-	type BasicStepTmpl struct {
-		Act         `yaml:",inline"`
-		Executor    string    `yaml:"executor,omitempty"`
-		Inline      string    `yaml:"inline,flow"`
-		Args        []string  `yaml:"args,omitempty,flow"`
-		CleanupStep yaml.Node `yaml:"cleanup,omitempty"`
-	}
-
-	var tmpl BasicStepTmpl
-	// there is an issue with strict fields not being managed https://github.com/go-yaml/yaml/issues/460
-	if err := node.Decode(&tmpl); err != nil {
-		return err
-	}
-
-	b.Act = &tmpl.Act
-	b.Args = tmpl.Args
-	b.Executor = tmpl.Executor
-	b.Inline = tmpl.Inline
-
-	if b.IsNil() {
-		return b.ExplainInvalid()
-	}
-
-	// we do it piecemiel to build our struct
-	if tmpl.CleanupStep.IsZero() || b.Type == StepCleanup {
-		return nil
-	}
-
-	logging.L().Debugw("step", "name", tmpl.Name)
-	cleanup, err := b.MakeCleanupStep(&tmpl.CleanupStep)
-	logging.L().Debugw("step", "err", err)
-	if err != nil {
-		return err
-	}
-
-	b.CleanupStep = cleanup
-
-	return nil
-}
-
-// Cleanup is an implementation of the CleanupAct interface's Cleanup method.
-func (b *BasicStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	result, err := b.Execute(execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return &result.ActResult, err
-}
-
-// GetCleanup returns the cleanup steps for a BasicStep.
-func (b *BasicStep) GetCleanup() []CleanupAct {
-	if b.CleanupStep != nil {
-		return []CleanupAct{b.CleanupStep}
-	}
-	return []CleanupAct{}
-}
-
-// GetType returns the step type for a BasicStep.
-func (b *BasicStep) GetType() StepType {
-	return b.Type
-}
-
-// ExplainInvalid returns an error with an explanation of why a BasicStep is invalid.
-func (b *BasicStep) ExplainInvalid() error {
-	var err error
-	if b.Inline == "" {
-		err = fmt.Errorf("(inline) empty")
-	}
-	if b.Name != "" && err != nil {
-		return fmt.Errorf("[!] invalid basicstep: [%s] %w", b.Name, err)
-	}
-	return err
+	return &BasicStep{}
 }
 
 // IsNil checks if a BasicStep is considered empty or uninitialized.
 func (b *BasicStep) IsNil() bool {
 	switch {
-	case b.Act.IsNil():
-		return true
 	case b.Inline == "":
 		return true
 	default:
@@ -142,12 +71,6 @@ func (b *BasicStep) IsNil() bool {
 
 // Validate validates the BasicStep, checking for the necessary attributes and dependencies.
 func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
-	// Validate Act
-	if err := b.Act.Validate(); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
 	// Check if Inline is provided
 	if b.Inline == "" {
 		err := errors.New("inline must be provided")
@@ -172,21 +95,13 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	// Validate CleanupStep if it is not nil
-	if b.CleanupStep != nil {
-		if err := b.CleanupStep.Validate(execCtx); err != nil {
-			logging.L().Errorw("error validating cleanup step", zap.Error(err))
-			return err
-		}
-	}
-
 	logging.L().Debugw("command found in path", "executor", b.Executor)
 
 	return nil
 }
 
 // Execute runs the BasicStep and returns an error if any occur.
-func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 
@@ -206,7 +121,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ExecutionResult, erro
 	return result, nil
 }
 
-func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ExecutionResult, error) {
+func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
 
 	ctx, cancel := context.WithCancel(ptx)
 	defer cancel()
@@ -224,7 +139,7 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 		return nil, err
 	}
 
-	cmd := b.prepareCommand(ctx, expandedEnvAsList, expandedStrs[0])
+	cmd := b.prepareCommand(ctx, execCtx, expandedEnvAsList, expandedStrs[0])
 
 	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 	if err != nil {
@@ -238,10 +153,10 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	return result, nil
 }
 
-func (b *BasicStep) prepareCommand(ctx context.Context, envAsList []string, inline string) *exec.Cmd {
+func (b *BasicStep) prepareCommand(ctx context.Context, execCtx TTPExecutionContext, envAsList []string, inline string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, b.Executor)
 	cmd.Env = envAsList
-	cmd.Dir = b.WorkDir
+	cmd.Dir = execCtx.WorkDir
 	cmd.Stdin = strings.NewReader(inline)
 
 	return cmd

@@ -28,7 +28,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"gopkg.in/yaml.v3"
 )
 
@@ -73,13 +72,12 @@ steps:
 func TestSubTTPExecution(t *testing.T) {
 
 	tests := []struct {
-		name                  string
-		spec                  repos.Spec
-		fsys                  afero.Fs
-		stepYAML              string
-		expectError           bool
-		expectedOutput        string
-		expectedCleanupOutput string
+		name           string
+		spec           repos.Spec
+		fsys           afero.Fs
+		stepYAML       string
+		expectError    bool
+		expectedOutput string
 	}{
 		{
 			name: "Simple Sub TTP Execution",
@@ -115,8 +113,7 @@ args:
 			fsys: makeTestFsForSubTTPs(t),
 			stepYAML: `name: with-cleanup
 ttp: with/cleanup.yaml`,
-			expectedOutput:        "sub_step_1_output\nsub_step_2_output\n",
-			expectedCleanupOutput: "cleanup_sub_step_2\ncleanup_sub_step_1\n",
+			expectedOutput: "sub_step_1_output\nsub_step_2_output\n",
 		},
 	}
 
@@ -140,14 +137,6 @@ ttp: with/cleanup.yaml`,
 			result, err := step.Execute(execCtx)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedOutput, result.Stdout)
-
-			if tc.expectedCleanupOutput != "" {
-				cleanups := step.GetCleanup()
-				require.NotNil(t, cleanups)
-				cleanupResult, err := cleanups[0].Cleanup(execCtx)
-				require.NoError(t, err)
-				assert.Equal(t, tc.expectedCleanupOutput, cleanupResult.Stdout)
-			}
 		})
 	}
 }

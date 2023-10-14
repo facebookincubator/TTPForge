@@ -3,3 +3,5 @@ name: basic_inline
 steps:
   - name: hello
     inline: echo "simple inline was executed"
+    cleanup:
+      inline: echo "cleaning up simple inline"
