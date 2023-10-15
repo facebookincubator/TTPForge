@@ -1,4 +1,4 @@
-FROM golang:1.21.2-alpine
+FROM golang:1.21.3-alpine
 
 LABEL org.opencontainers.image.source=https://github.com/facebookincubator/TTPForge
 LABEL org.opencontainers.image.description="Dev Container with dependencies and tools for building and testing the TTPForge project"
