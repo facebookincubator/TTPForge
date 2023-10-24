@@ -9,6 +9,17 @@
       "ignoreTests": true,
       "automergeType": "pr",
       "matchUpdateTypes": ["minor", "patch", "digest"]
-    }
+    },
+    {
+      "matchDatasources": ["go"],
+      "matchPackageNames": ["github.com/spf13/afero"],
+      "allowedVersions": "1.2.1"
+    },
+    {
+      "description": "Preserve Go 1.18",
+      "paths": ["go.mod"],
+      "matchDatasources": ["go-version"],
+      "allowedVersions": "1.18.x"
+    },
   ]
 }
