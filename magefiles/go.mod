@@ -46,4 +46,4 @@ require (
 	mvdan.cc/sh/v3 v3.6.0 // indirect
 )
 
-replace github.com/spf13/afero => github.com/spf13/afero v1.2.1
+replace github.com/spf13/afero => github.com/spf13/afero v1.10.0

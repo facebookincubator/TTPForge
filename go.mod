@@ -3,7 +3,7 @@ module github.com/facebookincubator/ttpforge
 go 1.18
 
 require (
-	github.com/spf13/afero v1.2.1
+	github.com/spf13/afero v1.10.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
@@ -26,4 +26,4 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
-replace github.com/spf13/afero => github.com/spf13/afero v1.2.1
+replace github.com/spf13/afero => github.com/spf13/afero v1.10.0
