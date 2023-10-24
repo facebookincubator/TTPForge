@@ -1,14 +1,12 @@
 ---
 name: Renovate
 on:
-  pull_request:
+  pull_request_target:
     branches: ["main"]
     paths:
       - .github/renovate-bot.json5
       - .github/renovate.json5
       - .github/renovate/**.json5
-    repository:
-      - "github.com/facebookincubator/TTPForge"
   merge_group:
   push:
     branches: ["main"]
