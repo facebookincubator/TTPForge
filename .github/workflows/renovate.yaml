@@ -7,6 +7,8 @@ on:
       - .github/renovate-bot.json5
       - .github/renovate.json5
       - .github/renovate/**.json5
+    repository:
+      - "github.com/facebookincubator/TTPForge"
   merge_group:
   push:
     branches: ["main"]
