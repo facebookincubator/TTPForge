@@ -20,6 +20,6 @@
       "paths": ["go.mod"],
       "matchDatasources": ["go-version"],
       "allowedVersions": "1.18.x"
-    },
+    }
   ]
 }
