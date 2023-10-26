@@ -42,7 +42,7 @@ targets and mediums.
    ```
 
    At this point, the latest `ttpforge` release should be in
-   `~/.local/bin/ttpforge` and subsequently, the `$USER`'s `$PATH`.
+   `$HOME/.local/bin/ttpforge` and subsequently, the `$USER`'s `$PATH`.
 
    If running in a stripped down system, you can add TTPForge to your `$PATH`
    with the following command:
