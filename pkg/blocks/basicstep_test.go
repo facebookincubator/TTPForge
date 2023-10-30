@@ -17,12 +17,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
-
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,7 +63,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -85,9 +83,9 @@ outputs:
   first:
     filters:
     - json_path: foo.bar`
-	var s blocks.BasicStep
-	execCtx := blocks.TTPExecutionContext{
-		Cfg: blocks.TTPExecutionConfig{
+	var s BasicStep
+	execCtx := TTPExecutionContext{
+		Cfg: TTPExecutionConfig{
 			Args: map[string]any{
 				"myarg": "baz",
 			},

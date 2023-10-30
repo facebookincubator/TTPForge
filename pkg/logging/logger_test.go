@@ -17,13 +17,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package logging_test
+package logging
 
 import (
 	"os"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -39,12 +38,12 @@ import (
 func TestInitLogStacktraceNoLogfile(t *testing.T) {
 	core, recordedLogs := observer.New(zapcore.InfoLevel)
 
-	err := logging.InitLog(logging.Config{
+	err := InitLog(Config{
 		Stacktrace: true,
 	})
 	require.NoError(t, err)
 
-	logger := logging.L().WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
+	logger := L().WithOptions(zap.WrapCore(func(c zapcore.Core) zapcore.Core { return core }))
 
 	logger.Error("should produce a stack trace")
 
@@ -61,13 +60,13 @@ func TestInitLog(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		config    logging.Config
+		config    Config
 		logFunc   func(t *testing.T, testLogger *zap.SugaredLogger)
 		checkFunc func(t *testing.T, logFileContents string)
 	}{
 		{
 			name: "verbose",
-			config: logging.Config{
+			config: Config{
 				Verbose: true,
 			},
 			logFunc: func(t *testing.T, testLogger *zap.SugaredLogger) {
@@ -79,7 +78,7 @@ func TestInitLog(t *testing.T) {
 		},
 		{
 			name: "no-color",
-			config: logging.Config{
+			config: Config{
 				NoColor: true,
 			},
 			logFunc: func(t *testing.T, testLogger *zap.SugaredLogger) {
@@ -103,11 +102,11 @@ func TestInitLog(t *testing.T) {
 			cfg.LogFile = logFile
 
 			// initialize the logger for this test case
-			err = logging.InitLog(cfg)
+			err = InitLog(cfg)
 			require.NoError(t, err)
 
 			// actually create logs
-			tc.logFunc(t, logging.L())
+			tc.logFunc(t, L())
 
 			// read back result
 			content, err := os.ReadFile(logFile)

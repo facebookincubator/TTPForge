@@ -17,7 +17,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"fmt"
@@ -25,8 +25,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +79,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -179,12 +177,12 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			assert.NoError(t, err)
 
-			execCtx := blocks.TTPExecutionContext{
-				Cfg: blocks.TTPExecutionConfig{
+			execCtx := TTPExecutionContext{
+				Cfg: TTPExecutionConfig{
 					Args: map[string]any{},
 				},
 			}
@@ -208,9 +206,9 @@ fetch_uri: OVERWRITTEN
 location: /tmp/test.html
 overwrite: true
 `
-	var s blocks.FetchURIStep
-	execCtx := blocks.TTPExecutionContext{
-		Cfg: blocks.TTPExecutionConfig{
+	var s FetchURIStep
+	execCtx := TTPExecutionContext{
+		Cfg: TTPExecutionConfig{
 			Args: map[string]any{},
 		},
 	}

@@ -17,13 +17,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"os"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -34,14 +33,14 @@ func TestCreateFileExecute(t *testing.T) {
 	testCases := []struct {
 		name               string
 		description        string
-		step               *blocks.CreateFileStep
+		step               *CreateFileStep
 		fsysContents       map[string][]byte
 		expectExecuteError bool
 	}{
 		{
 			name:        "Create Valid File",
 			description: "Create a single unremarkable file",
-			step: &blocks.CreateFileStep{
+			step: &CreateFileStep{
 				Path:     "valid-file.txt",
 				Contents: "hello world",
 			},
@@ -49,7 +48,7 @@ func TestCreateFileExecute(t *testing.T) {
 		{
 			name:        "Nested Directories",
 			description: "Afero should handle this under the hood",
-			step: &blocks.CreateFileStep{
+			step: &CreateFileStep{
 				Path:     "/directory/does/not/exist",
 				Contents: "should still work",
 			},
@@ -57,7 +56,7 @@ func TestCreateFileExecute(t *testing.T) {
 		{
 			name:        "Already Exists (No Overwrite)",
 			description: "Should fail because file already exists",
-			step: &blocks.CreateFileStep{
+			step: &CreateFileStep{
 				Path:     "already-exists.txt",
 				Contents: "will fail",
 			},
@@ -69,7 +68,7 @@ func TestCreateFileExecute(t *testing.T) {
 		{
 			name:        "Already Exists (With Overwrite)",
 			description: "Should succeed and overwrite existing file",
-			step: &blocks.CreateFileStep{
+			step: &CreateFileStep{
 				Path:      "already-exists.txt",
 				Contents:  "will succeed",
 				Overwrite: true,
@@ -81,7 +80,7 @@ func TestCreateFileExecute(t *testing.T) {
 		{
 			name:        "Set Permissions Manually",
 			description: "Make the file read-only",
-			step: &blocks.CreateFileStep{
+			step: &CreateFileStep{
 				Path:     "make-read-only",
 				Contents: "very-read-only",
 				Mode:     0400,
@@ -101,7 +100,7 @@ func TestCreateFileExecute(t *testing.T) {
 			}
 
 			// execute and check error
-			var execCtx blocks.TTPExecutionContext
+			var execCtx TTPExecutionContext
 			_, err := tc.step.Execute(execCtx)
 			if tc.expectExecuteError {
 				require.Error(t, err)

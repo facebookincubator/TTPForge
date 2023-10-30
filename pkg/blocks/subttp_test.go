@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
@@ -119,15 +118,15 @@ ttp: with/cleanup.yaml`,
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var step blocks.SubTTPStep
+			var step SubTTPStep
 			err := yaml.Unmarshal([]byte(tc.stepYAML), &step)
 			require.NoError(t, err, "step YAML should unmarshal safely")
 
 			repo, err := tc.spec.Load(tc.fsys, "")
 			require.NoError(t, err)
 
-			execCtx := blocks.TTPExecutionContext{
-				Cfg: blocks.TTPExecutionConfig{
+			execCtx := TTPExecutionContext{
+				Cfg: TTPExecutionConfig{
 					Repo: repo,
 				},
 			}

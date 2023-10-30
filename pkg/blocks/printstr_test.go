@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,14 +30,14 @@ func TestPrintStrExecute(t *testing.T) {
 	testCases := []struct {
 		name               string
 		description        string
-		action             *blocks.PrintStrAction
+		action             *PrintStrAction
 		expectExecuteError bool
 		expectedStdout     string
 	}{
 		{
 			name:        "Simple Print",
 			description: "Just Print a String",
-			action: &blocks.PrintStrAction{
+			action: &PrintStrAction{
 				Message: "hello",
 			},
 			expectedStdout: "hello\n",
@@ -46,7 +45,7 @@ func TestPrintStrExecute(t *testing.T) {
 		{
 			name:        "Print Step Output",
 			description: "Should be Expanded",
-			action: &blocks.PrintStrAction{
+			action: &PrintStrAction{
 				Message: "value is $forge.steps.first_step.stdout",
 			},
 			expectedStdout: "value is first-step-output\n",
@@ -56,11 +55,11 @@ func TestPrintStrExecute(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// for use testing output variables
-			execCtx := blocks.TTPExecutionContext{
-				StepResults: &blocks.StepResultsRecord{
-					ByName: map[string]*blocks.ExecutionResult{
+			execCtx := TTPExecutionContext{
+				StepResults: &StepResultsRecord{
+					ByName: map[string]*ExecutionResult{
 						"first_step": {
-							ActResult: blocks.ActResult{
+							ActResult: ActResult{
 								Stdout: "first-step-output",
 							},
 						},

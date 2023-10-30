@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -60,7 +59,7 @@ steps:
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			assert.Error(t, err, "steps with ambiguous types should yield an error when parsed")
 		})
@@ -121,7 +120,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
+			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -157,7 +156,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
+			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -165,7 +164,7 @@ steps:
 				assert.NoError(t, err)
 			}
 
-			err = ttp.Validate(blocks.TTPExecutionContext{})
+			err = ttp.Validate(TTPExecutionContext{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {
@@ -179,7 +178,7 @@ func TestTTP(t *testing.T) {
 	testCases := []struct {
 		name               string
 		content            string
-		execConfig         blocks.TTPExecutionConfig
+		execConfig         TTPExecutionConfig
 		expectedByIndexOut map[int]string
 		expectedByNameOut  map[string]string
 		wantError          bool
@@ -205,7 +204,7 @@ steps:
       inline: echo "step4"
       cleanup:
         inline: echo "cleanup4"`,
-			execConfig: blocks.TTPExecutionConfig{},
+			execConfig: TTPExecutionConfig{},
 			expectedByIndexOut: map[int]string{
 				0: "step1\n",
 				1: "step2\n",
@@ -237,7 +236,7 @@ steps:
   - name: optional_step_2
     inline: echo "optional step 2"
 {{ end }}`,
-			execConfig: blocks.TTPExecutionConfig{
+			execConfig: TTPExecutionConfig{
 				Args: map[string]interface{}{
 					"arg1":               "victory",
 					"do_optional_step_2": true,
@@ -270,7 +269,7 @@ steps:
     inline: echo "first output is baz"
   - name: step3
     inline: echo "arg value is {{ .Args.arg1 }}"`,
-			execConfig: blocks.TTPExecutionConfig{
+			execConfig: TTPExecutionConfig{
 				Args: map[string]interface{}{
 					"arg1": "victory",
 				},
@@ -297,7 +296,7 @@ steps:
       A
       B
       EOF`,
-			execConfig: blocks.TTPExecutionConfig{},
+			execConfig: TTPExecutionConfig{},
 			expectedByIndexOut: map[int]string{
 				0: "A\nB\n",
 			},
@@ -311,18 +310,18 @@ steps:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Render the templated TTP first
-			ttp, err := blocks.RenderTemplatedTTP(tc.content, &tc.execConfig)
+			ttp, err := RenderTemplatedTTP(tc.content, &tc.execConfig)
 			if err != nil {
 				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
 				return
 			}
 
 			// validate the TTP
-			err = ttp.Validate(blocks.TTPExecutionContext{})
+			err = ttp.Validate(TTPExecutionContext{})
 			require.NoError(t, err)
 
 			// run it
-			stepResults, err := ttp.Execute(&blocks.TTPExecutionContext{
+			stepResults, err := ttp.Execute(&TTPExecutionContext{
 				Cfg: tc.execConfig,
 			})
 			if tc.wantError {
@@ -378,10 +377,10 @@ mitre:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttp blocks.TTP
+			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			require.NoError(t, err)
-			err = ttp.Validate(blocks.TTPExecutionContext{})
+			err = ttp.Validate(TTPExecutionContext{})
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {

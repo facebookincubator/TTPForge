@@ -17,14 +17,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package cmd_test
+package cmd
 
 import (
 	"bytes"
 	"path/filepath"
+
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/cmd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -128,7 +128,7 @@ func TestRun(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var stdoutBuf, stderrBuf bytes.Buffer
-			rc := cmd.BuildRootCommand(&cmd.Config{
+			rc := BuildRootCommand(&Config{
 				Stdout: &stdoutBuf,
 				Stderr: &stderrBuf,
 			})

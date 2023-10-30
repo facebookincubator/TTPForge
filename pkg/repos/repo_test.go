@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package repos_test
+package repos
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -38,12 +37,12 @@ const (
 
 func makeRepoTestFs(t *testing.T) afero.Fs {
 	fsys, err := testutils.MakeAferoTestFs(map[string][]byte{
-		"repos/a/" + repos.RepoConfigFileName:                                                    []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
-		"repos/a/ttps/foo/bar/baz/wut.yaml":                                                      []byte("placeholder"),
-		"repos/a/more/ttps/absolute/victory.yaml":                                                []byte("placeholder"),
-		"repos/invalid/" + repos.RepoConfigFileName:                                              []byte("this: is: invalid: yaml"),
-		"repos/template-only/" + repos.RepoConfigFileName:                                        []byte(`template_search_paths: ["some_templates", "more/templates"]`),
-		"repos/template-only/some_templates/my_template/ttp.yaml.tpl" + repos.RepoConfigFileName: []byte("placeholder"),
+		"repos/a/" + RepoConfigFileName:                                                    []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
+		"repos/a/ttps/foo/bar/baz/wut.yaml":                                                []byte("placeholder"),
+		"repos/a/more/ttps/absolute/victory.yaml":                                          []byte("placeholder"),
+		"repos/invalid/" + RepoConfigFileName:                                              []byte("this: is: invalid: yaml"),
+		"repos/template-only/" + RepoConfigFileName:                                        []byte(`template_search_paths: ["some_templates", "more/templates"]`),
+		"repos/template-only/some_templates/my_template/ttp.yaml.tpl" + RepoConfigFileName: []byte("placeholder"),
 	},
 	)
 	require.NoError(t, err)
@@ -54,7 +53,7 @@ func TestFindTTP(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		spec                 repos.Spec
+		spec                 Spec
 		fsys                 afero.Fs
 		expectLoadError      bool
 		searchType           searchType
@@ -64,7 +63,7 @@ func TestFindTTP(t *testing.T) {
 	}{
 		{
 			name: "Valid Repo (TTP Found in First Dir)",
-			spec: repos.Spec{
+			spec: Spec{
 				Name: "default",
 				Path: "repos/a",
 			},
@@ -75,7 +74,7 @@ func TestFindTTP(t *testing.T) {
 		},
 		{
 			name: "Valid Repo (TTP Not Found)",
-			spec: repos.Spec{
+			spec: Spec{
 				Name: "default",
 				Path: "repos/a",
 			},
@@ -86,7 +85,7 @@ func TestFindTTP(t *testing.T) {
 		},
 		{
 			name: "Valid Repo (TTP Found in Second Dir)",
-			spec: repos.Spec{
+			spec: Spec{
 				Name: "default",
 				Path: "repos/a",
 			},
@@ -97,7 +96,7 @@ func TestFindTTP(t *testing.T) {
 		},
 		{
 			name: "Invalid Repo (Corrupt Config)",
-			spec: repos.Spec{
+			spec: Spec{
 				Name: "bad",
 				Path: "repos/invalid",
 			},
@@ -106,7 +105,7 @@ func TestFindTTP(t *testing.T) {
 		},
 		{
 			name: "Valid Repo (Template Found in First Dir)",
-			spec: repos.Spec{
+			spec: Spec{
 				Name: "templates",
 				Path: "repos/template-only",
 			},
@@ -117,7 +116,7 @@ func TestFindTTP(t *testing.T) {
 		},
 		{
 			name: "Valid Repo (Template Not Found)",
-			spec: repos.Spec{
+			spec: Spec{
 				Name: "templates",
 				Path: "repos/template-only",
 			},

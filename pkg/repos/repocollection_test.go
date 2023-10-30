@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package repos_test
+package repos
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -31,10 +30,10 @@ import (
 
 func makeRepoCollectionTestFs(t *testing.T) afero.Fs {
 	fsys, err := testutils.MakeAferoTestFs(map[string][]byte{
-		"repos/a/" + repos.RepoConfigFileName:       []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
+		"repos/a/" + RepoConfigFileName:             []byte(`ttp_search_paths: ["ttps", "more/ttps"]`),
 		"repos/a/ttps/foo/bar/baz/wut.yaml":         []byte("placeholder"),
 		"repos/a/more/ttps/absolute/victory.yaml":   []byte("placeholder"),
-		"repos/b/" + repos.RepoConfigFileName:       []byte(`ttp_search_paths: ["even/more/ttps"]`),
+		"repos/b/" + RepoConfigFileName:             []byte(`ttp_search_paths: ["even/more/ttps"]`),
 		"repos/b/even/more/ttps/attempt/again.yaml": []byte(`ttp_search_paths: ["even/more/ttps"]`),
 		"not-a-repo/my-ttp.yaml":                    []byte("placeholder"),
 	},
@@ -48,7 +47,7 @@ func TestResolveTTPRef(t *testing.T) {
 	tests := []struct {
 		name               string
 		description        string
-		specs              []repos.Spec
+		specs              []Spec
 		fsys               afero.Fs
 		expectLoadError    bool
 		ttpRef             string
@@ -58,7 +57,7 @@ func TestResolveTTPRef(t *testing.T) {
 	}{
 		{
 			name: "Invalid Specs - Empty Name",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -72,7 +71,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Invalid Specs - Empty Path",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -86,7 +85,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Invalid Specs - Same Name",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -101,7 +100,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Invalid Ref - Multiple Separators",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -113,7 +112,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Invalid Ref - Non-Existent Repo",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -125,7 +124,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Invalid Ref - Non-Existent TTP",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -137,7 +136,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Valid TTP Ref (First Repo)",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -150,7 +149,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Valid TTP Ref (Second Repo)",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -167,7 +166,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Valid TTP Path (Not Ref)",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -192,7 +191,7 @@ func TestResolveTTPRef(t *testing.T) {
 		},
 		{
 			name: "Invalid TTP path (parent directory does not contain config)",
-			specs: []repos.Spec{
+			specs: []Spec{
 				{
 					Name: "default",
 					Path: "repos/a",
@@ -210,7 +209,7 @@ func TestResolveTTPRef(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rc, err := repos.NewRepoCollection(tc.fsys, tc.specs, "")
+			rc, err := NewRepoCollection(tc.fsys, tc.specs, "")
 			if tc.expectLoadError {
 				require.Error(t, err)
 				return
