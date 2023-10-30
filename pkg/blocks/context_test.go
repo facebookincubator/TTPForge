@@ -17,31 +17,30 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestExpandVariablesStepResults(t *testing.T) {
 	// build the test fixture used across all cases
-	stepResults := blocks.NewStepResultsRecord()
-	stepResults.ByName["first_step"] = &blocks.ExecutionResult{
-		ActResult: blocks.ActResult{
+	stepResults := NewStepResultsRecord()
+	stepResults.ByName["first_step"] = &ExecutionResult{
+		ActResult: ActResult{
 			Stdout: "hello",
 		},
 	}
-	stepResults.ByName["second_step"] = &blocks.ExecutionResult{
-		ActResult: blocks.ActResult{
+	stepResults.ByName["second_step"] = &ExecutionResult{
+		ActResult: ActResult{
 			Stdout: "world",
 		},
 	}
-	stepResults.ByName["third_step"] = &blocks.ExecutionResult{
-		ActResult: blocks.ActResult{
+	stepResults.ByName["third_step"] = &ExecutionResult{
+		ActResult: ActResult{
 			Stdout: `{"foo":{"bar":"baz"}}`,
 			Outputs: map[string]string{
 				"myresult": "baz",
@@ -51,8 +50,8 @@ func TestExpandVariablesStepResults(t *testing.T) {
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["first_step"])
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["second_step"])
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["third_step"])
-	execCtx := blocks.TTPExecutionContext{
-		Cfg: blocks.TTPExecutionConfig{
+	execCtx := TTPExecutionContext{
+		Cfg: TTPExecutionConfig{
 			Args: map[string]any{
 				"arg1": "myarg1",
 				"arg2": "myarg2",

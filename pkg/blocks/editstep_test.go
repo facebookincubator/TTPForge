@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,11 +40,11 @@ steps:
       - old: another
         new: one`
 
-	var ttp blocks.TTP
+	var ttp TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.Validate(blocks.TTPExecutionContext{})
+	err = ttp.Validate(TTPExecutionContext{})
 	require.NoError(t, err)
 }
 
@@ -62,11 +61,11 @@ steps:
       - old: another
         new: one`
 
-	var ttp blocks.TTP
+	var ttp TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.Validate(blocks.TTPExecutionContext{})
+	err = ttp.Validate(TTPExecutionContext{})
 	require.Error(t, err)
 
 	assert.Equal(t, "edit #2 is missing 'new:'", err.Error())
@@ -85,11 +84,11 @@ steps:
       - old: another
         new: one`
 
-	var ttp blocks.TTP
+	var ttp TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.Validate(blocks.TTPExecutionContext{})
+	err = ttp.Validate(TTPExecutionContext{})
 	require.Error(t, err)
 
 	assert.Equal(t, "edit #1 is missing 'old:'", err.Error())
@@ -103,7 +102,7 @@ steps:
     edit_file: yolo
     edits: haha`
 
-	var ttp blocks.TTP
+	var ttp TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.Error(t, err)
 }
@@ -115,11 +114,11 @@ steps:
   - name: no_edits
     edit_file: yolo`
 
-	var ttp blocks.TTP
+	var ttp TTP
 	err := yaml.Unmarshal([]byte(content), &ttp)
 	require.NoError(t, err)
 
-	err = ttp.Validate(blocks.TTPExecutionContext{})
+	err = ttp.Validate(TTPExecutionContext{})
 	assert.Equal(t, "no edits specified", err.Error())
 }
 
@@ -133,7 +132,7 @@ edits:
   - old: another
     new: one`
 
-	var step blocks.EditStep
+	var step EditStep
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err)
 
@@ -142,7 +141,7 @@ edits:
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	var execCtx blocks.TTPExecutionContext
+	var execCtx TTPExecutionContext
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
@@ -166,7 +165,7 @@ edits:
   - old: another
     new: one`
 
-	var step blocks.EditStep
+	var step EditStep
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err)
 
@@ -176,7 +175,7 @@ edits:
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	var execCtx blocks.TTPExecutionContext
+	var execCtx TTPExecutionContext
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
@@ -208,7 +207,7 @@ moarawesomestuff`
 # function call removed by TTP
 moarawesomestuff`
 
-	var step blocks.EditStep
+	var step EditStep
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err)
 
@@ -216,7 +215,7 @@ moarawesomestuff`
 	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
 	require.NoError(t, err)
 	step.FileSystem = testFs
-	var execCtx blocks.TTPExecutionContext
+	var execCtx TTPExecutionContext
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
@@ -251,7 +250,7 @@ moarawesomestuff`
 )*/
 moarawesomestuff`
 
-	var step blocks.EditStep
+	var step EditStep
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err)
 
@@ -260,7 +259,7 @@ moarawesomestuff`
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	var execCtx blocks.TTPExecutionContext
+	var execCtx TTPExecutionContext
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
@@ -282,7 +281,7 @@ edits:
 
 	fileContentsToEdit := `hello`
 
-	var step blocks.EditStep
+	var step EditStep
 	err := yaml.Unmarshal([]byte(content), &step)
 	require.NoError(t, err)
 
@@ -291,11 +290,11 @@ edits:
 	require.NoError(t, err)
 	step.FileSystem = testFs
 
-	var execCtx blocks.TTPExecutionContext
+	var execCtx TTPExecutionContext
 	err = step.Validate(execCtx)
 	require.NoError(t, err)
 
-	_, err = step.Execute(blocks.TTPExecutionContext{})
+	_, err = step.Execute(TTPExecutionContext{})
 	require.Error(t, err, "not finding a search string should result in an error")
 	assert.Equal(t, "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt", err.Error())
 }

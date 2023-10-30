@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package args_test
+package args
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,14 +30,14 @@ func TestValidateArgs(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		specs          []args.Spec
+		specs          []Spec
 		argKvStrs      []string
 		expectedResult map[string]any
 		wantError      bool
 	}{
 		{
 			name: "Parse String and Integer Arguments",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -59,7 +58,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Parse String and Integer Argument (Default Value)",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -80,7 +79,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Handle Extra Equals",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -100,7 +99,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Invalid Inputs (no '=')",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -116,7 +115,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Invalid Inputs (Missing Required Argument)",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -131,7 +130,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Argument Name Not In Specs",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -147,7 +146,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Duplicate Name in Specs",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -162,7 +161,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Wrong Type (string instead of int)",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name: "alpha",
 				},
@@ -179,7 +178,7 @@ func TestValidateArgs(t *testing.T) {
 		},
 		{
 			name: "Default Value Wrong Type (string instead of int)",
-			specs: []args.Spec{
+			specs: []Spec{
 				{
 					Name:    "alpha",
 					Type:    "int",
@@ -195,7 +194,7 @@ func TestValidateArgs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			args, err := args.ParseAndValidate(tc.specs, tc.argKvStrs)
+			args, err := ParseAndValidate(tc.specs, tc.argKvStrs)
 			if tc.wantError {
 				require.Error(t, err)
 				return

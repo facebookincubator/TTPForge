@@ -17,7 +17,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"io/fs"
@@ -27,7 +27,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,7 +77,7 @@ func TestFetchAbs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := blocks.FetchAbs(tc.inputPath, tc.inputWorkdir)
+			result, err := FetchAbs(tc.inputPath, tc.inputWorkdir)
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -161,7 +160,7 @@ func TestFindFilePath(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := blocks.FindFilePath(tc.inputPath, tc.inputWorkdir, tc.fsStat)
+			result, err := FindFilePath(tc.inputPath, tc.inputWorkdir, tc.fsStat)
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -213,7 +212,7 @@ func TestFetchEnv(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := blocks.FetchEnv(tt.environ)
+			result := FetchEnv(tt.environ)
 			sort.Strings(result)
 			sort.Strings(tt.expected)
 

@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package preprocess_test
+package preprocess
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,7 +73,7 @@ args:
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := preprocess.Parse([]byte(tc.ttpStr))
+			_, err := Parse([]byte(tc.ttpStr))
 			if tc.expectError {
 				require.Error(t, err)
 			} else {

@@ -17,13 +17,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"runtime"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/yaml.v3"
@@ -49,7 +48,7 @@ steps:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps blocks.TTP
+			var ttps TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -65,20 +64,20 @@ func TestInferExecutor(t *testing.T) {
 		filePath     string
 		expectedExec string
 	}{
-		{filePath: "script.sh", expectedExec: blocks.ExecutorSh},
-		{filePath: "script.py", expectedExec: blocks.ExecutorPython},
-		{filePath: "script.rb", expectedExec: blocks.ExecutorRuby},
-		{filePath: "script.pwsh", expectedExec: blocks.ExecutorPowershell},
-		{filePath: "script.ps1", expectedExec: blocks.ExecutorPowershell},
-		{filePath: "script.bat", expectedExec: blocks.ExecutorCmd},
-		{filePath: "binary", expectedExec: blocks.ExecutorBinary},
+		{filePath: "script.sh", expectedExec: ExecutorSh},
+		{filePath: "script.py", expectedExec: ExecutorPython},
+		{filePath: "script.rb", expectedExec: ExecutorRuby},
+		{filePath: "script.pwsh", expectedExec: ExecutorPowershell},
+		{filePath: "script.ps1", expectedExec: ExecutorPowershell},
+		{filePath: "script.bat", expectedExec: ExecutorCmd},
+		{filePath: "binary", expectedExec: ExecutorBinary},
 		{filePath: "unknown.xyz", expectedExec: getDefaultExecutor()},
-		{filePath: "", expectedExec: blocks.ExecutorBinary},
+		{filePath: "", expectedExec: ExecutorBinary},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.filePath, func(t *testing.T) {
-			executor := blocks.InferExecutor(testCase.filePath)
+			executor := InferExecutor(testCase.filePath)
 			assert.Equal(t, testCase.expectedExec, executor, "Expected executor %q for file path %q, but got %q", testCase.expectedExec, testCase.filePath, executor)
 		})
 	}
@@ -86,7 +85,7 @@ func TestInferExecutor(t *testing.T) {
 
 func getDefaultExecutor() string {
 	if runtime.GOOS == "windows" {
-		return blocks.ExecutorCmd
+		return ExecutorCmd
 	}
-	return blocks.ExecutorSh
+	return ExecutorSh
 }

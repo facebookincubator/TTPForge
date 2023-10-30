@@ -17,12 +17,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -33,14 +32,14 @@ func TestRemovePathExecute(t *testing.T) {
 	testCases := []struct {
 		name               string
 		description        string
-		step               *blocks.RemovePathAction
+		step               *RemovePathAction
 		fsysContents       map[string][]byte
 		expectExecuteError bool
 	}{
 		{
 			name:        "Remove Valid File",
 			description: "Remove a single unremarkable file",
-			step: &blocks.RemovePathAction{
+			step: &RemovePathAction{
 				Path: "valid-file.txt",
 			},
 			fsysContents: map[string][]byte{
@@ -50,7 +49,7 @@ func TestRemovePathExecute(t *testing.T) {
 		{
 			name:        "Remove Non-Existent File",
 			description: "Remove a non-existent file - should error",
-			step: &blocks.RemovePathAction{
+			step: &RemovePathAction{
 				Path: "does-not-exist.txt",
 			},
 			fsysContents: map[string][]byte{
@@ -61,7 +60,7 @@ func TestRemovePathExecute(t *testing.T) {
 		{
 			name:        "Remove Directory - Success",
 			description: "Set Recursive to make directory removal succeed",
-			step: &blocks.RemovePathAction{
+			step: &RemovePathAction{
 				Path:      "valid-directory",
 				Recursive: true,
 			},
@@ -72,7 +71,7 @@ func TestRemovePathExecute(t *testing.T) {
 		{
 			name:        "Remove Directory - Failure",
 			description: "Refuse to remove directory because `recursive: true` was not specified",
-			step: &blocks.RemovePathAction{
+			step: &RemovePathAction{
 				Path: "valid-directory",
 			},
 			fsysContents: map[string][]byte{
@@ -94,7 +93,7 @@ func TestRemovePathExecute(t *testing.T) {
 			}
 
 			// execute and check error
-			var execCtx blocks.TTPExecutionContext
+			var execCtx TTPExecutionContext
 			_, err := tc.step.Execute(execCtx)
 			if tc.expectExecuteError {
 				require.Error(t, err)

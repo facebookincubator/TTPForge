@@ -16,12 +16,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package outputs_test
+package outputs
 
 import (
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -62,7 +61,7 @@ func TestJSONFilter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var spec outputs.Spec
+			var spec Spec
 			err := yaml.Unmarshal([]byte(tc.spec), &spec)
 			require.NoError(t, err)
 
@@ -79,24 +78,24 @@ func TestJSONFilter(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	input := `{"foo":{"bar":"baz"},"a":"b"}`
-	specs := map[string]outputs.Spec{
+	specs := map[string]Spec{
 		"first": {
-			Filters: []outputs.Filter{
-				&outputs.JSONFilter{
+			Filters: []Filter{
+				&JSONFilter{
 					Path: "foo.bar",
 				},
 			},
 		},
 		"second": {
-			Filters: []outputs.Filter{
-				&outputs.JSONFilter{
+			Filters: []Filter{
+				&JSONFilter{
 					Path: "a",
 				},
 			},
 		},
 	}
 
-	results, err := outputs.Parse(specs, input)
+	results, err := Parse(specs, input)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(results), "should have two outputs")
 	assert.Equal(t, "baz", results["first"], "first output should be correct")

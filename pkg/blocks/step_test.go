@@ -17,14 +17,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks_test
+package blocks
 
 import (
 	"fmt"
 	"os"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,8 +74,8 @@ inline: this will error`,
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var s blocks.Step
-			var execCtx blocks.TTPExecutionContext
+			var s Step
+			var execCtx TTPExecutionContext
 
 			// parse the step
 			err := yaml.Unmarshal([]byte(tc.content), &s)
@@ -154,8 +153,8 @@ cleanup:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var s blocks.Step
-			var execCtx blocks.TTPExecutionContext
+			var s Step
+			var execCtx TTPExecutionContext
 
 			// hack to get a valid temporary path without creating it
 			tmpFile, err := os.CreateTemp("", "ttpforge-test-cleanup-default")

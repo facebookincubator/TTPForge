@@ -17,13 +17,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package cmd_test
+package cmd
 
 import (
 	"path/filepath"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/cmd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,7 +40,7 @@ func TestListTTPs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rc := cmd.BuildRootCommand(nil)
+			rc := BuildRootCommand(nil)
 			rc.SetArgs([]string{"list", "ttps", "-c", testConfigFilePath})
 			err := rc.Execute()
 			if tc.wantError {
