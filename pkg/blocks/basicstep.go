@@ -81,7 +81,7 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	// Set Executor to "bash" if it is not provided
 	if b.Executor == "" && b.Inline != "" {
 		logging.L().Debug("defaulting to bash since executor was not provided")
-		b.Executor = "bash"
+		b.Executor = ExecutorBash
 	}
 
 	// Return if Executor is ExecutorBinary
@@ -153,8 +153,15 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	return result, nil
 }
 
+func (b *BasicStep) buildCommand(ctx context.Context, executor string) *exec.Cmd {
+	if executor == ExecutorBash {
+		return exec.CommandContext(ctx, executor, "-o", "errexit")
+	}
+	return exec.CommandContext(ctx, executor)
+}
+
 func (b *BasicStep) prepareCommand(ctx context.Context, execCtx TTPExecutionContext, envAsList []string, inline string) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, b.Executor)
+	cmd := b.buildCommand(ctx, b.Executor)
 	cmd.Env = envAsList
 	cmd.Dir = execCtx.WorkDir
 	cmd.Stdin = strings.NewReader(inline)
