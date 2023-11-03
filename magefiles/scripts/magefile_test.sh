@@ -22,10 +22,6 @@ GOOS=windows GOARCH=amd64 release=false mage compile
 echo "Testing 'InstallDeps'..."
 mage InstallDeps
 
-# Generate Package Docs
-echo "Testing 'GeneratePackageDocs'..."
-mage GeneratePackageDocs
-
 # Run PreCommit
 echo "Testing 'RunPreCommit'..."
 mage RunPreCommit

@@ -56,27 +56,6 @@ error: An error if any issue occurs during compilation.
 
 ---
 
-### GeneratePackageDocs()
-
-```go
-GeneratePackageDocs() error
-```
-
-GeneratePackageDocs creates documentation for the various packages
-in the project.
-
-Example usage:
-
-```go
-mage generatepackagedocs
-```
-
-**Returns:**
-
-error: An error if any issue occurs during documentation generation.
-
----
-
 ### InstallDeps()
 
 ```go
