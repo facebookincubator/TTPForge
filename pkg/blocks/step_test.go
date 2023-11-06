@@ -70,6 +70,34 @@ inline: this will error`,
 			content:            `inline: echo should_error_before_execution`,
 			wantUnmarshalError: true,
 		},
+		{
+			name: "Basic bash executor doesn't tolerate non-zero exit codes in inline scripts",
+			content: `name: inline_step
+description: this is a test
+inline: |
+  false
+  echo executing
+cleanup:
+  inline: echo cleanup
+`,
+			wantExecuteError:      true,
+			expectedExecuteStdout: "",
+			expectedCleanupStdout: "cleanup\n",
+		},
+		{
+			name: "Basic bash supports setting error processing option to ignore errors",
+			content: `name: inline_step
+inline: |
+  set +e
+  false
+  echo executing
+cleanup:
+  inline: echo cleanup
+`,
+			wantExecuteError:      false,
+			expectedExecuteStdout: "executing\n",
+			expectedCleanupStdout: "cleanup\n",
+		},
 	}
 
 	for _, tc := range testCases {
