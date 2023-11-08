@@ -21,8 +21,10 @@ package blocks
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
@@ -47,6 +49,7 @@ type TTP struct {
 	Description        string            `yaml:"description"`
 	MitreAttackMapping *MitreAttack      `yaml:"mitre,omitempty"`
 	Environment        map[string]string `yaml:"env,flow,omitempty"`
+	Requirements       *RequirementsType `yaml:"requirements,omitempty"`
 	Steps              []Step            `yaml:"steps,omitempty,flow"`
 	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
@@ -64,6 +67,15 @@ type MitreAttack struct {
 	Tactics       []string `yaml:"tactics,omitempty"`
 	Techniques    []string `yaml:"techniques,omitempty"`
 	SubTechniques []string `yaml:"subtechniques,omitempty"`
+}
+
+// RequirementsType are marks to group TTPs by platform or capability
+//
+// **Attributes:**
+//
+// ExpectSuperuser: Whether the TTP assumes superuser privileges
+type RequirementsType struct {
+	ExpectSuperuser bool `yaml:"superuser,omitempty"`
 }
 
 // MarshalYAML is a custom marshalling implementation for the TTP structure.
@@ -135,6 +147,20 @@ func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	// validate MITRE mapping
 	if t.MitreAttackMapping != nil && len(t.MitreAttackMapping.Tactics) == 0 {
 		return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", t.Name)
+	}
+
+	if t.Requirements != nil {
+		if t.Requirements.ExpectSuperuser {
+			if runtime.GOOS == "windows" {
+				logging.L().Warnf("not enforcing superuser requirement because it is not supported on windows yet")
+			} else {
+				if os.Geteuid() != 0 {
+					err := errors.New("must be root (UID 0) to run this TTP")
+					return err
+				}
+				logging.L().Debug("[+] Running as root")
+			}
+		}
 	}
 
 	for _, step := range t.Steps {
