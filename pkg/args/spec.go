@@ -28,9 +28,10 @@ import (
 
 // Spec defines a CLI argument for the TTP
 type Spec struct {
-	Name    string `yaml:"name"`
-	Type    string `yaml:"type,omitempty"`
-	Default string `yaml:"default,omitempty"`
+	Name    string   `yaml:"name"`
+	Type    string   `yaml:"type,omitempty"`
+	Default string   `yaml:"default,omitempty"`
+	Choices []string `yaml:"choices,omitempty"`
 }
 
 // ParseAndValidate checks that the provided arguments
@@ -55,11 +56,20 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 			return nil, errors.New("argument name cannot be empty")
 		}
 
+		err := spec.validateChoiceTypes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to validate types of choice values: %w", err)
+		}
+
 		// set the default value, will be overwritten by passed value
 		if spec.Default != "" {
+			if !spec.isValidChoice(spec.Default) {
+				return nil, fmt.Errorf("invalid default value: %v, allowed values: %v ", spec.Default, strings.Join(spec.Choices, ", "))
+			}
+
 			defaultVal, err := spec.convertArgToType(spec.Default)
 			if err != nil {
-				return nil, fmt.Errorf("default value type does not match spec: %v", err)
+				return nil, fmt.Errorf("default value type does not match spec: %w", err)
 			}
 			processedArgs[spec.Name] = defaultVal
 		}
@@ -85,6 +95,10 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 			return nil, fmt.Errorf("received unexpected argument: %v ", argName)
 		}
 
+		if !spec.isValidChoice(argVal) {
+			return nil, fmt.Errorf("received unexpected value: %v, allowed values: %v ", argVal, strings.Join(spec.Choices, ", "))
+		}
+
 		typedVal, err := spec.convertArgToType(argVal)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -106,6 +120,33 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 		}
 	}
 	return processedArgs, nil
+}
+
+func (spec Spec) validateChoiceTypes() error {
+	if len(spec.Choices) == 0 {
+		return nil
+	}
+
+	for _, choice := range spec.Choices {
+		_, err := spec.convertArgToType(choice)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (spec Spec) isValidChoice(value string) bool {
+	if len(spec.Choices) == 0 {
+		return true
+	}
+
+	for _, choice := range spec.Choices {
+		if choice == value {
+			return true
+		}
+	}
+	return false
 }
 
 func (spec Spec) convertArgToType(val string) (any, error) {

@@ -190,6 +190,94 @@ func TestValidateArgs(t *testing.T) {
 			},
 			wantError: true,
 		},
+		{
+			name: "Choices: expected value",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Choices: []string{"foo", "bar"},
+				},
+			},
+			argKvStrs: []string{
+				"alpha=bar",
+			},
+			expectedResult: map[string]any{
+				"alpha": "bar",
+			},
+			wantError: false,
+		},
+		{
+			name: "Choices: wrong default value",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Choices: []string{"foo", "bar"},
+					Default: "baz",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=bar",
+			},
+			wantError: true,
+		},
+		{
+			name: "Choices: wrong argument value",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Choices: []string{"foo", "bar"},
+				},
+			},
+			argKvStrs: []string{
+				"alpha=baz",
+			},
+			wantError: true,
+		},
+		{
+			name: "Choices: with int argument type",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Type:    "int",
+					Choices: []string{"1", "2"},
+				},
+			},
+			argKvStrs: []string{
+				"alpha=1",
+			},
+			expectedResult: map[string]any{
+				"alpha": 1,
+			},
+			wantError: false,
+		},
+		{
+			name: "Choices: with wrong choice type",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Type:    "int",
+					Choices: []string{"CECI_NEST_PAS_UNE_INT", "1", "2"},
+				},
+			},
+			argKvStrs: []string{
+				"alpha=2",
+			},
+			wantError: true,
+		},
+		{
+			name: "Choices: with wrong argument type",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Type:    "int",
+					Choices: []string{"1", "2", "CECI_NEST_PAS_UNE_INT"},
+				},
+			},
+			argKvStrs: []string{
+				"alpha=CECI_NEST_PAS_UNE_INT",
+			},
+			wantError: true,
+		},
 	}
 
 	for _, tc := range testCases {
