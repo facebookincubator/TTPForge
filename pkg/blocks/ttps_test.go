@@ -390,3 +390,72 @@ mitre:
 		})
 	}
 }
+
+func TestRequirements(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		content              string
+		wantError            bool
+		expectedRequirements *RequirementsType
+	}{
+		{
+			name: "Omitted requirements section",
+			content: `
+name: TestTTP
+description: Test description
+steps:
+  - name: hello
+    inline: echo "hello world"
+`,
+			wantError:            false,
+			expectedRequirements: nil,
+		},
+		{
+			name: "Valid requirements section",
+			content: `
+name: TestTTP
+description: Test description
+requirements:
+  superuser: false
+steps:
+  - name: hello
+    inline: echo "hello world"
+`,
+			wantError: false,
+			expectedRequirements: &RequirementsType{
+				ExpectSuperuser: false,
+			},
+		},
+		{
+			name: "Invalid requirements section - cannot become root in tests",
+			content: `
+name: TestTTP
+description: Test description
+requirements:
+  superuser: true
+steps:
+  - name: hello
+    inline: echo "hello world"
+`,
+			wantError: true,
+			expectedRequirements: &RequirementsType{
+				ExpectSuperuser: true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ttp TTP
+			err := yaml.Unmarshal([]byte(tc.content), &ttp)
+			require.NoError(t, err)
+			err = ttp.Validate(TTPExecutionContext{})
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, ttp.Requirements, tc.expectedRequirements)
+			}
+		})
+	}
+}
