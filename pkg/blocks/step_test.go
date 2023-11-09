@@ -98,6 +98,15 @@ cleanup:
 			expectedExecuteStdout: "executing\n",
 			expectedCleanupStdout: "cleanup\n",
 		},
+		{
+			name: "name: copypath test, copy from an existing file to nonexisting with overwrite.",
+			content: `name: copypath_step
+copy_path: /etc/passwd
+to: /tmp/passwd
+overwrite: true
+cleanup: default`,
+			wantExecuteError: false,
+		},
 	}
 
 	for _, tc := range testCases {
