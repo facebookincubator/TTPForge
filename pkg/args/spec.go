@@ -22,6 +22,7 @@ package args
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -32,6 +33,9 @@ type Spec struct {
 	Type    string   `yaml:"type,omitempty"`
 	Default string   `yaml:"default,omitempty"`
 	Choices []string `yaml:"choices,omitempty"`
+	Format  string   `yaml:"regexp,omitempty"`
+
+	formatReg *regexp.Regexp
 }
 
 // ParseAndValidate checks that the provided arguments
@@ -74,6 +78,26 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 			processedArgs[spec.Name] = defaultVal
 		}
 
+		// set Format to match whole string
+		// check if first and last character are ^ and $ respectively
+		// append and prepend if missing
+		// if Format string is missing ^$ then we are subject to partial matches
+		if spec.Format != "" {
+			if spec.Type != "string" {
+				return nil, fmt.Errorf("`regexp:` can only be used with string arguments")
+			}
+			if spec.Format[0] != '^' {
+				spec.Format = "^" + spec.Format
+			}
+			if spec.Format[len(spec.Format)-1] != '$' {
+				spec.Format = spec.Format + "$"
+			}
+			spec.formatReg, err = regexp.Compile(spec.Format)
+			if err != nil {
+				return nil, fmt.Errorf("invalid regular expression supplied to arg spec format: %w", err)
+			}
+		}
+
 		if _, ok := specsByName[spec.Name]; ok {
 			return nil, fmt.Errorf("duplicate argument name: %v", spec.Name)
 		}
@@ -97,6 +121,10 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 
 		if !spec.isValidChoice(argVal) {
 			return nil, fmt.Errorf("received unexpected value: %v, allowed values: %v ", argVal, strings.Join(spec.Choices, ", "))
+		}
+
+		if spec.formatReg != nil && !spec.formatReg.MatchString(argVal) {
+			return nil, fmt.Errorf("invalid value format: %v, expected regex format: %v ", argVal, spec.Format)
 		}
 
 		typedVal, err := spec.convertArgToType(argVal)
