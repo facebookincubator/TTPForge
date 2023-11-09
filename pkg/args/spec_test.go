@@ -278,6 +278,68 @@ func TestValidateArgs(t *testing.T) {
 			},
 			wantError: true,
 		},
+		{
+			name: "Format with valid value",
+			specs: []Spec{
+				{
+					Name:   "alpha",
+					Type:   "string",
+					Format: "[A-Z_]+",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=CECI_NEST_PAS_UNE_INT",
+			},
+			expectedResult: map[string]any{
+				"alpha": "CECI_NEST_PAS_UNE_INT",
+			},
+			wantError: false,
+		},
+		{
+			name: "Format with invalid value",
+			specs: []Spec{
+				{
+					Name:   "alpha",
+					Type:   "string",
+					Format: "[A-Z_]+",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=INVALID_CECI_NEST_PAS-",
+			},
+			wantError: true,
+		},
+		{
+			name: "Format with proper end and beginning tags",
+			specs: []Spec{
+				{
+					Name:   "alpha",
+					Type:   "string",
+					Format: "^[A-Z_-]+$",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=CECI_NEST_PAS_UNE_INT-",
+			},
+			expectedResult: map[string]any{
+				"alpha": "CECI_NEST_PAS_UNE_INT-",
+			},
+			wantError: false,
+		},
+		{
+			name: "Format with improper regex",
+			specs: []Spec{
+				{
+					Name:   "alpha",
+					Type:   "string",
+					Format: "^[A-Z_-]+[$$",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=CECI_NEST_PAS_UNE_INT-",
+			},
+			wantError: true,
+		},
 	}
 
 	for _, tc := range testCases {
