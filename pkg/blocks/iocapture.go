@@ -22,16 +22,45 @@ package blocks
 import (
 	"bytes"
 	"io"
-	"os"
 	"os/exec"
+
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 )
+
+type zapWriter struct {
+	prefix string
+}
+
+func (z *zapWriter) Write(b []byte) (int, error) {
+	n := len(b)
+	// extra-defensive programming :P
+	if n <= 0 {
+		return 0, nil
+	}
+
+	// strip trailing newline
+	if b[n-1] == '\n' {
+		b = b[:n-1]
+	}
+
+	// split lines
+	lines := bytes.Split(b, []byte{'\n'})
+	for _, line := range lines {
+		logging.L().Info(z.prefix, string(line))
+	}
+	return n, nil
+}
 
 func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
 	if stdout == nil {
-		stdout = os.Stdout
+		stdout = &zapWriter{
+			prefix: "[STDOUT] ",
+		}
 	}
 	if stderr == nil {
-		stderr = os.Stderr
+		stderr = &zapWriter{
+			prefix: "[STDERR] ",
+		}
 	}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
