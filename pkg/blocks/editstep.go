@@ -90,12 +90,19 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
+	backupPath := s.BackupFile
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
 		var err error
 		targetPath, err = FetchAbs(targetPath, execCtx.WorkDir)
 		if err != nil {
 			return nil, err
+		}
+		if backupPath != "" {
+			backupPath, err = FetchAbs(backupPath, execCtx.WorkDir)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	rawContents, err := afero.ReadFile(fileSystem, targetPath)
@@ -105,8 +112,8 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 
 	contents := string(rawContents)
 
-	if s.BackupFile != "" {
-		err = afero.WriteFile(fileSystem, s.BackupFile, []byte(contents), 0644)
+	if backupPath != "" {
+		err = afero.WriteFile(fileSystem, backupPath, []byte(contents), 0644)
 		if err != nil {
 			return nil, fmt.Errorf("could not write backup file %v: %v", s.BackupFile, err)
 		}
