@@ -30,6 +30,8 @@ import (
 type Edit struct {
 	Old    string `yaml:"old,omitempty"`
 	New    string `yaml:"new,omitempty"`
+	Append string `yaml:"append,omitempty"`
+	Delete string `yaml:"delete,omitempty"`
 	Regexp bool   `yaml:"regexp,omitempty"`
 
 	oldRegexp *regexp.Regexp
@@ -65,22 +67,45 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 		return fmt.Errorf("no edits specified")
 	}
 
-	// TODO: make this compatible with deleting lines
 	for editIdx, edit := range s.Edits {
-		if edit.Old == "" {
-			return fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
-		} else if edit.New == "" {
-			return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
+
+		if edit.Append == "" && edit.Delete == "" {
+			if edit.Old == "" {
+				return fmt.Errorf("edit #%d is missing 'old:'", editIdx+1)
+			} else if edit.New == "" {
+				return fmt.Errorf("edit #%d is missing 'new:'", editIdx+1)
+			}
+		} else if edit.Append != "" {
+			if edit.Old != "" {
+				return fmt.Errorf("append is not to be used in conjunction with 'old:'")
+			} else if edit.New != "" {
+				return fmt.Errorf("append is not to be used in conjunction with 'new:'")
+
+			} else if edit.Regexp {
+				return fmt.Errorf("append is not to be used in conjunction with 'regexp:'")
+
+			}
+		} else if edit.Delete != "" {
+			if edit.Old != "" {
+				return fmt.Errorf("delete is not to be used in conjunction with 'old:'")
+			} else if edit.New != "" {
+				return fmt.Errorf("delete is not to be used in conjunction with 'new:'")
+
+			}
 		}
 
+		oldStr := edit.Old
+		if edit.Delete != "" {
+			oldStr = edit.Delete
+		}
 		var err error
 		if edit.Regexp {
-			edit.oldRegexp, err = regexp.Compile(edit.Old)
+			edit.oldRegexp, err = regexp.Compile(oldStr)
 			if err != nil {
 				return fmt.Errorf("edit #%d has invalid regex for 'old:'", editIdx+1)
 			}
 		} else {
-			edit.oldRegexp = regexp.MustCompile(regexp.QuoteMeta(edit.Old))
+			edit.oldRegexp = regexp.MustCompile(regexp.QuoteMeta(oldStr))
 		}
 	}
 	return nil
@@ -123,6 +148,12 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	// but it's unlikely to be a performance issue in practice. If it is,
 	// we can optimize
 	for editIdx, edit := range s.Edits {
+
+		if edit.Append != "" {
+			contents += "\n" + edit.Append
+			continue
+		}
+
 		matches := edit.oldRegexp.FindAllStringIndex(contents, -1)
 		// we want to error here because otherwise ppl will be confused by silent
 		// failures if the format of the file they're trying to edit changes
@@ -135,7 +166,11 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 				s.FileToEdit,
 			)
 		}
-		contents = edit.oldRegexp.ReplaceAllString(contents, edit.New)
+		newStr := edit.New
+		if edit.Delete != "" {
+			newStr = ""
+		}
+		contents = edit.oldRegexp.ReplaceAllString(contents, newStr)
 	}
 
 	err = afero.WriteFile(fileSystem, targetPath, []byte(contents), 0644)
