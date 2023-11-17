@@ -28,7 +28,9 @@ import (
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
+	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
 
@@ -283,8 +285,20 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 			}
 			return nil, firstStepToCleanupIdx, err
 		}
-		firstStepToCleanupIdx++
 
+		// if the user specified custom success checks, run them now
+		verificationCtx := checks.VerificationContext{
+			FileSystem: afero.NewOsFs(),
+		}
+		for checkIdx, check := range step.Checks {
+			if err := check.Verify(verificationCtx); err != nil {
+				return nil, firstStepToCleanupIdx, fmt.Errorf("success check %d of step %q failed: %w", checkIdx+1, step.Name, err)
+			}
+			logging.L().Debugf("Success check %d (%q) of step %q PASSED", checkIdx+1, check.Msg, step.Name)
+		}
+
+		// step execution successful - record results
+		firstStepToCleanupIdx++
 		execResult := &ExecutionResult{
 			ActResult: *stepResult,
 		}
