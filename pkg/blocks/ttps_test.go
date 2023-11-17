@@ -305,6 +305,23 @@ steps:
 			},
 			wantError: false,
 		},
+		{
+			name: "Test usage of Sprig syntax",
+			content: `name: test_sprig_template_syntax
+description: test the usage of Sprig syntax in a TTP
+steps:
+  - name: step1
+    inline: echo 'Take the space away {{nospace "Hello World!"}}'
+`,
+			expectedByIndexOut: map[int]string{
+				0: "Take the space away HelloWorld!\n",
+			},
+			expectedByNameOut: map[string]string{
+				"step1": "Take the space away HelloWorld!\n",
+			},
+
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {

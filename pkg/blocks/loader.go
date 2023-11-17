@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 	"github.com/spf13/afero"
@@ -49,7 +50,9 @@ import (
 // *TTP: A pointer to the TTP object created from the template.
 // error: An error if the rendering or unmarshaling process fails.
 func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error) {
-	tmpl, err := template.New("ttp").Parse(ttpStr)
+
+	tmpl, err := template.New("ttp").Funcs(sprig.TxtFuncMap()).Parse(ttpStr)
+
 	if err != nil {
 		return nil, err
 	}
