@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
@@ -31,8 +32,9 @@ import (
 // common to every type of step (such as Name).
 // It centralizes validation to simplify the code
 type CommonStepFields struct {
-	Name        string `yaml:"name,omitempty"`
-	Description string `yaml:"description,omitempty"`
+	Name        string         `yaml:"name,omitempty"`
+	Description string         `yaml:"description,omitempty"`
+	Checks      []checks.Check `yaml:"checks,omitempty"`
 
 	// CleanupSpec is exported so that UnmarshalYAML
 	// can see it - however, it should be considered

