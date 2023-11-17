@@ -22,6 +22,7 @@ package blocks
 import (
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
 )
@@ -56,12 +57,16 @@ func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, err
 	}
 
 	// cannot remove a non-existent path
-	exists, err := afero.Exists(fsys, s.Path)
+	pathToRemove, err := fileutils.ExpandTilde(s.Path)
+	if err != nil {
+		return nil, err
+	}
+	exists, err := afero.Exists(fsys, pathToRemove)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, fmt.Errorf("path %v does not exist", s.Path)
+		return nil, fmt.Errorf("path %v does not exist", pathToRemove)
 	}
 
 	// afero fsys.Remove(...) appears to be buggy
@@ -69,7 +74,7 @@ func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, err
 	// so we check manually - we use the semantics
 	// of the macOS `rm` command and refuse to remove even
 	// empty directories unless recursive is specified
-	isDir, err := afero.IsDir(fsys, s.Path)
+	isDir, err := afero.IsDir(fsys, pathToRemove)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +84,7 @@ func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, err
 	}
 
 	// actually remove the file
-	err = fsys.RemoveAll(s.Path)
+	err = fsys.RemoveAll(pathToRemove)
 	if err != nil {
 		return nil, err
 	}

@@ -23,6 +23,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +31,11 @@ import (
 )
 
 func TestCreateFileExecute(t *testing.T) {
+
+	// need this for some test cases
+	homedir, err := os.UserHomeDir()
+	require.NoError(t, err)
+
 	testCases := []struct {
 		name               string
 		description        string
@@ -86,6 +92,17 @@ func TestCreateFileExecute(t *testing.T) {
 				Mode:     0400,
 			},
 		},
+		{
+			name:        "Expand Tilde Into Home Directory",
+			description: "Ensure that ~ is expanded into home directory appropriately",
+			step: &CreateFileStep{
+				Path:     "~/foo",
+				Contents: "it worked",
+			},
+			fsysContents: map[string][]byte{
+				homedir + "/placeholder": []byte("creating homedir in afero so that it works"),
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -109,13 +126,15 @@ func TestCreateFileExecute(t *testing.T) {
 			require.NoError(t, err)
 
 			// check contents
-			contentBytes, err := afero.ReadFile(tc.step.FileSystem, tc.step.Path)
+			pathToCheck, err := fileutils.ExpandTilde(tc.step.Path)
+			require.NoError(t, err)
+			contentBytes, err := afero.ReadFile(tc.step.FileSystem, pathToCheck)
 			require.NoError(t, err)
 			assert.Equal(t, tc.step.Contents, string(contentBytes))
 
 			// check permissions
 			if tc.step.Mode != 0 {
-				info, err := tc.step.FileSystem.Stat(tc.step.Path)
+				info, err := tc.step.FileSystem.Stat(pathToCheck)
 				require.NoError(t, err)
 				assert.Equal(t, os.FileMode(tc.step.Mode), info.Mode())
 			}

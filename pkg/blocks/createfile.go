@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
 )
@@ -63,22 +64,29 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error
 		fsys = afero.NewOsFs()
 	}
 
-	exists, err := afero.Exists(fsys, s.Path)
+	// check whether path already exists and
+	// whether that is ok given the overwrite flag status
+	pathToCreate, err := fileutils.ExpandTilde(s.Path)
 	if err != nil {
 		return nil, err
 	}
-
-	var f afero.File
-	if exists && !s.Overwrite {
-		return nil, fmt.Errorf("path %v already exists and overwrite was not set", s.Path)
+	exists, err := afero.Exists(fsys, pathToCreate)
+	if err != nil {
+		return nil, err
 	}
+	if exists && !s.Overwrite {
+		return nil, fmt.Errorf("path %v already exists and overwrite was not set", pathToCreate)
+	}
+
 	// use the default umask
 	// https://stackoverflow.com/questions/23842247/reading-default-filemode-when-using-os-o-create
 	mode := s.Mode
 	if mode == 0 {
 		mode = 0666
 	}
-	f, err = fsys.OpenFile(s.Path, os.O_WRONLY|os.O_CREATE, os.FileMode(mode))
+
+	// actually write the file
+	f, err := fsys.OpenFile(pathToCreate, os.O_WRONLY|os.O_CREATE, os.FileMode(mode))
 	if err != nil {
 		return nil, err
 	}
