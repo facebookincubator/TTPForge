@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"os"
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
@@ -29,6 +30,10 @@ import (
 )
 
 func TestRemovePathExecute(t *testing.T) {
+	// need this for some test cases
+	homedir, err := os.UserHomeDir()
+	require.NoError(t, err)
+
 	testCases := []struct {
 		name               string
 		description        string
@@ -78,6 +83,17 @@ func TestRemovePathExecute(t *testing.T) {
 				"valid-directory/valid-file.txt": []byte("whoops"),
 			},
 			expectExecuteError: true,
+		},
+		{
+			name:        "Expand Tilde Into Home Directory",
+			description: "Ensure that ~ is expanded into home directory appropriately",
+			step: &RemovePathAction{
+				Path: "~/this-should-work",
+			},
+
+			fsysContents: map[string][]byte{
+				homedir + "/this-should-work": []byte("hopefully this file gets deleted correctly"),
+			},
 		},
 	}
 
