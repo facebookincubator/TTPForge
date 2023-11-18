@@ -1,0 +1,46 @@
+---
+name: edit_file_replace
+description: |
+  This TTP shows you how to use the edit_file action type
+  to modify files and replace string literals
+  or regexp matches with new strings
+args:
+  - name: test_file_path
+    description: The path at which the temporary test file should be created
+    default: /tmp/ttpforge_edit_file_replace
+steps:
+  - name: create-tmp-file
+    create_file: {{.Args.test_file_path}}
+    contents: |
+      this_will_be_replaced
+      and another this_will_be_replaced
+      multi-line strings can
+      also be replaced
+      you can comment out entire sections using capture groups
+      entire_function_call(
+        'this function call will be commented out'
+      );
+    overwrite: true
+  - name: edit_test_file
+    edit_file: {{.Args.test_file_path}}
+    edits:
+      - description: |
+          Replace all occurrences of a string literal
+          with another string literal.
+        old: this_will_be_replaced
+        new: single_line_literal_replacement
+      - description: Same as above, but with multiple lines.
+        old: |
+          multi-line strings can
+          also be replaced
+        new: |
+          isn't that
+          cool
+      - description: |
+          You can do fancy edits with regular expressions,
+          like commenting out entire function calls in code.
+        old: (?P<fn_call>(?ms:^entire_function_call\(.*?\);$))
+        new: "/*${fn_call}*/"
+        regexp: true
+  - name: display_result
+    inline: cat {{.Args.test_file_path}}
