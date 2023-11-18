@@ -29,9 +29,8 @@ import (
 )
 
 func buildRemoveRepoCommand(cfg *Config) *cobra.Command {
-	var newRepoSpec repos.Spec
 	removeRepoCommand := &cobra.Command{
-		Use:              "repo",
+		Use:              "repo [repo_name]",
 		Short:            "remove (uninstall) a repository of TTPs used by TTPForge",
 		TraverseChildren: true,
 		Args:             cobra.ExactArgs(1),
@@ -71,6 +70,5 @@ func buildRemoveRepoCommand(cfg *Config) *cobra.Command {
 			return nil
 		},
 	}
-	removeRepoCommand.PersistentFlags().StringVar(&newRepoSpec.Name, "name", "", "The name to use for the new repository")
 	return removeRepoCommand
 }
