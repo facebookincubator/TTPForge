@@ -1,0 +1,22 @@
+---
+name: create_file_basic
+description: |
+  This TTP shows you how to use the create_file action type
+  to create files on disk
+steps:
+  - name: create-first-tmp-file
+    create_file: /tmp/ttpforge_create_file_{{randAlphaNum 10}}
+    contents: |
+      Using create_file is a convenient to simulate TTPs that
+      drop files to disk. We can control the permission mode
+      with which the file is created using `mode:`
+    mode: 0600
+    cleanup: default
+  - name:  create-second-tmp-file
+    create_file: /tmp/ttpforge_create_file_overwritable
+    contents: |
+      This step uses `overwrite: true` which means
+      that even if the target file already exists, it will be overwritten with these
+      contents
+    overwrite: true
+    cleanup: default

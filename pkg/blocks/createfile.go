@@ -86,7 +86,7 @@ func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error
 	}
 
 	// actually write the file
-	f, err := fsys.OpenFile(pathToCreate, os.O_WRONLY|os.O_CREATE, os.FileMode(mode))
+	f, err := fsys.OpenFile(pathToCreate, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(mode))
 	if err != nil {
 		return nil, err
 	}

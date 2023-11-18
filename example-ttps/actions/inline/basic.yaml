@@ -1,0 +1,21 @@
+---
+name: inline_basic
+description: |
+  This TTP shows you how to use the inline action type to
+  run basic shell commands.
+steps:
+  - name: one_line_demo
+    inline: echo 'By default, `inline:` will pass commands that you specify to `bash`'
+  - name: multi_line_demo
+    inline: |
+      echo "You can use multi_line YAML strings like this"
+      echo "To specify multiple commands."
+      echo "TTPForge will execute all of the commands that you specify,"
+      echo "rather like a shell script."
+  - name: changing_executor
+    executor: python3
+    inline: |
+      msg = """You can change the `executor:` field to
+      pass your `inline:` input to a different program.
+      This example will be executed by `python3`"""
+      print(msg)

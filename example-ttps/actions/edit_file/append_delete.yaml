@@ -1,0 +1,34 @@
+---
+name: edit_file_append_delete
+description: |
+  Learn how to append and delete lines
+  with the edit_file action.
+args:
+  - name: test_file_path
+    description: The path at which the temporary test file should be created
+    default: /tmp/ttpforge_edit_file_append_delete
+steps:
+  - name: create-tmp-file
+    create_file: {{.Args.test_file_path}}
+    contents: |
+      this_will_be_deleted
+      and also this_will_be_deleted
+      this will survive
+      // all of these
+      // lines will be
+      // deleted by a regexp
+      and this will also survive
+    overwrite: true
+  - name: edit_test_file
+    edit_file: {{.Args.test_file_path}}
+    edits:
+      - description: |
+          Delete all occurrences of a string literal
+        delete: this_will_be_deleted
+      - description: You can also delete regular expressions matches
+        delete: (?m://.*$)
+        regexp: true
+      - description: Append a line to the file
+        append: this will be appended to the end of the file
+  - name: display_result
+    inline: cat {{.Args.test_file_path}}
