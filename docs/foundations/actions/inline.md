@@ -3,7 +3,7 @@
 By default, the `inline` action runs the provided shell command in a new
 instance of the `bash` shell:
 
-https://github.com/facebookincubator/TTPForge/blob/main/example-ttps/actions/inline/basic.yaml
+https://github.com/facebookincubator/TTPForge/blob/0d62cf5139cb97686f4a6ef76fdf2bf7a30681be/example-ttps/actions/inline/basic.yaml#L1-L21
 
 You can experiment with the above TTP by installing the `examples` TTP
 repository (skip this if `ttpforge list repos` shows that the `examples` repo is
