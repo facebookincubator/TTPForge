@@ -1,0 +1,41 @@
+---
+name: Multiple Test Cases with Arguments
+description: |
+  This TTP illustrates how to use the `tests` feature
+  to define multiple more complex test cases that rely on
+  command-line arguments.
+tests:
+  - name: yes_cat_file
+    args:
+      target_file_path: /tmp/ttpforge_tests_example_yes_cat
+      # note the use of YAML block chomping via the '|-'
+      # so that our template renders correctly
+      # (see: https://yaml-multiline.info/)
+      contents: |-
+        this will be printed to the screen.
+        we deliberately chose a multiline string
+        to verify correct handling in arg string construction.
+      should_cat_file: true
+  - name: no_cat_file
+    args:
+      target_file_path: /tmp/ttpforge_tests_example_no_cat
+      contents: this will not be printed
+args:
+  - name: target_file_path
+    description: the path of the file to create
+  - name: contents
+    description: the contents to write to the target file
+  - name: should_cat_file
+    type: bool
+    default: false
+steps:
+  - name: create_a_file
+    create_file: {{.Args.target_file_path}}
+    contents: |
+{{indent 6 .Args.contents}}
+    overwrite: true
+    cleanup: default
+  {{ if .Args.should_cat_file -}}
+  - name: cat_file
+    inline: cat {{.Args.target_file_path}}
+  {{ end }}

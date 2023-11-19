@@ -1,0 +1,14 @@
+---
+name: Minimal Test Case Example for `tests:` Feature
+description: |
+  This TTP illustrates the simplest possible valid test case
+  within its `tests:` section. When the tests for
+  this TTP are executed using the `ttpforge test` command,
+  the single test case `default` will be executed. This will
+  cause `ttpforge run` to be executed against this TTP
+  YAML file and the resulting exit status will be checked.
+tests:
+  - name: default
+steps:
+  - name: placeholder-step
+    print_str: "I am a placeholder to show off the `tests:` feature."

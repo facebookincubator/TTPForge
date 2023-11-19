@@ -1,0 +1,30 @@
+---
+name: Test Case with Dry Run
+description: |
+  This TTP illustrates the impact of the `dry_run` field
+  on the behavior of a test case. When `dry_run` is set
+  to `true`, the `--dry-run` flag will be appended
+  to the `ttpforge run` command that is constructed to execute
+  the test case. This means that the TTP will be validated
+  (after full template rendering) but not executed.
+tests:
+  - name: default
+    dry_run: true
+    # note that we still need to specify
+    # a valid set of arguments!
+    args:
+      file_suffix: wut
+args:
+  - name: file_suffix
+    description: the suffix to append to the created file
+steps:
+  # this contrived TTP would only work on a very specific system
+  # for which this path exists. We still want the validate
+  # that THIS YAML FILE ITSELF is a valid TTP that COULD
+  # run under the right conditions, so we specify `dry_run: true`
+  # in the test case.
+  - name: create_very_specific_file
+    create_file: /very/specific/path/test-{{.Args.file_suffix}}
+    contents: foo
+    overwrite: true
+    cleanup: default

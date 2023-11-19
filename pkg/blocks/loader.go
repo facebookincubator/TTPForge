@@ -30,6 +30,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/facebookincubator/ttpforge/pkg/args"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
@@ -66,6 +67,11 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 	var ttp TTP
 	err = yaml.Unmarshal(result.Bytes(), &ttp)
 	if err != nil {
+		// important - errors from template rendering are often
+		// opaque so we need to log the real thing
+		logging.L().Errorf("failed to decode TTP YAML - received error: %v", err)
+		logging.L().Error("inspect the rendered TTP below (with all templates such as `{{.Args.foo}}` expanded):\n", result.String())
+		logging.DividerThin()
 		return nil, err
 	}
 	return &ttp, nil
