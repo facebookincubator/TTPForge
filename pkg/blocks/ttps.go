@@ -252,11 +252,6 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 	}
 	defer changeBack()
 
-	if execCtx.Cfg.DryRun {
-		logging.L().Info("[*] Dry-Run Requested - Returning Early")
-		return nil, -1, nil
-	}
-
 	// actually run all the steps
 	logging.L().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()

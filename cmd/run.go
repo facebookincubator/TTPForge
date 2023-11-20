@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +55,11 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 			ttp, execCtx, err := blocks.LoadTTP(ttpAbsPath, foundRepo.GetFs(), &ttpCfg, argsList)
 			if err != nil {
 				return fmt.Errorf("could not load TTP at %v:\n\t%v", ttpAbsPath, err)
+			}
+
+			if ttpCfg.DryRun {
+				logging.L().Info("Dry-Run Requested - Returning Early")
+				return nil
 			}
 
 			if _, err := ttp.Execute(execCtx); err != nil {
