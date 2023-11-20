@@ -20,6 +20,8 @@ THE SOFTWARE.
 package checks
 
 import (
+	"github.com/facebookincubator/ttpforge/pkg/platforms"
+
 	"github.com/spf13/afero"
 )
 
@@ -27,5 +29,6 @@ import (
 // information required to verify conditions
 // of various types
 type VerificationContext struct {
+	Platform   platforms.Spec
 	FileSystem afero.Fs
 }
