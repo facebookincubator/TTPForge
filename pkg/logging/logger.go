@@ -51,6 +51,18 @@ func L() *zap.SugaredLogger {
 	return logger
 }
 
+// DividerThick prints a divider line made of `=` characters
+// to help with the readability of logs
+func DividerThick() {
+	L().Infow("========================================")
+}
+
+// DividerThin prints a divider line made of `-` characters
+// to help with the readability of logs
+func DividerThin() {
+	L().Infow("----------------------------------------")
+}
+
 // InitLog initializes TTPForge global logger
 func InitLog(config Config) (err error) {
 	zcfg := zap.NewDevelopmentConfig()
