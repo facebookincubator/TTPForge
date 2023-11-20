@@ -1,0 +1,27 @@
+---
+name: Basic Cleanup Demonstration
+description: |
+  If a step fails, we stop executing new steps, and begin
+  cleaning up the prior steps in reverse order starting from the last
+  successful step.
+steps:
+  - name: first_step
+    print_str: |
+      This step completes successfully, so its cleanup action will be enqueued.
+    cleanup:
+      print_str: Cleaning up first_step
+  - name: second_step
+    print_str: So does this step.
+    cleanup:
+      print_str: Cleaning up second_step
+  - name: third_step
+    inline: |
+      echo "This step fails, so it will not have its cleanup action run..."
+      notarealcommandwillcauseafailure
+    cleanup:
+      print_str: This won't run!
+  - name: fourth_step
+    print_str: |
+      Since the previous step failed, this step won't run at all...
+    cleanup:
+      print_str: ...and therefore its cleanup action won't run either.

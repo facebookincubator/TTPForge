@@ -105,8 +105,6 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()
 
-	logging.L().Info("========= Executing ==========")
-
 	if b.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
@@ -115,9 +113,6 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	logging.L().Info("========= Done ==========")
-
 	return result, nil
 }
 

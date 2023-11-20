@@ -207,6 +207,7 @@ func (t *TTP) chdir() (func(), error) {
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
 func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) {
+	logging.L().Infof("RUNNING TTP: %v", t.Name)
 	stepResults, firstStepToCleanupIdx, runErr := t.RunSteps(execCtx)
 	if runErr != nil {
 		// we need to run cleanup so we don't return here
@@ -258,13 +259,12 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 	}
 
 	// actually run all the steps
-	logging.L().Infof("[+] Running current TTP: %s", t.Name)
 	stepResults := NewStepResultsRecord()
 	execCtx.StepResults = stepResults
 	firstStepToCleanupIdx := -1
-	for _, step := range t.Steps {
+	for stepIdx, step := range t.Steps {
 		stepCopy := step
-		logging.L().Infof("[+] Running current step: %s", step.Name)
+		logging.L().Infof("Executing Step #%d: %s", stepIdx+1, step.Name)
 
 		// core execution - run the step action
 		stepResult, err := stepCopy.Execute(*execCtx)
@@ -304,9 +304,6 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 		}
 		stepResults.ByName[step.Name] = execResult
 		stepResults.ByIndex = append(stepResults.ByIndex, execResult)
-
-		// Enters in reverse order
-		logging.L().Infof("[+] Finished running step: %s", step.Name)
 	}
 	return stepResults, firstStepToCleanupIdx, nil
 }
