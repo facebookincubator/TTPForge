@@ -40,9 +40,9 @@ import (
 // **Returns:**
 //
 // *cobra.Command: The initialized root cobra command
-func BuildRootCommand(cfg *Config) *cobra.Command {
-	if cfg == nil {
-		cfg = &Config{}
+func BuildRootCommand(testCfg *TestConfig) *cobra.Command {
+	cfg := &Config{
+		testCfg: testCfg,
 	}
 
 	// setup root command and flags

@@ -43,8 +43,8 @@ func buildRemoveRepoCommand(cfg *Config) *cobra.Command {
 			}
 
 			// delete the repo files
-			logging.L().Infof("deleting repo files", repoToRemove)
 			fp := r.GetFullPath()
+			logging.L().Infof("deleting files for repo %q (path: %v)...", repoToRemove, fp)
 			err = afero.NewOsFs().RemoveAll(fp)
 			if err != nil {
 				return err
@@ -59,12 +59,12 @@ func buildRemoveRepoCommand(cfg *Config) *cobra.Command {
 				newRepoSpecs = append(newRepoSpecs, spec)
 			}
 			cfg.RepoSpecs = newRepoSpecs
-			logging.L().Infof("writing updated configuration...", repoToRemove)
+			logging.L().Info("writing updated configuration...")
 			err = cfg.save()
 			if err != nil {
 				return fmt.Errorf("failed to save updated configuration: %v", err)
 			}
-			logging.L().Infof("repo %v deleted successfully", repoToRemove)
+			logging.L().Infof("repo %q deleted successfully", repoToRemove)
 
 			// remove the repo reference from the configuration file
 			return nil

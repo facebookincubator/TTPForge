@@ -128,7 +128,7 @@ func TestRun(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var stdoutBuf, stderrBuf bytes.Buffer
-			rc := BuildRootCommand(&Config{
+			rc := BuildRootCommand(&TestConfig{
 				Stdout: &stdoutBuf,
 				Stderr: &stderrBuf,
 			})
