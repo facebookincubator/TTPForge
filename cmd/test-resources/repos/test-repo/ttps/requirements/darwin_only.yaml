@@ -1,0 +1,11 @@
+---
+name: TTP That Should Only Run on macOS
+description: |
+  This is a test care for the `requirements:` feature that
+  enforces running only on macOS
+requirements:
+  platforms:
+    - os: darwin
+steps:
+  - name: placeholder
+    print_str: just a placeholder - we are testing `requirements:`

@@ -21,7 +21,6 @@ package blocks
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -30,6 +29,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/platforms"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
@@ -47,13 +47,13 @@ import (
 // ArgSpecs: An slice of argument specifications for the TTP.
 // WorkDir: The working directory for the TTP.
 type TTP struct {
-	Name               string            `yaml:"name,omitempty"`
-	Description        string            `yaml:"description"`
-	MitreAttackMapping *MitreAttack      `yaml:"mitre,omitempty"`
-	Environment        map[string]string `yaml:"env,flow,omitempty"`
-	Requirements       *RequirementsType `yaml:"requirements,omitempty"`
-	Steps              []Step            `yaml:"steps,omitempty,flow"`
-	ArgSpecs           []args.Spec       `yaml:"args,omitempty,flow"`
+	Name               string              `yaml:"name,omitempty"`
+	Description        string              `yaml:"description"`
+	MitreAttackMapping *MitreAttack        `yaml:"mitre,omitempty"`
+	Environment        map[string]string   `yaml:"env,flow,omitempty"`
+	Requirements       *RequirementsConfig `yaml:"requirements,omitempty"`
+	Steps              []Step              `yaml:"steps,omitempty,flow"`
+	ArgSpecs           []args.Spec         `yaml:"args,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
 }
@@ -69,15 +69,6 @@ type MitreAttack struct {
 	Tactics       []string `yaml:"tactics,omitempty"`
 	Techniques    []string `yaml:"techniques,omitempty"`
 	SubTechniques []string `yaml:"subtechniques,omitempty"`
-}
-
-// RequirementsType are marks to group TTPs by platform or capability
-//
-// **Attributes:**
-//
-// ExpectSuperuser: Whether the TTP assumes superuser privileges
-type RequirementsType struct {
-	ExpectSuperuser bool `yaml:"superuser,omitempty"`
 }
 
 // MarshalYAML is a custom marshalling implementation for the TTP structure.
@@ -144,25 +135,16 @@ func reduceIndentation(b []byte, n int) []byte {
 //
 // error: An error if any part of the validation fails, otherwise nil.
 func (t *TTP) Validate(execCtx TTPExecutionContext) error {
-	logging.L().Info("[*] Validating Steps")
+	logging.L().Info("[*] Validating TTP")
 
 	// validate MITRE mapping
 	if t.MitreAttackMapping != nil && len(t.MitreAttackMapping.Tactics) == 0 {
 		return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", t.Name)
 	}
 
-	if t.Requirements != nil {
-		if t.Requirements.ExpectSuperuser {
-			if runtime.GOOS == "windows" {
-				logging.L().Warnf("not enforcing superuser requirement because it is not supported on windows yet")
-			} else {
-				if os.Geteuid() != 0 {
-					err := errors.New("must be root (UID 0) to run this TTP")
-					return err
-				}
-				logging.L().Debug("[+] Running as root")
-			}
-		}
+	// validate requirements
+	if err := t.Requirements.Validate(); err != nil {
+		return fmt.Errorf("TTP '%s' has an invalid requirements section: %w", t.Name, err)
 	}
 
 	for _, step := range t.Steps {
@@ -208,6 +190,18 @@ func (t *TTP) chdir() (func(), error) {
 // error: An error if any of the steps fail to execute.
 func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) {
 	logging.L().Infof("RUNNING TTP: %v", t.Name)
+
+	// verify that we actually meet the necessary requirements to execute this TTP
+	verificationCtx := checks.VerificationContext{
+		Platform: platforms.Spec{
+			OS:   runtime.GOOS,
+			Arch: runtime.GOARCH,
+		},
+	}
+	if err := t.Requirements.Verify(verificationCtx); err != nil {
+		return nil, fmt.Errorf("TTP requirements not met: %w", err)
+	}
+
 	stepResults, firstStepToCleanupIdx, runErr := t.RunSteps(execCtx)
 	if runErr != nil {
 		// we need to run cleanup so we don't return here
