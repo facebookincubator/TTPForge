@@ -220,16 +220,48 @@ func TestValidateArgs(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name: "Format with invalid value",
+			name: "Format (Flexible Match; No Error)",
 			specs: []Spec{
 				{
 					Name:   "alpha",
 					Type:   "string",
-					Format: "[A-Z_]+",
+					Format: "ab",
 				},
 			},
 			argKvStrs: []string{
-				"alpha=INVALID_CECI_NEST_PAS-",
+				"alpha=xabyabz",
+			},
+			expectedResult: map[string]any{
+				"alpha": "xabyabz",
+			},
+		},
+		{
+			name: "Format (Strict Match; No Error)",
+			specs: []Spec{
+				{
+					Name:   "alpha",
+					Type:   "string",
+					Format: "^ab$",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=ab",
+			},
+			expectedResult: map[string]any{
+				"alpha": "ab",
+			},
+		},
+		{
+			name: "Format (Strict Match; Error)",
+			specs: []Spec{
+				{
+					Name:   "alpha",
+					Type:   "string",
+					Format: "^ab$",
+				},
+			},
+			argKvStrs: []string{
+				"alpha=xaby",
 			},
 			wantError: true,
 		},

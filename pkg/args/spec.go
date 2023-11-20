@@ -83,14 +83,8 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 		// append and prepend if missing
 		// if Format string is missing ^$ then we are subject to partial matches
 		if spec.Format != "" {
-			if spec.Type != "string" {
-				return nil, fmt.Errorf("`regexp:` can only be used with string arguments")
-			}
-			if spec.Format[0] != '^' {
-				spec.Format = "^" + spec.Format
-			}
-			if spec.Format[len(spec.Format)-1] != '$' {
-				spec.Format = spec.Format + "$"
+			if err := verifyCanUseWithRegexp(spec); err != nil {
+				return nil, err
 			}
 			spec.formatReg, err = regexp.Compile(spec.Format)
 			if err != nil {

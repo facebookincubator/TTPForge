@@ -1,0 +1,20 @@
+---
+name: Regular Expression Validation for Command-Line Arguments
+description: |
+  You can require user-provided command-line arguments
+  to match a provided regular expression.
+  Golang regexp syntax documentation: https://pkg.go.dev/regexp/syntax
+  NOTE: `regexp` is only supported for arguments of type `string` (the default)
+args:
+  - name: must_contain_ab
+    descriptions: requirement satisfied if `ab` occurs anywhere in the string
+    regexp: ab
+  - name: must_start_with_1_end_with_7
+    type: string
+    description: requirement satisfied if argument starts with `1` and ends with `7`
+    regexp: ^1.*7$
+steps:
+  - name: valid_args_provided
+    print_str: |
+      Valid value for arg `must_contain_ab`: {{.Args.must_contain_ab}}
+      Valid value for arg `must_start_with_1_end_with_9`: {{.Args.must_start_with_1_end_with_7}}

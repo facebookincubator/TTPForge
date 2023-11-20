@@ -1,0 +1,33 @@
+---
+name: Basic Command-Line Arguments
+description: |
+  TTPForge allows users to configure their TTPs' expected command-line
+  arguments in various ways. This TTP demonstrates the following
+  basic command-line argument options:
+    * Support for Various Argument Types (string, int, bool, etc)
+    * Default Values for Arguments
+args:
+  - name: str_to_print
+    description: this argument is of the default type `string`
+  - name: has_a_default_value
+    description: |
+      the default value will be used if the user does not explicitly
+      specify a value
+    default: this_is_the_default
+  - name: run_second_step
+    type: bool
+    default: false
+  - name: int_arg
+    type: int
+    default: 1337
+steps:
+  - name: first_Step
+    print_str: |
+      Value of argument `str_to_print`: {{.Args.str_to_print}}
+      Value of argument `has_a_default_value`: {{.Args.has_a_default_value}}
+  {{ if .Args.run_second_step }}
+  - name: second_step
+    print_str: |
+      You must have passed `--run_second_step=true`
+      Doing some math : {{add .Args.int_arg 5}}
+  {{ end }}

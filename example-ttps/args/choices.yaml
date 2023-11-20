@@ -1,0 +1,29 @@
+---
+name: Explicitly Allowed Choices for Command-Line Arguments
+description: |
+  Sometimes, you might need a TTP to only accept
+  certain specific values of a given command-line argument.
+  The `choices:` field of the argument spec format provides
+  you with this capability.
+args:
+  - name: arg_with_choices
+    descriptions: you must pass one of these values in order to avoid an error
+    choices:
+      - A
+      - B
+      - C
+  - name: with_default
+    type: int
+    descriptions: |
+      arguments with `choices` can have default values to,
+      but the default value must be one of the choices.
+    choices:
+      - 1
+      - 2
+      - 3
+    default: 3
+steps:
+  - name: first_Step
+    print_str: "You must have selected a valid choice: {{.Args.arg_with_choices}}"
+  - name: second_step
+    print_str: "Value for argument `with_default`: {{.Args.with_default}}"
