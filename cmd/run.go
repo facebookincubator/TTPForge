@@ -39,7 +39,9 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 			cmd.SilenceUsage = true
 
 			// capture output for tests if needed
-			ttpCfg.Stdout, ttpCfg.Stderr = cfg.Stdout, cfg.Stderr
+			if cfg.testCfg != nil {
+				ttpCfg.Stdout, ttpCfg.Stderr = cfg.testCfg.Stdout, cfg.testCfg.Stderr
+			}
 
 			// find the TTP file
 			ttpRef := args[0]

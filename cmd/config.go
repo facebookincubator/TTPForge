@@ -36,22 +36,26 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TestConfig is used to pass test-specific settings to BuildRootCommand
+// its entries are copied into the global config object
+type TestConfig struct {
+	// used for capturing output in tests
+	// note: these are presently only supported by the `run`
+	// command because they are passed to lower layers through
+	// TTPExecutionContext
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
 // Config stores the variables from the TTPForge global config file
 // we export it for use in tests, but packages besides `cmd` probably
 // should not touch it
 type Config struct {
 	RepoSpecs []repos.Spec `yaml:"repos"`
 
-	// used for capturing output in tests
-	// note: these are not supported for every single command.
-	// they will only receive output if you use `cmd.Prinln(...)`
-	// and such
-	// https://stackoverflow.com/questions/66802459/how-to-call-setout-on-subcommands-in-cobra
-	Stdout io.Writer
-	Stderr io.Writer
-
 	repoCollection repos.RepoCollection
 	cfgFile        string
+	testCfg        *TestConfig
 }
 
 var (
@@ -105,8 +109,9 @@ func (cfg *Config) save() error {
 }
 
 func (cfg *Config) init() error {
-	// find config file
-	if cfg.cfgFile == "" {
+	// if no config file was specified, look for the default
+	// unless we are running as part of a unit test
+	if cfg.cfgFile == "" && cfg.testCfg == nil {
 		defaultConfigFilePath, err := getDefaultConfigFilePath()
 		if err != nil {
 			return fmt.Errorf("could not lookup default config file path: %v", err)
