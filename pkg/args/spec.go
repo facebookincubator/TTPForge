@@ -150,33 +150,6 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 	return processedArgs, nil
 }
 
-func (spec Spec) validateChoiceTypes() error {
-	if len(spec.Choices) == 0 {
-		return nil
-	}
-
-	for _, choice := range spec.Choices {
-		_, err := spec.convertArgToType(choice)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (spec Spec) isValidChoice(value string) bool {
-	if len(spec.Choices) == 0 {
-		return true
-	}
-
-	for _, choice := range spec.Choices {
-		if choice == value {
-			return true
-		}
-	}
-	return false
-}
-
 func (spec Spec) convertArgToType(val string) (any, error) {
 	switch spec.Type {
 	case "", "string":
