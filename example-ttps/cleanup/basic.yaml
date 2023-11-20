@@ -1,0 +1,24 @@
+---
+name: Basic Cleanup Demonstration
+description: |
+  Every time a step completes successfully, its cleanup action is enqueued.
+  Then, the enqueued cleanup steps are run in reverse order
+  ("last in, first out") whenever:
+    1. The TTP Completes Successfully, or...
+    2. A Step Fails
+steps:
+  - name: first_step
+    print_str: |
+      This step completes successfully, so its cleanup action will be enqueued.
+    cleanup:
+      print_str: "Cleaning up first_step"
+  - name: second_step
+    print_str: |
+      This step has no cleanup action defined, so it will be skipped during cleanup
+  - name: third_step
+    print_str: |
+      This step uses an `inline:` action instead of a `print_str:` action
+      as its cleanup action - you may use any of TTPForge's supported action types
+      as a cleanup action.
+    cleanup:
+      inline: echo "Cleaning up third_step"

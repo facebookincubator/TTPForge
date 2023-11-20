@@ -1,0 +1,12 @@
+---
+name: Default Cleanup Actions Demo
+description: |
+  Certain types of actions, such as `create_file`, have a default cleanup
+  action that you can enable by specifying `cleanup: default` in the relevant
+  step. This TTP shows how the `create_file` default cleanup action deletes
+  the created file.
+steps:
+  - name: create_file_cleanup_demo
+    create_file: /tmp/ttpforge-default-cleanup-demo-{{randAlphaNum 10}}
+    contents: this will be automatically deleted...
+    cleanup: default
