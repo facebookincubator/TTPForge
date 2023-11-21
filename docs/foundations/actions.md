@@ -1,4 +1,4 @@
-# TTPForge Attacker Action Portfolio
+# TTPForge Attacker Action Types
 
 TTPForge supports the following types of actions:
 
