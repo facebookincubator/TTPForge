@@ -5,6 +5,7 @@ description: |
   with the edit_file action.
 args:
   - name: test_file_path
+    type: path
     description: The path at which the temporary test file should be created
     default: /tmp/ttpforge_edit_file_append_delete
 steps:

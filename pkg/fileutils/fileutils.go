@@ -36,3 +36,13 @@ func ExpandTilde(path string) (string, error) {
 	}
 	return path, nil
 }
+
+// AbsPath is a thin wrapper around filepath.Abs
+// that we use because it also calls ExpandTilde
+func AbsPath(path string) (string, error) {
+	tmp, err := ExpandTilde(path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(tmp)
+}
