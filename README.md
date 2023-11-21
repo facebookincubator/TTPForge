@@ -3,19 +3,26 @@
 [![License](https://img.shields.io/github/license/facebookincubator/TTPForge?label=License&style=flat&color=blue&logo=github)](https://github.com/facebookincubator/TTPForge/blob/main/LICENSE)
 [![Tests](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/tests.yaml)
 [![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml)
-[![🚨 CodeQL Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/codeql-analysis.yaml)
-[![🚨 Nancy 3p Vulnerability Scan](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/nancy.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/facebookincubator/TTPForge/badge.svg)](https://coveralls.io/github/facebookincubator/TTPForge)
 
-This repo hosts the TTPForge tool created by Meta's Purple Team.
-It is intended to provide an interface to execute TTPs across various
-targets and mediums.
+TTPForge is a cyber attack simulation platform. This project promotes a Purple
+Team approach to cybersecurity with the following goals:
+
+- To help blue teams accurately measure their detection and response
+  capabilities through high-fidelity simulations of real attacker activity.
+- To help red teams improve the ROI/actionability of their findings by packaging
+  their attacks as automated, repeatable simulations.
+
+TTPForge allows you to automate attacker tactics, techniques, and procedures
+(TTPs) using a powerful but easy-to-use YAML format. Check out the links below
+to learn more!
 
 ---
 
 ## Table of Contents
 
-- [Getting Started - User](#getting-started-as-a-user)
+- [Installation](#installation)
+- [Documentation](docs/foundations/README.md)
 - [Getting Started - Developer](docs/dev/README.md)
 - [Go Package Documentation](https://pkg.go.dev/github.com/facebookincubator/ttpforge@main)
 - [Using the TTPForge Dev Container](docs/container.md)
@@ -24,7 +31,7 @@ targets and mediums.
 
 ---
 
-## Getting started as a user
+## Installation
 
 1. Get latest TTPForge release:
 
@@ -55,19 +62,23 @@ targets and mediums.
 1. Initialize TTPForge configuration
 
    This command will place a configuration file at the default location
-   `~/.ttpforge/config.yaml` and download the
-   [ForgeArmory](https://github.com/facebookincubator/ForgeArmory)
-   TTPs repository:
+   `~/.ttpforge/config.yaml` and configure the `examples` and `forgearmory` TTP
+   repositories:
 
    ```bash
    ttpforge init
    ```
 
-1. List available TTP repositories (should show `forgearmory`)
+1. List available TTP repositories (should show `examples` and `forgearmory`)
 
    ```bash
    ttpforge list repos
    ```
+
+   The `examples` repository contains the TTPForge examples found in this
+   repository. The
+   [ForgeArmory](https://github.com/facebookincubator/ForgeArmory) repository
+   contains our arsenal of attacker TTPs powered by TTPForge.
 
 1. List available TTPs that you can run:
 
@@ -78,14 +89,13 @@ targets and mediums.
 1. Examine an example TTP:
 
    ```bash
-   ttpforge show ttp forgearmory//examples/args/define-args.yaml
+   ttpforge show ttp examples//args/basic.yaml
    ```
 
 1. Run the specified example:
 
    ```bash
-   ttpforge run \
-     forgearmory//examples/args/define-args.yaml \
-     --arg a_message="hello" \
-     --arg a_number=1337
+   ttpforge run examples//args/basic.yaml \
+     --arg str_to_print=hello \
+     --arg run_second_step=true
    ```

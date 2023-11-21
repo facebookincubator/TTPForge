@@ -1,5 +1,9 @@
 ---
 repos:
+  - name: examples
+    path: repos/examples
+    git:
+      url: https://github.com/facebookincubator/TTPForge
   - name: forgearmory
     path: repos/forgearmory
     git:
