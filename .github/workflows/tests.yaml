@@ -7,27 +7,21 @@ on:
       - synchronize
 jobs:
   tests:
-    name: Run tests - includes pre-commit hooks and determining code coverage %
+    name: Run Unit + Integration Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Set up git repository
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-
-      - name: Set up Go
-        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4
+      - name: Checkout Git repository
+        uses: actions/checkout@v4
+      - name: Setup Golang
+        uses: actions/setup-go@v4
         with:
-          go-version: "1.20"
-
-      - name: Set git config
+          go-version: "1.21"
+      - name: Run TTPForge Unit Tests
         run: |
-          git config --global user.name "John Doe"
-          git config --global user.email johndoe@example.com
-
-      - name: Generate the coverage output
+          go test -v ./...
+      - name: Build the TTPForge Binary
         run: |
-          bash .hooks/run-go-tests.sh coverage
-
-      - name: Send the coverage output
-        uses: shogo82148/actions-goveralls@7b1bd2871942af030d707d6574e5f684f9891fb2 # v1
-        with:
-          path-to-profile: coverage-all.out
+          go build -o ttpforge
+      - name: Run Integration Tests
+        run: |
+          ./integration-tests.sh ./ttpforge
