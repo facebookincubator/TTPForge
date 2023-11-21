@@ -22,6 +22,7 @@ tests:
       contents: this will not be printed
 args:
   - name: target_file_path
+    type: path
     description: the path of the file to create
   - name: contents
     description: the contents to write to the target file

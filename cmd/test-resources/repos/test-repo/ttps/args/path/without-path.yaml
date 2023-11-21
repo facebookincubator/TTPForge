@@ -1,0 +1,14 @@
+name: Testing Path Type Arguments - Failure
+description: |
+  This TTP powers the test case
+  "Argument with `type: path` - Should Fail"
+  in `cmd/run_test.go`
+args:
+  - name: target_path
+    description: |
+      If a valid relative path is provided for this argument, the TTP
+      will still fail because it will run from the TTP's configuration
+      directory and that path won't exist there
+steps:
+  - name: cat_target_path
+    inline: cat {{.Args.target_path}}

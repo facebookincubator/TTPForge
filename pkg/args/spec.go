@@ -25,6 +25,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 )
 
 // Spec defines a CLI argument for the TTP
@@ -161,6 +163,12 @@ func (spec Spec) convertArgToType(val string) (any, error) {
 			return nil, errors.New("no-boolean value provided")
 		}
 		return asBool, nil
+	case "path":
+		absPath, err := fileutils.AbsPath(val)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process argument of type `path`: %w", err)
+		}
+		return absPath, nil
 	default:
 		return nil, fmt.Errorf("invalid type %v specified in configuration for argument %v", spec.Type, spec.Name)
 	}

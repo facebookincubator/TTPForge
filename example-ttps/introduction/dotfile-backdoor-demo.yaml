@@ -6,11 +6,16 @@ description: |
     - Simple but powerful Command-line Argument Support
     - Last-in-First-Out Cleanup Execution
     - Checking Conditions at Runtime to Avoid Errors
+tests:
+  - name: default
+    description: execute with the default setting
 args:
   - name: target_file_path
+    type: path
     description: The file that we should try to backdoor
     default: ~/.zshrc
   - name: payload_file_path
+    type: path
     description: |
       The path to which we should write the payload file.
       The backdoor we insert into the target file will reference this
@@ -21,6 +26,7 @@ args:
       The shell command that our payload should execute
     default: echo 'Hello from TTPForge! You have been pwned!'
   - name: backup_file_path
+    type: path
     description: |
       The file path to which the target file should be backed up
     default: /tmp/ttpforge-dotfile-backdoor-backup

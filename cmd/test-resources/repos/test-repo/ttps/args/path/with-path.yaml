@@ -1,0 +1,15 @@
+name: Testing Path Type Arguments
+description: |
+  This TTP powers the test case
+  "Argument with `type: path` - Should Succeed"
+  in `cmd/run_test.go`
+args:
+  - name: target_path
+    description: |
+      If a relative path is provided for this argument, it will
+      be expanded to an absolute path based on the user's current
+      working directory, NOT the configuration directory of the TTP.
+    type: path
+steps:
+  - name: cat_target_path
+    inline: cat {{.Args.target_path}}
