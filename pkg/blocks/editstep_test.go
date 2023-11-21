@@ -22,421 +22,212 @@ package blocks
 import (
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
-func TestUnmarshalEditValid(t *testing.T) {
-	content := `name: test
-description: this is a test
-steps:
-  - name: valid_edit
-    edit_file: yolo
-    edits:
-      - old: foo
-        new: yolo
-      - old: another
-        new: one`
+func TestEditStep(t *testing.T) {
 
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.NoError(t, err)
-}
-
-func TestUnmarshalEditNoNew(t *testing.T) {
-	content := `name: test
-description: this is a test
-steps:
-  - name: missing_new
-    edit_file: yolo
-    edits:
-      - old: foo
-        new: yolo
-      - old: wutwut
-      - old: another
-        new: one`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "edit #2 is missing 'new:'", err.Error())
-}
-
-func TestUnmarshalEditNoOld(t *testing.T) {
-	content := `name: test
-description: this is a test
-steps:
-  - name: missing_old
-    edit_file: yolo
-    edits:
-      - new: yolo
-      - old: wutwut
-        new: haha
-      - old: another
-        new: one`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "edit #1 is missing 'old:'", err.Error())
-}
-
-func TestUnmarshalNonListEdits(t *testing.T) {
-	content := `name: test
-description: this is a test
-steps:
-  - name: non_list_edits
-    edit_file: yolo
-    edits: haha`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.Error(t, err)
-}
-
-func TestUnmarshalEmptyEdits(t *testing.T) {
-	content := `name: test
-description: this is a test
+	testCases := []struct {
+		name                      string
+		content                   string
+		wantUnmarshalError        bool
+		wantValidateError         bool
+		wantExecuteError          bool
+		expectedContentsAfterEdit string
+		expectedErrTxt            string
+		fsysContents              map[string][]byte
+	}{
+		{
+			name: "Test Unmarshal Edit Valid",
+			content: `
+edit_file: /tmp/yolo
+edits:
+  - old: foo
+    new: yolo
+  - old: another
+    new: one`,
+			fsysContents:              map[string][]byte{"/tmp/yolo": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "yolo\none",
+		},
+		{
+			name: "Test Unmarshal No New",
+			content: `
+edit_file: yolo
+edits:
+  - old: foo
+    new: yolo
+  - old: wutwut
+  - old: another
+    new: one`,
+			wantValidateError: true,
+			expectedErrTxt:    "edit #2 is missing 'new:'",
+		},
+		{
+			name: "Test Unmarshal No Old",
+			content: `
+edit_file: yolo
+edits:
+  - new: yolo
+  - old: wutwut
+    new: haha
+  - old: another
+    new: one`,
+			wantValidateError: true,
+			expectedErrTxt:    "edit #1 is missing 'old:'",
+		},
+		{
+			name: "Test Unmarshal Empty Edits",
+			content: `
 steps:
   - name: no_edits
-    edit_file: yolo`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	assert.Equal(t, "no edits specified", err.Error())
-}
-
-func TestExecuteSimple(t *testing.T) {
-	content := `
-name: valid_edit
+    edit_file: yolo`,
+			wantValidateError: true,
+			expectedErrTxt:    "no edits specified",
+		},
+		{
+			name: "Test Execute Simple",
+			content: `
 edit_file: a.txt
 edits:
   - old: foo
     new: yolo
   - old: another
-    new: one`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	contents, err := afero.ReadFile(testFs, "a.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, "yolo\none", string(contents))
-}
-
-func TestExecuteBackupFile(t *testing.T) {
-	content := `
-name: valid_edit
+    new: one`,
+			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "yolo\none",
+		},
+		{
+			name: "Test Execute Backup File",
+			content: `
 edit_file: a.txt
 backup_file: backup.txt
 edits:
   - old: foo
     new: yolo
   - old: another
-    new: one`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	origContents := []byte("foo\nanother")
-	err = afero.WriteFile(testFs, "a.txt", origContents, 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	backupContents, err := afero.ReadFile(testFs, "backup.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, string(origContents), string(backupContents))
-}
-
-func TestExecuteMultiline(t *testing.T) {
-	content := `name: delete_function
+    new: one`,
+			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "yolo\none",
+		},
+		{
+			name: "Test Execute Multiline",
+			content: `name: delete_function
 edit_file: b.txt
 edits:
   - old: (?ms:^await MyAwesomeClass\.myAwesomeAsyncFn\(.*?\)$)
     new: "# function call removed by TTP"
-    regexp: true`
-
-	fileContentsToEdit := `otherstuff
+    regexp: true`,
+			fsysContents: map[string][]byte{"b.txt": []byte(`others
 await MyAwesomeClass.myAwesomeAsyncFn(
 	param1,
 	param2,
 )
-moarawesomestuff`
-
-	correctResult := `otherstuff
+moarawesomestuff`)},
+			expectedContentsAfterEdit: `others
 # function call removed by TTP
-moarawesomestuff`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	contents, err := afero.ReadFile(testFs, "b.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, correctResult, string(contents))
-}
-
-func TestExecuteVariableExpansion(t *testing.T) {
-	content := `name: delete_function
+moarawesomestuff`,
+		},
+		{
+			name: "Test Variable Expansion",
+			content: `name: delete_function
 edit_file: b.txt
 edits:
   - old: (?P<fn_call>(?ms:^await MyAwesomeClass\.myAwesomeAsyncFn\(.*?\)$))
     new: "/*${fn_call}*/"
-    regexp: true`
-
-	fileContentsToEdit := `otherstuff
+    regexp: true`,
+			fsysContents: map[string][]byte{"b.txt": []byte(`otherstuff
 await MyAwesomeClass.myAwesomeAsyncFn(
 	param1,
 	param2,
 )
-moarawesomestuff`
-
-	correctResult := `otherstuff
+moarawesomestuff`)},
+			expectedContentsAfterEdit: `otherstuff
 /*await MyAwesomeClass.myAwesomeAsyncFn(
 	param1,
 	param2,
 )*/
-moarawesomestuff`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	contents, err := afero.ReadFile(testFs, "b.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, correctResult, string(contents))
-}
-
-func TestExecuteNotFound(t *testing.T) {
-	content := `name: delete_function
+moarawesomestuff`,
+		},
+		{
+			name: "Test Execute Not Found",
+			content: `name: delete_function
 edit_file: b.txt
 edits:
   - old: not_going_to_find_this
-    new: will_not_be_used`
-
-	fileContentsToEdit := `hello`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "b.txt", []byte(fileContentsToEdit), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(TTPExecutionContext{})
-	require.Error(t, err, "not finding a search string should result in an error")
-	assert.Equal(t, "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt", err.Error())
-}
-
-func TestAppendOld(t *testing.T) {
-	content := `name: test append with old
-description: test should fail when they specify append and old at the same time
-steps:
-  - name: append_old
-    edit_file: yolo
-    edits:
-      - old: help
-        new: me
-        append: damn help`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "append is not to be used in conjunction with 'old:'", err.Error())
-}
-
-func TestAppendNew(t *testing.T) {
-	content := `name: test append with new
-description: test should fail when they specify append and new at the same time
-steps:
-  - name: append_new
-    edit_file: yolo
-    edits:
-      - old:
-        new: me
-        append: damn help`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "append is not to be used in conjunction with 'new:'", err.Error())
-}
-
-func TestAppendRegex(t *testing.T) {
-	content := `name: test append with regex
-description: test should fail when they specify append and regex at the same time
-steps:
-  - name: append_regex
-    edit_file: yolo
-    edits:
-      - old:
-        new:
-        append: damn help
-        regexp: true`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "append is not to be used in conjunction with 'regexp:'", err.Error())
-}
-
-func TestDeletedOld(t *testing.T) {
-	content := `name: test delete with old
-description: test should fail when they specify delete and old at the same time
-steps:
-  - name: delete_old
-    edit_file: yolo
-    edits:
-      - old: help
-        new: me
-        delete: you`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "delete is not to be used in conjunction with 'old:'", err.Error())
-}
-
-func TestDeletedNew(t *testing.T) {
-	content := `name: test delete with new
-description: test should fail when they specify delete and new at the same time
-steps:
-  - name: delete_new
-    edit_file: yolo
-    edits:
-      - old:
-        new: me
-        delete: you`
-
-	var ttp TTP
-	err := yaml.Unmarshal([]byte(content), &ttp)
-	require.NoError(t, err)
-
-	err = ttp.Validate(TTPExecutionContext{})
-	require.Error(t, err)
-
-	assert.Equal(t, "delete is not to be used in conjunction with 'new:'", err.Error())
-}
-
-func TestAppend(t *testing.T) {
-	content := `
-name: append_stuff
+    new: will_not_be_used`,
+			fsysContents:     map[string][]byte{"b.txt": []byte("not_goung_to_find_this")},
+			wantExecuteError: true,
+			expectedErrTxt:   "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt",
+		},
+		{
+			name: "Test Append Old",
+			content: `name: test_append_old
+edit_file: yolo
+edits:
+  - old: help
+    append: nooooo`,
+			wantValidateError: true,
+			expectedErrTxt:    "append is not to be used in conjunction with 'old:'",
+		},
+		{
+			name: "Test Append New",
+			content: `name: test_append_new
+edit_file: yolo
+edits:
+  - new: me
+    append: nooooo`,
+			wantValidateError: true,
+			expectedErrTxt:    "append is not to be used in conjunction with 'new:'",
+		},
+		{
+			name: "Test Append Regex",
+			content: `name: test_append_regex
+edit_file: yolo
+edits:
+  - old:
+    new:
+    append: nooooo
+    regexp: true`,
+			wantValidateError: true,
+			expectedErrTxt:    "append is not to be used in conjunction with 'regexp:'",
+		},
+		{
+			name: "Test Delete Old",
+			content: `name: delete_old
+edit_file: yolo
+edits:
+  - old: help
+    new: me
+    delete: you`,
+			wantValidateError: true,
+			expectedErrTxt:    "delete is not to be used in conjunction with 'old:'",
+		},
+		{
+			name: "Test Delete New",
+			content: `name: delete_new
+edit_file: yolo
+edits:
+  - new: me
+    delete: you`,
+			wantValidateError: true,
+			expectedErrTxt:    "delete is not to be used in conjunction with 'new:'",
+		},
+		{
+			name: "Test Append",
+			content: `name: test_append
 edit_file: a.txt
 edits:
-  - append: put this at the end`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	contents, err := afero.ReadFile(testFs, "a.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, "foo\nanother\nput this at the end", string(contents))
-}
-
-func TestMultipleAppend(t *testing.T) {
-	content := `
-name: append_stuff
+  - append: put this at the end`,
+			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "foo\nanother\nput this at the end",
+		},
+		{
+			name: "Test Multiple Appends",
+			content: `name: test_multiappend
 edit_file: a.txt
 edits:
   - old: foo
@@ -444,84 +235,79 @@ edits:
   - append: baz
   - old: baz
     new: wut
-  - append: yo`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	contents, err := afero.ReadFile(testFs, "a.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, "bar\nanother\nwut\nyo", string(contents))
-}
-
-func TestDelete(t *testing.T) {
-	content := `
-name: delete_stuff
+  - append: yo`,
+			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "bar\nanother\nwut\nyo",
+		},
+		{
+			name: "Test Delete",
+			content: `name: test_delete
 edit_file: a.txt
 edits:
-  - delete: foo`
-
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
-
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
-
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
-
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
-
-	contents, err := afero.ReadFile(testFs, "a.txt")
-	require.NoError(t, err)
-
-	assert.Equal(t, "\nanother", string(contents))
-}
-
-func TestDeleteLine(t *testing.T) {
-	content := `
-name: delete_entire_line
+  - delete: foo`,
+			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "\nanother",
+		},
+		{
+			name: "Test Delete Line",
+			content: `name: test_delete_entire_line
 edit_file: a.txt
 edits:
-  - delete: "foo\n"`
+  - delete: "foo\n"`,
+			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
+			expectedContentsAfterEdit: "another",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var editStep EditStep
+			var execCtx TTPExecutionContext
 
-	var step EditStep
-	err := yaml.Unmarshal([]byte(content), &step)
-	require.NoError(t, err)
+			// parse the step
+			err := yaml.Unmarshal([]byte(tc.content), &editStep)
+			if tc.wantUnmarshalError {
+				assert.Equal(t, tc.expectedErrTxt, err.Error())
+				return
+			}
+			require.NoError(t, err)
 
-	testFs := afero.NewMemMapFs()
-	err = afero.WriteFile(testFs, "a.txt", []byte("foo\nanother"), 0644)
-	require.NoError(t, err)
-	step.FileSystem = testFs
+			// validate the step
+			err = editStep.Validate(execCtx)
+			if tc.wantValidateError {
+				assert.Equal(t, tc.expectedErrTxt, err.Error())
+				return
+			}
+			require.NoError(t, err)
 
-	var execCtx TTPExecutionContext
-	err = step.Validate(execCtx)
-	require.NoError(t, err)
+			// prep filesystem
+			if tc.fsysContents != nil {
+				fsys, err := testutils.MakeAferoTestFs(tc.fsysContents)
+				require.NoError(t, err)
+				editStep.FileSystem = fsys
+			} else {
+				editStep.FileSystem = afero.NewMemMapFs()
+			}
+			originalContent, err := afero.ReadFile(editStep.FileSystem, editStep.FileToEdit)
+			require.NoError(t, err)
 
-	_, err = step.Execute(execCtx)
-	require.NoError(t, err)
+			// execute the step and check output
+			_, err = editStep.Execute(execCtx)
+			if tc.wantExecuteError {
+				assert.Equal(t, tc.expectedErrTxt, err.Error())
+				return
+			}
+			require.NoError(t, err)
 
-	contents, err := afero.ReadFile(testFs, "a.txt")
-	require.NoError(t, err)
+			// Read the contents of the file after edit step execution
+			contents, err := afero.ReadFile(editStep.FileSystem, editStep.FileToEdit)
+			require.NoError(t, err)
 
-	assert.Equal(t, "another", string(contents))
+			assert.Equal(t, tc.expectedContentsAfterEdit, string(contents))
+			if editStep.BackupFile != "" {
+				backupContents, err := afero.ReadFile(editStep.FileSystem, editStep.BackupFile)
+				require.NoError(t, err)
+				assert.Equal(t, originalContent, backupContents)
+			}
+		})
+	}
 }
