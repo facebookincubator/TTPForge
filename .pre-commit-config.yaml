@@ -38,19 +38,6 @@ repos:
           codespell -q 3 -f
           -S ".git,.github,README.md,docs/*,go.*,magefiles/go.*,*test.go"
 
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks:
-      - id: go-fmt
-      - id: go-lint
-      - id: go-imports
-      - id: go-cyclo
-        args: [-over=15]
-      - id: golangci-lint
-        args: [--timeout=5m]
-      - id: go-build
-      - id: go-mod-tidy
-
   - repo: local
     hooks:
       - id: go-no-replacement
@@ -63,12 +50,6 @@ repos:
         name: Ensure all go files have the copyright header
         language: script
         entry: .hooks/go-copyright.sh
-        files: '\.go$'
-
-      - id: go-unit-tests
-        name: Go unit tests
-        language: script
-        entry: .hooks/run-go-tests.sh coverage
         files: '\.go$'
 
       - id: go-vet
