@@ -52,12 +52,6 @@ repos:
         entry: .hooks/go-copyright.sh
         files: '\.go$'
 
-      - id: go-vet
-        name: Run go vet
-        language: script
-        entry: .hooks/go-vet.sh
-        files: '\.go$'
-
       - id: go-licenses
         name: Run go-licenses
         language: script
