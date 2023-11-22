@@ -1,6 +1,9 @@
 # Code coverage output file
 coverage-all.out
 
+# Python Virtual Environment
+venv
+
 # Compiled binary
 ttpforge
 ttpforge-windows
@@ -8,6 +11,3 @@ dist
 
 # vscode debugger
 __debug_bin
-
-# Container
-.secrets

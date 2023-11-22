@@ -25,8 +25,6 @@ to learn more!
 - [Documentation](docs/foundations/README.md)
 - [Getting Started - Developer](docs/dev/README.md)
 - [Go Package Documentation](https://pkg.go.dev/github.com/facebookincubator/ttpforge@main)
-- [Using the TTPForge Dev Container](docs/container.md)
-- [Code Standards](docs/code-standards.md)
 - [Creating a new release](docs/release.md)
 
 ---

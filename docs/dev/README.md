@@ -8,42 +8,14 @@ and follow along.
 
 ## Install Golang
 
-We recommend building and testing TTPForge using Golang version `1.21.1`,
-although older versions are also supported for compatibility reasons.
-You can install this Golang version from the official Golang [website](https://go.dev/doc/install).
-Alternatively, you can use `asdf` to manage your tool versions as described below -
-this is highly recommended if you will be juggling multiple tool versions across
-various projects.
+TTPForge is build and tested in [Github Actions](https://github.com/features/actions)
+using the Golang version from this configuration file:
 
-## Using asdf to manage tool versions
+https://github.com/facebookincubator/TTPForge/blob/main/.github/workflows/tests.yaml
 
-The tool versions recommended for use with TTPForge are specified
-in the `.tool-versions` file found in the repository root.
-
-Setup [asdf](https://asdf-vm.com/) for usage with TTPForge by running
-the following commands:
-
-```bash
-git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.13.1
-# we recommend adding the below line to your ~/.bashrc, ~/.zshrc etc
-. "$HOME/.asdf/asdf.sh"
-asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
-```
-
-You can then install the correct Golang version for this project by
-running the following command **from inside the repo root directory**:
-
-```bash
-asdf install golang
-```
-
-You now may need to run `rehash` (zsh) or `hash -r` (bash) - after that, you
-can verify that your asdf version of Go is being used:
-
-```bash
-which go
-go version
-```
+it is recommended to use the same version when developing locally.
+You can install this Golang version from the official
+Golang [website](https://go.dev/doc/install).
 
 ## Testing and Building TTPForge
 
@@ -60,72 +32,39 @@ and subsequently build your own copy of the TTPForge binary:
 go build -o ttpforge
 ```
 
-## Running Pre-Commit Locally (Optional)
-
-This step is not required to build and run your own copy of TTPForge,
-but may help you iterate more quickly when responding to Pull Request
-checks that our repository automatically runs to test/lint new code.
-Otherwise, you'll need to wait for Github Actions to vet your PR.
-
-### Install pre-commit Dependencies
-
-- [Install pre-commit](https://pre-commit.com/):
-
-  ```bash
-  python3 -m pip install --upgrade pip
-  python3 -m pip install pre-commit
-  ```
-
-- [Install Mage](https://magefile.org/):
-
-  ```bash
-  go install github.com/magefile/mage@latest
-  ```
-
-- [Install Docker](https://docs.docker.com/get-docker/)
-
----
-
-### Configure environment
-
-1. Install additional dependencies:
-
-   ```bash
-   mage installDeps
-   ```
-
-1. Update and run pre-commit hooks locally:
-
-   ```bash
-   mage runPreCommit
-   ```
-
-1. Compile ttpforge:
-
-   ```bash
-   go build -o ttpforge
-   ```
-
-### Uninstall pre-commit
-
-If you want to hold off on pre-commit until your code is at a certain point,
-you can disable it locally:
+Finally, you can run our integration tests against your binary
+with the command:
 
 ```bash
-pre-commit uninstall
+./integration-tests.sh ./ttpforge
 ```
 
-Once you want to get feedback from pre-commit, reinstall it with:
+## Github Actions CI/CD
+
+When you submit your change as a pull request to our repository,
+a variety of linting and testing workflows will be triggered.
+If you wish to run any of these workflows locally
+to fix a failure, you can do so with the [act](https://github.com/nektos/act)
+tool. For example, you can run the markdownlint action as follows:
 
 ```bash
-pre-commit install
+act -W .github/workflows/markdownlint
 ```
 
-### Test all mage functions
+## Running Pre-Commit Locally
 
-Run the following command to execute all mage functions
-and ensure they are working as expected:
+Several of the linters in this project may be used as pre-commit hooks
+if desired - you can install and setup pre-commit according to
+the [official instructions](https://pre-commit.com/).
+
+For quick ad hoc runs, you may with to run pre-commit in a virtual environment:
 
 ```bash
-bash magefiles/scripts/magefile_test.sh
+python3 -m venv venv
+. venv/bin/activate
+pip3 install pre-commit
+pre-commit run --all-files
 ```
+
+You can also run pre-commit locally using `act`, as described
+in the previous section.

@@ -5,51 +5,14 @@ on:
     types:
       - opened
       - synchronize
-  # Run once a week (see https://crontab.guru)
-  schedule:
-    - cron: "0 0 * * 0"
-  workflow_dispatch:
 jobs:
   pre-commit:
     name: Update pre-commit hooks and run pre-commit
     runs-on: ubuntu-latest
     steps:
-      - name: Set up git repository
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-
-      - name: Set up Python
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4
-        with:
-          python-version: "3.x"
-
-      - name: Set up Go
-        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4
-        with:
-          go-version: "1.21.0"
-
-      - name: Install go module dependencies
-        run: |
-          go install mvdan.cc/sh/v3/cmd/shfmt@latest
-          go install github.com/magefile/mage@latest
-
+      - name: Checkout Git repository
+        uses: actions/checkout@v4
       - name: Install pre-commit
         run: pip3 install pre-commit
-
-      - name: Run go mod tidy - necessary to avoid errors with renovatebot PRs
-        run: |
-          go mod tidy
-          pushd magefiles; go mod tidy; popd
-
-      - name: Commit go.mod and go.sum changes to keep pre-commit happy
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git add go.mod go.sum magefiles/go.mod magefiles/go.sum
-          git diff --quiet && git diff --staged --quiet || \
-            git commit -m "Update go.mod and go.sum"
-
-      - name: Install pre-commit dependencies
-        run: mage installDeps
-
       - name: Run pre-commit
-        run: mage runPreCommit
+        run: pre-commit run --all-files

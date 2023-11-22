@@ -12,31 +12,6 @@ repos:
       - id: detect-private-key
       - id: check-shebang-scripts-are-executable
 
-  - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.32.0
-    hooks:
-      - id: yamllint
-        entry: yamllint --strict -c .hooks/linters/yamllint.yaml
-
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.3
-    hooks:
-      - id: prettier
-        files: \.(json)$
-        exclude: docs/container.md
-
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 3.0.0
-    hooks:
-      - id: script-must-have-extension
-        name: Ensure shell scripts end with .sh
-        types: [shell]
-        exclude: .bats
-      - id: shellcheck
-      - id: shfmt
-      # Configuration in .mdlrc and .hooks/linters/mdstyle.rb
-      - id: markdownlint
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -44,19 +19,6 @@ repos:
         entry: |
           codespell -q 3 -f
           -S ".git,.github,README.md,docs/*,go.*,magefiles/go.*,*test.go"
-
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks:
-      - id: go-fmt
-      - id: go-lint
-      - id: go-imports
-      - id: go-cyclo
-        args: [-over=15]
-      - id: golangci-lint
-        args: [--timeout=5m]
-      - id: go-build
-      - id: go-mod-tidy
 
   - repo: local
     hooks:
@@ -71,20 +33,3 @@ repos:
         language: script
         entry: .hooks/go-copyright.sh
         files: '\.go$'
-
-      - id: go-unit-tests
-        name: Go unit tests
-        language: script
-        entry: .hooks/run-go-tests.sh coverage
-        files: '\.go$'
-
-      - id: go-vet
-        name: Run go vet
-        language: script
-        entry: .hooks/go-vet.sh
-        files: '\.go$'
-
-      - id: go-licenses
-        name: Run go-licenses
-        language: script
-        entry: .hooks/go-licenses.sh check_forbidden

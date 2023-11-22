@@ -96,7 +96,7 @@ func (s *Spec) Validate() error {
 		"linux":     true,
 		"netbsd":    true,
 		"openbsd":   true,
-		// if you run this on plan9 I wil buy you a beer
+		// if you run this on plan9 I will buy you a beer
 		"plan9":   true,
 		"solaris": true,
 		"windows": true,
