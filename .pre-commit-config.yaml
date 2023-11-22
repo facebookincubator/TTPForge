@@ -12,18 +12,6 @@ repos:
       - id: detect-private-key
       - id: check-shebang-scripts-are-executable
 
-  # - repo: https://github.com/jumanjihouse/pre-commit-hooks
-  #   rev: 3.0.0
-  #   hooks:
-  #     - id: script-must-have-extension
-  #       name: Ensure shell scripts end with .sh
-  #       types: [shell]
-  #       exclude: .bats
-  #     - id: shellcheck
-  #     - id: shfmt
-  #     # Configuration in .mdlrc and .hooks/linters/mdstyle.rb
-  #     - id: markdownlint
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
