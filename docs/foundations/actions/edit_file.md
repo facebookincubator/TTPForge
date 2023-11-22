@@ -10,7 +10,7 @@ file - check out the examples below to learn more.
 This example shows how to use the `append` and `delete` functionality of the
 `edit_file` action:
 
-https://github.com/facebookincubator/TTPForge/blob/0d62cf5139cb97686f4a6ef76fdf2bf7a30681be/example-ttps/actions/edit_file/append_delete.yaml#L1-L34
+https://github.com/facebookincubator/TTPForge/blob/bf2fbb3312a227323d1930ba500b76f041329ca2/example-ttps/actions/edit_file/append_delete.yaml#L1-L35
 
 You can experiment with the above TTP by installing the `examples` TTP
 repository (skip this if `ttpforge list repos` shows that the `examples` repo is
@@ -32,7 +32,7 @@ You can also use `edit_file` to replace lines in a file and optionally use
 powerful regular expressions to perform complex transformations. The next
 example shows this functionality in action:
 
-https://github.com/facebookincubator/TTPForge/blob/0d62cf5139cb97686f4a6ef76fdf2bf7a30681be/example-ttps/actions/edit_file/replace.yaml#L1-L46
+https://github.com/facebookincubator/TTPForge/blob/bf2fbb3312a227323d1930ba500b76f041329ca2/example-ttps/actions/edit_file/replace.yaml#L1-L47
 
 Try out the above TTP by running this command:
 
