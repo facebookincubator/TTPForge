@@ -303,11 +303,13 @@ edits:
 			require.NoError(t, err)
 
 			assert.Equal(t, tc.expectedContentsAfterEdit, string(contents))
+
 			if editStep.BackupFile != "" {
 				backupContents, err := afero.ReadFile(editStep.FileSystem, editStep.BackupFile)
 				require.NoError(t, err)
 				assert.Equal(t, originalContent, backupContents)
 			}
+
 		})
 	}
 }

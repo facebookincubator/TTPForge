@@ -19,35 +19,40 @@ THE SOFTWARE.
 
 package blocks
 
-// Action is an interface that is implemented
-// by all action types used in steps/cleanups
-// (such as create_file, inline, etc)
-type Action interface {
-	Execute(execCtx TTPExecutionContext) (*ActResult, error)
-	Validate(execCtx TTPExecutionContext) error
-	GetDefaultCleanupAction() Action
-	CanBeUsedInCompositeAction() bool
-	IsNil() bool
+import "errors"
+
+// CompositeAction is an action that executes multiple actions
+type CompositeAction struct {
+	actionDefaults `yaml:"-"`
+	actions        []Action
 }
 
-type actionDefaults struct{}
+// Execute executes all actions
+func (ca *CompositeAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	for _, a := range ca.actions {
+		if _, err := a.Execute(execCtx); err != nil {
+			return nil, err
+		}
+	}
+	return &ActResult{}, nil
+}
 
-// GetDefaultCleanupAction provides a default implementation
-// of the GetDefaultCleanupAction method from the Action interface.
-// This saves us from having to declare this function for every steps
-// If a specific action needs a default cleanup action (such as a create_file action),
-// it can override this step
-func (ad *actionDefaults) GetDefaultCleanupAction() Action {
+// Validate each action and returns an error if any are thrown
+func (ca *CompositeAction) Validate(execCtx TTPExecutionContext) error {
+	for _, a := range ca.actions {
+		if !a.CanBeUsedInCompositeAction() {
+			return errors.New("cannot use action in composite")
+		}
+		if err := a.Validate(execCtx); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// CanBeUsedInCompositeAction provides a default implementation
-// of the CanBeUsedInCompositeAction method from the Action interface.
-// This saves us from having to declare this function for every steps
-// If a specific action needs to be used in a composite action,
-// it can override this step
-func (ad *actionDefaults) CanBeUsedInCompositeAction() bool {
-	return false
+// CanBeUsedInCompositeAction set to true
+func (ca *CompositeAction) CanBeUsedInCompositeAction() bool {
+	return true
 }
 
 // IsNil provides a default implementation
@@ -55,6 +60,6 @@ func (ad *actionDefaults) CanBeUsedInCompositeAction() bool {
 // This saves us from having to declare this function for every steps
 // If a specific action needs to be used in a composite action,
 // it can override this step
-func (ad *actionDefaults) IsNil() bool {
+func IsNil() bool {
 	return false
 }

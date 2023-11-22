@@ -102,3 +102,8 @@ func (s *RemovePathAction) Validate(execCtx TTPExecutionContext) error {
 	}
 	return nil
 }
+
+// CanBeUsedInCompositeAction returns whether this action can be used as part of a composite step
+func (s *RemovePathAction) CanBeUsedInCompositeAction() bool {
+	return true
+}
