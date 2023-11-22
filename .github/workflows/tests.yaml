@@ -24,4 +24,4 @@ jobs:
           go build -o ttpforge
       - name: Run Integration Tests
         run: |
-          ./integration-tests.sh ./ttpforge
+          ./integration_tests.sh ./ttpforge
