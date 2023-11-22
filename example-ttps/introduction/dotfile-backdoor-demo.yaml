@@ -8,7 +8,8 @@ description: |
     - Checking Conditions at Runtime to Avoid Errors
 tests:
   - name: default
-    description: execute with the default setting
+    description: dry run with the default settings
+    dry_run: true
 args:
   - name: target_file_path
     type: path
