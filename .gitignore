@@ -11,6 +11,3 @@ dist
 
 # vscode debugger
 __debug_bin
-
-# Container
-.secrets
