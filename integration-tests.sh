@@ -21,3 +21,6 @@ ttpforge_binary=$(realpath "${ttpforge_binary}")
 "${ttpforge_binary}" run examples//args/basic.yaml \
   --arg str_to_print=hello \
   --arg run_second_step=true
+
+# run all the TTP test cases
+./run_all_ttp_tests.sh "${ttpforge_binary}"
