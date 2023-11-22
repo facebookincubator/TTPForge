@@ -8,8 +8,12 @@ and follow along.
 
 ## Install Golang
 
-We recommend building and testing TTPForge using Golang version `1.21.1`,
-although older versions are also supported for compatibility reasons.
+TTPForge is build and tested in [Github Actions](https://github.com/features/actions)
+using the Golang version from this configuration file:
+
+https://github.com/facebookincubator/TTPForge/blob/main/.github/workflows/tests.yaml
+
+it is recommended to use the same version when developing locally.
 You can install this Golang version from the official
 Golang [website](https://go.dev/doc/install).
 
@@ -34,3 +38,33 @@ with the command:
 ```bash
 ./integration-tests.sh ./ttpforge
 ```
+
+## Github Actions CI/CD
+
+When you submit your change as a pull request to our repository,
+a variety of linting and testing workflows will be triggered.
+If you wish to run any of these workflows locally
+to fix a failure, you can do so with the [act](https://github.com/nektos/act)
+tool. For example, you can run the markdownlint action as follows:
+
+```bash
+act -W .github/workflows/markdownlint
+```
+
+## Running Pre-Commit Locally
+
+Several of the linters in this project may be used as pre-commit hooks
+if desired - you can install and setup pre-commit according to
+the [official instructions](https://pre-commit.com/).
+
+For quick ad hoc runs, you may with to run pre-commit in a virtual environment:
+
+```bash
+python3 -m venv venv
+. venv/bin/activate
+pip3 install pre-commit
+pre-commit run --all-files
+```
+
+You can also run pre-commit locally using `act`, as described
+in the previous section.
