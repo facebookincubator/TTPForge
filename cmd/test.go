@@ -40,88 +40,103 @@ type testCase struct {
 	DryRun bool              `yaml:"dry_run"`
 }
 
-type testSection struct {
+type ttpFields struct {
+	Name  string     `yaml:"name"`
 	Cases []testCase `yaml:"tests"`
 }
 
+// Note - this command cannot be unit tested
+// because it calls os.Executable() and actually re-executes
+// the same binary ("itself", though with a different command)
+// as a subprocess
 func buildTestCommand(cfg *Config) *cobra.Command {
 	var timeoutSeconds int
 	runCmd := &cobra.Command{
 		Use:   "test [repo_name//path/to/ttp]",
 		Short: "Test the TTP found in the specified YAML file.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true
 
-			// find the TTP file
-			ttpRef := args[0]
-			_, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
-			if err != nil {
-				return fmt.Errorf("failed to resolve TTP reference %v: %w", ttpRef, err)
-			}
-
-			// preprocess to separate out the `tests:` section from the `steps:`
-			// section and avoid YAML parsing errors associated with template syntax
-			contents, err := afero.ReadFile(afero.NewOsFs(), ttpAbsPath)
-			if err != nil {
-				return fmt.Errorf("failed to read TTP file %v: %w", ttpAbsPath, err)
-			}
-			preprocessResult, err := preprocess.Parse(contents)
-			if err != nil {
-				return err
-			}
-
-			// load the test cases
-			var ts testSection
-			err = yaml.Unmarshal(preprocessResult.PreambleBytes, &ts)
-			if err != nil {
-				return fmt.Errorf("failed to parse `test:` section of TTP file %v: %w", ttpAbsPath, err)
-			}
-
-			// look up the path of this binary (ttpforge)
-			selfPath, err := os.Executable()
-			if err != nil {
-				return fmt.Errorf("could not resolve self path (path to current ttpforge binary): %w", err)
-			}
-
-			if len(ts.Cases) == 0 {
-				logging.L().Warnf("No tests defined in TTP file %v; exiting...", ttpAbsPath)
-				return nil
-			}
-
-			// run all cases
-			logging.DividerThick()
-			logging.L().Infof("EXECUTING %v TEST CASE(S)", len(ts.Cases))
-			for tcIdx, tc := range ts.Cases {
-				logging.DividerThin()
-				logging.L().Infof("RUNNING TEST CASE #%d: %q", tcIdx+1, tc.Name)
-				logging.DividerThin()
-				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
-				defer cancel()
-				cmd := exec.CommandContext(ctx, selfPath)
-				cmd.Args = append(cmd.Args, "run", ttpAbsPath)
-				for argName, argVal := range tc.Args {
-					cmd.Args = append(cmd.Args, "--arg")
-					cmd.Args = append(cmd.Args, argName+"="+argVal)
-				}
-				if tc.DryRun {
-					cmd.Args = append(cmd.Args, "--dry-run")
-				}
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-
-				err = cmd.Run()
+			for _, ttpRef := range args {
+				// find the TTP file
+				_, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 				if err != nil {
-					return fmt.Errorf("test case %q failed: %w", tc.Name, err)
+					return fmt.Errorf("failed to resolve TTP reference %v: %w", ttpRef, err)
+				}
+				if err := runTestsForTTP(ttpAbsPath, timeoutSeconds); err != nil {
+					return fmt.Errorf("test(s) for TTP %v failed: %w", ttpRef, err)
 				}
 			}
-			logging.DividerThick()
-			logging.L().Info("ALL TESTS COMPLETED SUCCESSFULLY!")
 			return nil
 		},
 	}
 	runCmd.PersistentFlags().IntVar(&timeoutSeconds, "time-out-seconds", 10, "Timeout allowed for each test case")
 
 	return runCmd
+}
+
+func runTestsForTTP(ttpAbsPath string, timeoutSeconds int) error {
+	// preprocess to separate out the `tests:` section from the `steps:`
+	// section and avoid YAML parsing errors associated with template syntax
+	contents, err := afero.ReadFile(afero.NewOsFs(), ttpAbsPath)
+	if err != nil {
+		return fmt.Errorf("failed to read TTP file %v: %w", ttpAbsPath, err)
+	}
+	preprocessResult, err := preprocess.Parse(contents)
+	if err != nil {
+		return err
+	}
+
+	// load the test cases - we don't want to load the entire ttp
+	// because that's one of the parts of the code that this
+	// command is trying to test
+	var ttpf ttpFields
+	err = yaml.Unmarshal(preprocessResult.PreambleBytes, &ttpf)
+	if err != nil {
+		return fmt.Errorf("failed to parse `test:` section of TTP file %v: %w", ttpAbsPath, err)
+	}
+
+	// look up the path of this binary (ttpforge)
+	selfPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("could not resolve self path (path to current ttpforge binary): %w", err)
+	}
+
+	if len(ttpf.Cases) == 0 {
+		logging.L().Warnf("No tests defined in TTP file %v; exiting...", ttpAbsPath)
+		return nil
+	}
+
+	// run all cases
+	logging.DividerThick()
+	logging.L().Infof("TTP: %q", ttpf.Name)
+	logging.L().Infof("EXECUTING %v TEST CASE(S)", len(ttpf.Cases))
+	for tcIdx, tc := range ttpf.Cases {
+		logging.DividerThin()
+		logging.L().Infof("RUNNING TEST CASE #%d: %q", tcIdx+1, tc.Name)
+		logging.DividerThin()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, selfPath)
+		cmd.Args = append(cmd.Args, "run", ttpAbsPath)
+		for argName, argVal := range tc.Args {
+			cmd.Args = append(cmd.Args, "--arg")
+			cmd.Args = append(cmd.Args, argName+"="+argVal)
+		}
+		if tc.DryRun {
+			cmd.Args = append(cmd.Args, "--dry-run")
+		}
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		err = cmd.Run()
+		if err != nil {
+			return fmt.Errorf("test case %q failed: %w", tc.Name, err)
+		}
+	}
+	logging.DividerThin()
+	logging.L().Info("ALL TESTS COMPLETED SUCCESSFULLY!")
+	return nil
 }
