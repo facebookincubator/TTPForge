@@ -33,12 +33,13 @@ import (
 // via a C2, where there is no corresponding shell history
 // telemetry.
 type CopyPathStep struct {
-	Source      string   `yaml:"copy_path,omitempty"`
-	Destination string   `yaml:"to,omitempty"`
-	Recursive   bool     `yaml:"recursive,omitempty"`
-	Overwrite   bool     `yaml:"overwrite,omitempty"`
-	Mode        int      `yaml:"mode,omitempty"`
-	FileSystem  afero.Fs `yaml:"-,omitempty"`
+	actionDefaults `yaml:"-"`
+	Source         string   `yaml:"copy_path,omitempty"`
+	Destination    string   `yaml:"to,omitempty"`
+	Recursive      bool     `yaml:"recursive,omitempty"`
+	Overwrite      bool     `yaml:"overwrite,omitempty"`
+	Mode           int      `yaml:"mode,omitempty"`
+	FileSystem     afero.Fs `yaml:"-,omitempty"`
 }
 
 // NewCopyPathStep creates a new CopyPathStep instance and returns a pointer to it.
@@ -146,6 +147,11 @@ func (s *CopyPathStep) GetDefaultCleanupAction() Action {
 	return &RemovePathAction{
 		Path: s.Destination,
 	}
+}
+
+// CanBeUsedInCompositeAction indicates whether this step can be used as part of a composite action.
+func (s *CopyPathStep) CanBeUsedInCompositeAction() bool {
+	return true
 }
 
 // Validate validates the step

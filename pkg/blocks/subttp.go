@@ -28,8 +28,9 @@ import (
 
 // SubTTPStep represents a step within a parent TTP that references a separate TTP file.
 type SubTTPStep struct {
-	TtpFile string            `yaml:"ttp"`
-	Args    map[string]string `yaml:"args"`
+	actionDefaults `yaml:"-"`
+	TtpFile        string            `yaml:"ttp"`
+	Args           map[string]string `yaml:"args"`
 
 	ttp                   *TTP
 	subExecCtx            TTPExecutionContext

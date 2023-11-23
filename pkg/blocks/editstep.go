@@ -61,10 +61,25 @@ func (s *EditStep) IsNil() bool {
 	}
 }
 
+// CanBeUsedInCompositeAction returns whether this action can be used as part of a composite action.
+func (s *EditStep) CanBeUsedInCompositeAction() bool {
+	return true
+}
+
 // Validate validates the EditStep, checking for the necessary attributes and dependencies.
 func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	if len(s.Edits) == 0 {
 		return fmt.Errorf("no edits specified")
+	}
+
+	targetPath := s.FileToEdit
+	fileSystem := s.FileSystem
+
+	if fileSystem == nil {
+		_, err := FetchAbs(targetPath, execCtx.WorkDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	for editIdx, edit := range s.Edits {
@@ -111,11 +126,34 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// GetDefaultCleanupAction will instruct the calling code
+// to copy the file to the backup file to the original path on cleanup.
+func (s *EditStep) GetDefaultCleanupAction() Action {
+
+	if s.BackupFile != "" {
+		return &CompositeAction{
+			actions: []Action{
+				&CopyPathStep{
+					Source:      s.BackupFile,
+					Destination: s.FileToEdit,
+					Overwrite:   true,
+					FileSystem:  s.FileSystem,
+				},
+				&RemovePathAction{
+					Path: s.BackupFile,
+				},
+			},
+		}
+	}
+	return nil
+}
+
 // Execute runs the EditStep and returns an error if any occur.
 func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
 	backupPath := s.BackupFile
+
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
 		var err error
@@ -130,6 +168,7 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 			}
 		}
 	}
+
 	rawContents, err := afero.ReadFile(fileSystem, targetPath)
 	if err != nil {
 		return nil, err
@@ -140,7 +179,7 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if backupPath != "" {
 		err = afero.WriteFile(fileSystem, backupPath, []byte(contents), 0644)
 		if err != nil {
-			return nil, fmt.Errorf("could not write backup file %v: %v", s.BackupFile, err)
+			return nil, fmt.Errorf("could not write backup file %v: %w", s.BackupFile, err)
 		}
 	}
 
