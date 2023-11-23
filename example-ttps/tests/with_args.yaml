@@ -7,7 +7,7 @@ description: |
 tests:
   - name: yes_cat_file
     args:
-      target_file_path: /tmp/ttpforge_tests_example_yes_cat
+      target_file_base_path: /tmp/ttpforge_tests_example_yes_cat
       # note the use of YAML block chomping via the '|-'
       # so that our template renders correctly
       # (see: https://yaml-multiline.info/)
@@ -18,25 +18,29 @@ tests:
       should_cat_file: true
   - name: no_cat_file
     args:
-      target_file_path: /tmp/ttpforge_tests_example_no_cat
+      target_file_base_path: /tmp/ttpforge_tests_example_no_cat
       contents: this will not be printed
 args:
-  - name: target_file_path
+  - name: target_file_base_path
     type: path
-    description: the path of the file to create
+    description: |
+      The path of the file to create.
+      A random suffix will be added to allow the tests
+      to safely run in parallel.
   - name: contents
     description: the contents to write to the target file
   - name: should_cat_file
     type: bool
     default: false
 steps:
+  {{$target_file_path := (printf "%v_%v" .Args.target_file_base_path (randAlphaNum 10))}}
   - name: create_a_file
-    create_file: {{.Args.target_file_path}}
+    create_file: {{ $target_file_path }}
     contents: |
 {{indent 6 .Args.contents}}
     overwrite: true
     cleanup: default
   {{ if .Args.should_cat_file -}}
   - name: cat_file
-    inline: cat {{.Args.target_file_path}}
+    inline: cat {{$target_file_path}}
   {{ end }}
