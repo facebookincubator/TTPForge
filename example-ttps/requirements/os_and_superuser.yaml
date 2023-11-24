@@ -1,0 +1,21 @@
+---
+name: "Requirements Demo: OS and Superuser"
+description: |
+  This TTP demonstrates the following features of the `requirements:` section:
+    * How to mark your TTP as compatible with certain
+      platforms (and incompatible with others).
+    * How to mark your TTP as requiring superuser privileges.
+requirements:
+  platforms:
+      # compatible with any architecture mac, any architecture linux
+      # but only amd64 windows
+    - os: darwin
+    - os: linux
+    - os: windows
+      arch: amd64
+  superuser: true
+steps:
+  - name: demo
+    print_str: |
+      If you see this string, you are executing this TTP
+      with superuser privileges within a compabile OS/Architecture environment.
