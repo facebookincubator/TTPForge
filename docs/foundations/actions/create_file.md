@@ -30,3 +30,6 @@ You can specify the following YAML fields for the `create_file:` action:
 - `overwrite:` (type: `bool`) whether the file should be overwritten if it
   already exists.
 - `mode:` the octal permission mode (`chmod` style) for the new file.
+- `cleanup:` you can set this to `default` in order to automatically cleanup the
+  created file, or define a custom
+  [cleanup action](https://github.com/facebookincubator/TTPForge/blob/main/docs/foundations/cleanup.md#cleanup-basics).

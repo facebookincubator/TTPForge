@@ -60,6 +60,10 @@ You can specify the following YAML fields for the `edit_file` action:
     and replace all matches thereof. Must always be paired with `new:`
   - `new:` (type: `string`) string with which to replace the string/pattern
     specified by `old:` - must always be paired with `old:`
+- `cleanup:` you can set this to `default` in order to automatically restore the
+  original file once the TTP completes. **Note**: this only works when
+  `backup_file` is set. You can also define a custom
+  [cleanup action](https://github.com/facebookincubator/TTPForge/blob/main/docs/foundations/cleanup.md#cleanup-basics).
 
 ## Notes
 

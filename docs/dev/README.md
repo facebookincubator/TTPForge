@@ -8,7 +8,7 @@ and follow along.
 
 ## Install Golang
 
-TTPForge is build and tested in
+TTPForge is tested and built in
 [Github Actions](https://github.com/features/actions) using the Golang version
 from this configuration file:
 
@@ -57,7 +57,7 @@ Several of the linters in this project may be used as pre-commit hooks if
 desired - you can install and setup pre-commit according to the
 [official instructions](https://pre-commit.com/).
 
-For quick ad hoc runs, you may with to run pre-commit in a virtual environment:
+For quick ad hoc runs, you may wish to run pre-commit in a virtual environment:
 
 ```bash
 python3 -m venv venv
