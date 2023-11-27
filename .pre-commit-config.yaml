@@ -18,7 +18,7 @@ repos:
       - id: codespell
         entry: |
           codespell -q 3 -f
-          -S ".git,.github,README.md,docs/*,go.*,magefiles/go.*,*test.go"
+          -S ".git,go.*"
 
   - repo: local
     hooks:
