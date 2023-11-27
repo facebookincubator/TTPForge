@@ -74,11 +74,12 @@ provides two useful command line flags for the `ttpforge run` command:
 
 ## Default Cleanup Actions
 
-Certain action types, such as [create_file](actions/create_file.md) have a
-default cleanup action that can be invoked by specifying `cleanup: default` in
-their YAML configuration. In the case of `create_file`, the default cleanup
-action removes the created file. Check out the example below, which you can run
-with `ttpforge run examples//cleanup/default.yaml`:
+Certain action types (such as [create_file](actions/create_file.md) and
+[edit_file](actions/create_file.md)) have a default cleanup action that can be
+invoked by specifying `cleanup: default` in their YAML configuration. In the
+case of `create_file`, the default cleanup action removes the created file.
+Check out the example below, which you can run with
+`ttpforge run examples//cleanup/default.yaml`:
 
 https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/cleanup/default.yaml#L1-L12
 
