@@ -160,7 +160,7 @@ func TestRun(t *testing.T) {
 // referencing relative paths in `--arg` values
 // when executing `ttpforge run` works as expected.
 // One typically needs to specify `type: path` in
-// the argument specificiation in order to get desired
+// the argument specification in order to get desired
 // behavior.
 func TestRunPathArguments(t *testing.T) {
 	// in this test, we initially execute every test case from a

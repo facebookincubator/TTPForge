@@ -75,7 +75,7 @@ provides two useful command line flags for the `ttpforge run` command:
 ## Default Cleanup Actions
 
 Certain action types (such as [create_file](actions/create_file.md) and
-[edit_file](actions/create_file.md)) have a default cleanup action that can be
+[edit_file](actions/edit_file.md)) have a default cleanup action that can be
 invoked by specifying `cleanup: default` in their YAML configuration. In the
 case of `create_file`, the default cleanup action removes the created file.
 Check out the example below, which you can run with
@@ -86,7 +86,7 @@ https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f32139
 ## Handling Failures Gracefully
 
 Whenever a step fails, the cleanup process will begin from the last successful
-step (the step immediately preceeding the failure). The example below (which you
+step (the step immediately preceding the failure). The example below (which you
 can run with `ttpforge run examples//cleanup/failure.yaml`) shows how cleanup
 actions gracefully handle the failure of a step:
 

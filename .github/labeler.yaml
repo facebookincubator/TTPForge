@@ -10,12 +10,8 @@ area/go:
   - "pkg/**/*"
   - "cmd/**/*"
   - "main.go"
-  - "magefiles/*"
   - "go.mod"
   - "go.sum"
-
-area/mage:
-  - "magefiles/*"
 
 area/docs:
   - "docs/*"
