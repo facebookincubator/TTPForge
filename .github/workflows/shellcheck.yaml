@@ -1,0 +1,22 @@
+---
+name: Shellcheck
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+jobs:
+  shellcheck:
+    name: Run Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Shellcheck
+        run: |
+          sudo apt update
+          sudo apt install -y shellcheck
+      - name: Checkout Git repository
+        uses: actions/checkout@v4
+      - name: Run Shellcheck
+        shell: bash
+        run: |
+          shellcheck **/*.sh
