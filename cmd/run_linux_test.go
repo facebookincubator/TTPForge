@@ -50,7 +50,7 @@ func TestRunLinux(t *testing.T) {
 			args: []string{
 				"-c",
 				testConfigFilePath,
-				testRepoName + "//requirements/linux_only.yaml",
+				testRepoName + "//requirements/linux-only.yaml",
 			},
 			expectedStdout: "just a placeholder - we are testing `requirements:`\n",
 		},

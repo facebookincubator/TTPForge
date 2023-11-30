@@ -50,7 +50,7 @@ func TestRunDarwin(t *testing.T) {
 			args: []string{
 				"-c",
 				testConfigFilePath,
-				testRepoName + "//requirements/darwin_only.yaml",
+				testRepoName + "//requirements/darwin-only.yaml",
 			},
 			expectedStdout: "just a placeholder - we are testing `requirements:`\n",
 		},
