@@ -66,7 +66,16 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 			if err != nil {
 				return fmt.Errorf("could not copy default configuration to path %v: %v", defaultConfigFilePath, err)
 			}
-			logging.L().Infof("TTPForge Initialized. Now try `ttpforge run` :)")
+
+			logging.L().Info("Loading configuration from %v", defaultConfigFilePath)
+			logging.L().Info("Initializing all TTP repositories...")
+			cfg := &Config{}
+			err = cfg.init()
+			if err != nil {
+				return fmt.Errorf("failed to initialize TTPForge configuration: %w", err)
+			}
+
+			logging.L().Infof("TTPForge Initialized. Now try `ttpforge list ttps` :)")
 			return nil
 		},
 	}

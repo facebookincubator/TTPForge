@@ -46,3 +46,13 @@ func AbsPath(path string) (string, error) {
 	}
 	return filepath.Abs(tmp)
 }
+
+// IsAbs is a thin wrapper around filepath.IsAbs
+// that we use because it also calls ExpandTilde
+func IsAbs(path string) (bool, error) {
+	tmp, err := ExpandTilde(path)
+	if err != nil {
+		return false, err
+	}
+	return filepath.IsAbs(tmp), nil
+}

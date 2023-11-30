@@ -29,7 +29,7 @@ import (
 // SubTTPStep represents a step within a parent TTP that references a separate TTP file.
 type SubTTPStep struct {
 	actionDefaults `yaml:"-"`
-	TtpFile        string            `yaml:"ttp"`
+	TtpRef         string            `yaml:"ttp"`
 	Args           map[string]string `yaml:"args"`
 
 	ttp                   *TTP
@@ -80,7 +80,7 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpFile)
+	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpRef)
 	execResults, firstStepToCleanupIdx, runErr := s.ttp.RunSteps(&execCtx)
 	s.firstStepToCleanupIdx = firstStepToCleanupIdx
 	if runErr != nil {
@@ -100,7 +100,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 	repo := execCtx.Cfg.Repo
-	subTTPAbsPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpFile)
+	subTTPAbsPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpRef)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 // IsNil checks if the SubTTPStep is empty or uninitialized.
 func (s *SubTTPStep) IsNil() bool {
 	switch {
-	case s.TtpFile == "":
+	case s.TtpRef == "":
 		return true
 	default:
 		return false
@@ -136,8 +136,8 @@ func (s *SubTTPStep) IsNil() bool {
 // The steps within the TTP file do not contain any nested SubTTPSteps.
 // If any of these conditions are not met, an error is returned.
 func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
-	if s.TtpFile == "" {
-		return errors.New("a TTP file path is required and must not be empty")
+	if s.TtpRef == "" {
+		return errors.New("a TTP reference is required and must not be empty")
 	}
 
 	if err := s.loadSubTTP(execCtx); err != nil {

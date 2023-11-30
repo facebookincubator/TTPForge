@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
@@ -62,7 +63,7 @@ type GitConfig struct {
 // from a repo such as ForgeArmory
 type Repo interface {
 	ListTTPs() ([]string, error)
-	FindTTP(ttpPath string) (string, error)
+	FindTTP(ttpRef string) (string, error)
 	FindTemplate(templatePath string) (string, error)
 	GetFs() afero.Fs
 	GetName() string
@@ -88,7 +89,20 @@ func (r *repo) ListTTPs() ([]string, error) {
 }
 
 // FindTTP locates a TTP if it exists in this repo
-func (r *repo) FindTTP(ttpPath string) (string, error) {
+func (r *repo) FindTTP(ttpRef string) (string, error) {
+	var repoName, ttpPath string
+	if strings.Contains(ttpRef, RepoPrefixSep) {
+		// a TTP reference ([repo]//path/to/ttp)
+		// SubTTPs use this path
+		tokens := strings.SplitN(ttpRef, RepoPrefixSep, 2)
+		repoName, ttpPath = tokens[0], tokens[1]
+		if repoName != "" && repoName != r.spec.Name {
+			return "", fmt.Errorf("invalid TTP reference %q; repo name %q does not match %q", ttpRef, repoName, r.spec.Name)
+		}
+	} else {
+		// a regular YAML file path
+		ttpPath = ttpRef
+	}
 	return r.search(r.TTPSearchPaths, ttpPath)
 }
 
@@ -168,31 +182,44 @@ func (spec *Spec) Load(fsys afero.Fs, basePath string) (Repo, error) {
 		return nil, errors.New("repository field `path:` cannot be empty")
 	}
 
-	err := spec.ensurePresent(fsys, basePath)
+	var repoPath string
+	isAbs, err := fileutils.IsAbs(spec.Path)
+	if err != nil {
+		return nil, fmt.Errorf("error checking whether %q is an absolute path", spec.Path)
+	}
+	if isAbs {
+		repoPath, err = fileutils.ExpandTilde(spec.Path)
+		if err != nil {
+			return nil, fmt.Errorf("could not expand tildes in path %q", spec.Path)
+		}
+	} else {
+		repoPath = filepath.Join(basePath, spec.Path)
+	}
+
+	err = spec.ensurePresentAtPath(fsys, repoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	configPath := filepath.Join(basePath, spec.Path, RepoConfigFileName)
-	contents, err := afero.ReadFile(fsys, configPath)
+	repoConfigPath := filepath.Join(repoPath, RepoConfigFileName)
+	contents, err := afero.ReadFile(fsys, repoConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not read repo config at path %v: %v", configPath, err)
+		return nil, fmt.Errorf("could not read repo config at path %v: %w", repoConfigPath, err)
 	}
 	var r repo
 	err = yaml.Unmarshal(contents, &r)
 	if err != nil {
-		return nil, fmt.Errorf("invalid config file found at %v: %v", configPath, err)
+		return nil, fmt.Errorf("invalid config file found at %v: %w", repoConfigPath, err)
 	}
 	r.fsys = fsys
-	r.fullPath = filepath.Join(basePath, spec.Path)
+	r.fullPath = repoPath
 	r.spec = *spec
 	return &r, nil
 }
 
-func (spec *Spec) ensurePresent(fsys afero.Fs, basePath string) error {
+func (spec *Spec) ensurePresentAtPath(fsys afero.Fs, repoPath string) error {
 	// if repo is present we can return early
-	p := filepath.Join(basePath, spec.Path)
-	exists, err := afero.Exists(fsys, p)
+	exists, err := afero.Exists(fsys, repoPath)
 	if err != nil {
 		return err
 	}
@@ -202,8 +229,8 @@ func (spec *Spec) ensurePresent(fsys afero.Fs, basePath string) error {
 
 	if spec.Git.URL == "" {
 		return fmt.Errorf(
-			"repo at %v not found - clone manually or see docs for how to add git clone instructions",
-			p,
+			"repo at %q not found - clone manually or see docs for how to add git clone instructions",
+			repoPath,
 		)
 	}
 
@@ -212,12 +239,12 @@ func (spec *Spec) ensurePresent(fsys afero.Fs, basePath string) error {
 		branchName = "main"
 	}
 
-	gitCmd := exec.Command("git", "clone", "--single-branch", "--branch", branchName, spec.Git.URL, p)
+	gitCmd := exec.Command("git", "clone", "--single-branch", "--branch", branchName, spec.Git.URL, repoPath)
 	gitCmd.Stdout = os.Stdout
 	gitCmd.Stderr = os.Stderr
 	err = gitCmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to clone repo to %v: %v", p, err)
+		return fmt.Errorf("failed to clone repo to %q: %w", repoPath, err)
 	}
 	return nil
 }
