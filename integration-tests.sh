@@ -23,4 +23,4 @@ ttpforge_binary=$(realpath "${ttpforge_binary}")
   --arg run_second_step=true
 
 # run all the TTP test cases
-./run_all_ttp_tests.sh "${ttpforge_binary}"
+./run-all-ttp-tests.sh "${ttpforge_binary}"
