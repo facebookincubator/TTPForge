@@ -49,6 +49,7 @@ type repoCollection struct {
 //
 // fsys: base file system (used for unit testing)
 // specs: a list of repo.Spec entries (usually from the config file)
+// basePath: the directory path that relative repo paths are resolved against
 //
 // **Returns:**
 //

@@ -1,0 +1,21 @@
+---
+name: Basic TTP Chaining
+description: |
+  You can chain existing TTPs together to make larger
+  and more complex TTPs by using the Sub-TTP action type
+  signified by the `ttp:` syntax
+tests:
+  - name: default
+steps:
+  - name: first_sub_ttp
+    description: this step invokes another TTP file
+    ttp: //actions/inline/basic.yaml
+  - name: second_sub_ttp
+    description: |
+      you can pass arguments to sub-TTPs using
+      the `args:` field of the sub-TTP action
+    ttp: //args/basic.yaml
+    args:
+      str_to_print: "this came from the parent TTP"
+      int_arg: 31337
+      run_second_step: true
