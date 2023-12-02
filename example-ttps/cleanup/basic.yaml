@@ -21,4 +21,5 @@ steps:
       as its cleanup action - you may use any of TTPForge's supported action types
       as a cleanup action.
     cleanup:
+      description: You should fill in the descriptions of custom cleanup actions
       inline: echo "Cleaning up third_step"

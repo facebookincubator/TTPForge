@@ -135,7 +135,7 @@ func reduceIndentation(b []byte, n int) []byte {
 //
 // error: An error if any part of the validation fails, otherwise nil.
 func (t *TTP) Validate(execCtx TTPExecutionContext) error {
-	logging.L().Info("[*] Validating TTP")
+	logging.L().Debugf("Validating TTP %q...", t.Name)
 
 	// validate MITRE mapping
 	if t.MitreAttackMapping != nil && len(t.MitreAttackMapping.Tactics) == 0 {
@@ -153,7 +153,7 @@ func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 			return err
 		}
 	}
-	logging.L().Info("[+] Finished validating steps")
+	logging.L().Debug("...finished validating TTP.")
 	return nil
 }
 
@@ -189,6 +189,7 @@ func (t *TTP) chdir() (func(), error) {
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
 func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) {
+	logging.DividerThick()
 	logging.L().Infof("RUNNING TTP: %v", t.Name)
 
 	// verify that we actually meet the necessary requirements to execute this TTP
@@ -203,11 +204,12 @@ func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) 
 	}
 
 	stepResults, firstStepToCleanupIdx, runErr := t.RunSteps(execCtx)
+	logging.DividerThin()
 	if runErr != nil {
 		// we need to run cleanup so we don't return here
 		logging.L().Errorf("[*] Error executing TTP: %v", runErr)
 	} else {
-		logging.L().Info("[*] Completed TTP - No Errors :)")
+		logging.L().Info("TTP Completed Successfully! ✅")
 	}
 	if !execCtx.Cfg.NoCleanup {
 		if execCtx.Cfg.CleanupDelaySeconds > 0 {
@@ -253,7 +255,8 @@ func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, e
 	firstStepToCleanupIdx := -1
 	for stepIdx, step := range t.Steps {
 		stepCopy := step
-		logging.L().Infof("Executing Step #%d: %s", stepIdx+1, step.Name)
+		logging.DividerThin()
+		logging.L().Infof("Executing Step #%d: %q", stepIdx+1, step.Name)
 
 		// core execution - run the step action
 		stepResult, err := stepCopy.Execute(*execCtx)
@@ -305,10 +308,13 @@ func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecu
 	}
 	defer changeBack()
 
-	logging.L().Info("[*] Beginning Cleanup")
+	logging.DividerThick()
+	logging.L().Infof("CLEANING UP TTP: %q", t.Name)
 	var cleanupResults []*ActResult
 	for cleanupIdx := firstStepToCleanupIdx; cleanupIdx >= 0; cleanupIdx-- {
 		stepToCleanup := t.Steps[cleanupIdx]
+		logging.DividerThin()
+		logging.L().Infof("Cleaning Up Step #%d: %q", cleanupIdx+1, stepToCleanup.Name)
 		cleanupResult, err := stepToCleanup.Cleanup(*execCtx)
 		// must be careful to put these in step order, not in execution (reverse) order
 		cleanupResults = append([]*ActResult{cleanupResult}, cleanupResults...)
@@ -318,6 +324,7 @@ func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecu
 			continue
 		}
 	}
-	logging.L().Info("[*] Finished Cleanup")
+	logging.DividerThin()
+	logging.L().Info("Finished Cleanup Successfully ✅")
 	return cleanupResults, nil
 }

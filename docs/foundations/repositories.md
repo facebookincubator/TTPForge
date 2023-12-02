@@ -25,7 +25,7 @@ ttpforge list ttps
 ```
 
 This will print a list of **TTP References**, which have the format
-`[repository name]/path/to/ttp`
+`[repository name]//path/to/ttp`
 
 You can look at the configuration of any given TTP by running
 `ttpforge show ttp [ttp-reference]` - for example:

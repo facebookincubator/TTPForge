@@ -32,9 +32,8 @@ import (
 // common to every type of step (such as Name).
 // It centralizes validation to simplify the code
 type CommonStepFields struct {
-	Name        string         `yaml:"name,omitempty"`
-	Description string         `yaml:"description,omitempty"`
-	Checks      []checks.Check `yaml:"checks,omitempty"`
+	Name   string         `yaml:"name,omitempty"`
+	Checks []checks.Check `yaml:"checks,omitempty"`
 
 	// CleanupSpec is exported so that UnmarshalYAML
 	// can see it - however, it should be considered
@@ -121,7 +120,7 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	// associated with executing this step
 	s.action, err = s.ParseAction(node)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not parse action for step %q: %w", s.Name, err)
 	}
 
 	// figure out what kind of action is
@@ -146,7 +145,7 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 		s.cleanup, err = s.ParseAction(&csf.CleanupSpec)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not parse cleanup action for step %q: %w", s.Name, err)
 		}
 	}
 	return nil
@@ -154,12 +153,20 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 
 // Execute runs the action associated with this step
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	desc := s.action.GetDescription()
+	if desc != "" {
+		logging.L().Infof("Description: %v", desc)
+	}
 	return s.action.Execute(execCtx)
 }
 
 // Cleanup runs the cleanup action associated with this step
 func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	if s.cleanup != nil {
+		desc := s.cleanup.GetDescription()
+		if desc != "" {
+			logging.L().Infof("Description: %v", desc)
+		}
 		return s.cleanup.Execute(execCtx)
 	}
 	logging.L().Infof("No Cleanup Action Defined for Step %v", s.Name)
@@ -204,7 +211,7 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		}
 	}
 	if action == nil {
-		return nil, fmt.Errorf("step %v did not match any valid step type", s.Name)
+		return nil, errors.New("action fields did not match any valid action type")
 	}
 	return action, nil
 }

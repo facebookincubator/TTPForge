@@ -47,7 +47,7 @@ const (
 
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	actionDefaults `yaml:"-"`
+	actionDefaults `yaml:",inline"`
 	Executor       string                  `yaml:"executor,omitempty"`
 	Inline         string                  `yaml:"inline,flow"`
 	Environment    map[string]string       `yaml:"env,omitempty"`

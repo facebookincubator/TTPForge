@@ -32,7 +32,7 @@ import (
 // It will delete the file at the specified path
 // You must pass `recursive: true` to delete directories
 type RemovePathAction struct {
-	actionDefaults `yaml:"-"`
+	actionDefaults `yaml:",inline"`
 	Path           string   `yaml:"remove_path,omitempty"`
 	Recursive      bool     `yaml:"recursive,omitempty"`
 	FileSystem     afero.Fs `yaml:"-,omitempty"`

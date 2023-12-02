@@ -20,6 +20,8 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +57,10 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		TraverseChildren: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.CalledAs() != "init" {
-				return cfg.init()
+				err := cfg.init()
+				if err != nil {
+					return fmt.Errorf("failed to load TTPForge configuration file: %w", err)
+				}
 			}
 			return nil
 		},

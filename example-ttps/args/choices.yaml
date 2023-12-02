@@ -7,14 +7,14 @@ description: |
   you with this capability.
 args:
   - name: arg_with_choices
-    descriptions: you must pass one of these values in order to avoid an error
+    description: you must pass one of these values in order to avoid an error
     choices:
       - A
       - B
       - C
   - name: with_default
     type: int
-    descriptions: |
+    description: |
       arguments with `choices` can have default values to,
       but the default value must be one of the choices.
     choices:

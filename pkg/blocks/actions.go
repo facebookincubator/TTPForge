@@ -28,9 +28,21 @@ type Action interface {
 	GetDefaultCleanupAction() Action
 	CanBeUsedInCompositeAction() bool
 	IsNil() bool
+	GetDescription() string
 }
 
-type actionDefaults struct{}
+// Shared action fields struct that also provides
+// default implementations for some Action
+// interface methods.
+// Every new action type should embed this struct
+type actionDefaults struct {
+	Description string `yaml:"description,omitempty"`
+}
+
+// GetDescription returns the description field from the action
+func (ad *actionDefaults) GetDescription() string {
+	return ad.Description
+}
 
 // GetDefaultCleanupAction provides a default implementation
 // of the GetDefaultCleanupAction method from the Action interface.
