@@ -36,7 +36,7 @@ import (
 // FetchURIStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FetchURIStep struct {
-	actionDefaults `yaml:"-"`
+	actionDefaults `yaml:",inline"`
 	FetchURI       string   `yaml:"fetch_uri,omitempty"`
 	Retries        string   `yaml:"retries,omitempty"`
 	Location       string   `yaml:"location,omitempty"`

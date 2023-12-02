@@ -110,7 +110,7 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 	var tmpContainer ArgSpecContainer
 	err = yaml.Unmarshal(result.PreambleBytes, &tmpContainer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to unmarshal YAML preamble section: %w", err)
 	}
 
 	argValues, err := args.ParseAndValidate(tmpContainer.ArgSpecs, argsKvStrs)

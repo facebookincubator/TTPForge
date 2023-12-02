@@ -33,7 +33,7 @@ import (
 // FileStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FileStep struct {
-	actionDefaults `yaml:"-"`
+	actionDefaults `yaml:",inline"`
 	FilePath       string                  `yaml:"file,omitempty"`
 	Executor       string                  `yaml:"executor,omitempty"`
 	Environment    map[string]string       `yaml:"env,omitempty"`

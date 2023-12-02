@@ -39,7 +39,7 @@ type Edit struct {
 
 // EditStep represents one or more edits to a specific file
 type EditStep struct {
-	actionDefaults `yaml:"-"`
+	actionDefaults `yaml:",inline"`
 	FileToEdit     string   `yaml:"edit_file,omitempty"`
 	Edits          []*Edit  `yaml:"edits,omitempty"`
 	FileSystem     afero.Fs `yaml:"-,omitempty"`

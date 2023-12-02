@@ -33,7 +33,7 @@ import (
 // via a C2, where there is no corresponding shell history
 // telemetry.
 type CopyPathStep struct {
-	actionDefaults `yaml:"-"`
+	actionDefaults `yaml:",inline"`
 	Source         string   `yaml:"copy_path,omitempty"`
 	Destination    string   `yaml:"to,omitempty"`
 	Recursive      bool     `yaml:"recursive,omitempty"`
