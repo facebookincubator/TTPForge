@@ -7,6 +7,7 @@ Learn about the key features of TTPForge, including:
 - [Customizing TTPs with Command-Line Arguments](args.md)
 - [Ensuring Reliable TTP Cleanup](cleanup.md)
 - [Specifying TTP Requirements](requirements.md)
+- [Chaining TTPs Together](chaining.md)
 - [Writing Tests for TTPs](tests.md)
 
 More sections coming soon!
