@@ -21,9 +21,9 @@ package blocks
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/otiai10/copy"
 	"github.com/spf13/afero"
 )
 
@@ -104,38 +104,10 @@ func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 		mode = 0666
 	}
 
-	// if the call is to copy a single file
-	if !s.Recursive {
-
-		// open source file
-		fSrc, err := fsys.OpenFile(s.Source, os.O_RDONLY, os.FileMode(mode))
-		if err != nil {
-			return nil, err
-		}
-
-		// create buffer for reading in file
-		buf := make([]byte, srcInfo.Size())
-
-		// read file into buffer
-		n, err := fSrc.Read(buf)
-		if err != nil {
-			return nil, err
-		}
-		// close source when we return
-		defer fSrc.Close()
-
-		// byte array to store file contents
-		var srcContent []byte
-		srcContent = append(srcContent, buf[:n]...)
-
-		fDest, err := fsys.OpenFile(s.Destination, os.O_WRONLY|os.O_CREATE, os.FileMode(mode))
-		if err != nil {
-			return nil, err
-		}
-		_, err = fDest.Write(srcContent)
-		if err != nil {
-			return nil, err
-		}
+	// Copy a file
+	err = copy.Copy(s.Source, s.Destination)
+	if err != nil {
+		return nil, err
 	}
 
 	return &ActResult{}, nil

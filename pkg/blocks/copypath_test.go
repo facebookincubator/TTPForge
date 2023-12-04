@@ -21,105 +21,176 @@ package blocks
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/facebookincubator/ttpforge/pkg/testutils"
-	"github.com/spf13/afero"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+const sourceDirectory = "/TTPForgeSource"
+const destinationDirectory = "/TTPForgeDestination"
+
 func TestCopyPathExecute(t *testing.T) {
 	testCases := []struct {
-		name               string
-		description        string
-		step               *CopyPathStep
-		fsysContents       map[string][]byte
-		expectExecuteError bool
+		name                string
+		description         string
+		relativeSource      string
+		relativeDestination string
+		overwrite           bool
+		recursive           bool
+		expectExecuteError  bool
 	}{
 		{
-			name:        "Attempt to copy non-existent file",
-			description: "Expected to fail due to non-existent source file",
-			step: &CopyPathStep{
-				Source:      "/etc/passwd",
-				Destination: "/tmp/passwd",
-			},
-			expectExecuteError: true,
+			name:                "Attempt to copy non-existent file",
+			description:         "Expected to fail due to non-existent source file",
+			relativeSource:      "/thisfiledoesnotexistok",
+			relativeDestination: "/thisdoesntmatter",
+			expectExecuteError:  true,
 		},
 		{
-			name:        "Copy existing file to new path",
-			description: "This should succeed as source file exists and destination does not",
-			step: &CopyPathStep{
-				Source:      "/etc/passwd",
-				Destination: "/tmp/passwd",
-			},
-			fsysContents: map[string][]byte{
-				"/etc/passwd": []byte("whoops"),
-			},
+			name:                "Copy existing file to new path",
+			description:         "This should succeed as source file exists and destination does not",
+			relativeSource:      filepath.Join(sourceDirectory, "/ttpforge_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "/ttpforge_test_copy.txt"),
 		},
 		{
-			name:        "Copy to preexisting desitnation (no overwrite)",
-			description: "This should fail since the destination file exists and we are not specifying to overwrite it",
-			step: &CopyPathStep{
-				Source:      "/etc/passwd",
-				Destination: "/tmp/passwd",
-			},
-			fsysContents: map[string][]byte{
-				"/etc/passwd": []byte("whoops"),
-				"/tmp/passwd": []byte("fail"),
-			},
-			expectExecuteError: true,
+			name:                "Copy to preexisting desitnation (no overwrite)",
+			description:         "This should fail since the destination file exists and we are not specifying to overwrite it",
+			relativeSource:      filepath.Join(sourceDirectory, "/ttpforge_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "/ttpforge_test.txt"),
+			expectExecuteError:  true,
 		},
 		{
-			name:        "Copy to preexisting desitnation (overwrite true)",
-			description: "This should pass since when destination file exists since we are specifying overwrite true",
-			step: &CopyPathStep{
-				Source:      "/etc/passwd",
-				Destination: "/tmp/passwd",
-				Overwrite:   true,
-			},
-			fsysContents: map[string][]byte{
-				"/etc/passwd": []byte("whoops"),
-				"/tmp/passwd": []byte("pass"),
-			},
+			name:                "Copy to preexisting desitnation (overwrite true)",
+			description:         "This should pass since when destination file exists since we are specifying overwrite true",
+			relativeSource:      filepath.Join(sourceDirectory, "/ttpforge_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "/ttpforge_test.txt"),
+			overwrite:           true,
+		},
+		{
+			name:                "Copy a directory to a destination that already exists (no overwrite)",
+			description:         "This should fail since the destination directory exists and we are not specifying overwrite true",
+			relativeSource:      sourceDirectory,
+			relativeDestination: destinationDirectory,
+			recursive:           true,
+			expectExecuteError:  true,
+		},
+		{
+			name:                "Copy a directory to a destination that already exists (with overwrite)",
+			description:         "This should fail since the destination directory exists and we are not specifying overwrite true",
+			relativeSource:      sourceDirectory,
+			relativeDestination: destinationDirectory,
+			recursive:           true,
+			overwrite:           true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+
 			// prep filesystem
-			if tc.fsysContents != nil {
-				fsys, err := testutils.MakeAferoTestFs(tc.fsysContents)
-				require.NoError(t, err)
-				tc.step.FileSystem = fsys
-			} else {
-				tc.step.FileSystem = afero.NewMemMapFs()
+			tempDir, err := os.MkdirTemp("", "ttpforge")
+			if err != nil {
+				return
+			}
+			defer os.RemoveAll(tempDir)
+			PrepTestFs(tempDir)
+			// create copy step
+			copyTestPathStep := CopyPathStep{
+				Source:      filepath.Join(tempDir, tc.relativeSource),
+				Destination: filepath.Join(tempDir, tc.relativeDestination),
+				Overwrite:   tc.overwrite,
+				Recursive:   tc.recursive,
 			}
 
 			// execute and check error
 			var execCtx TTPExecutionContext
-			_, err := tc.step.Execute(execCtx)
+			_, err = copyTestPathStep.Execute(execCtx)
 			if tc.expectExecuteError {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
 
-			// get contents of source file
-			srcContentBytes, err := afero.ReadFile(tc.step.FileSystem, tc.step.Source)
-			require.NoError(t, err)
-
-			destContentBytes, err := afero.ReadFile(tc.step.FileSystem, tc.step.Destination)
-			require.NoError(t, err)
-
-			assert.Equal(t, destContentBytes, srcContentBytes)
+			if !copyTestPathStep.Recursive {
+				srcContentBytes, err := os.ReadFile(copyTestPathStep.Source)
+				require.NoError(t, err)
+				destContentBytes, err := os.ReadFile(copyTestPathStep.Destination)
+				require.NoError(t, err)
+				assert.Equal(t, destContentBytes, srcContentBytes)
+			} else {
+				dirsEqual, err := AreDirsEqual(copyTestPathStep.Source, copyTestPathStep.Destination)
+				require.NoError(t, err)
+				assert.True(t, dirsEqual)
+			}
 
 			// check permissions
-			if tc.step.Mode != 0 {
-				info, err := tc.step.FileSystem.Stat(tc.step.Destination)
+			if copyTestPathStep.Mode != 0 {
+				info, err := os.Stat(copyTestPathStep.Destination)
 				require.NoError(t, err)
-				assert.Equal(t, os.FileMode(tc.step.Mode), info.Mode())
+				assert.Equal(t, os.FileMode(copyTestPathStep.Mode), info.Mode())
 			}
+
 		})
 	}
+}
+
+// PrepTestFs prepares the file system for testing, modify as needed if required when adding additional tests.
+func PrepTestFs(tempDir string) error {
+
+	filesMap := map[string][]byte{
+		filepath.Join(tempDir, "/TTPForgeSource/ttpforge_test.txt"):        []byte("This is a TTPForge test file."),
+		filepath.Join(tempDir, "/TTPForgeSource/subdir1/subdir1_test.txt"): []byte("This is a TTPForge test file OK."),
+		filepath.Join(tempDir, "/TTPForgeSource/subdir2/subdir2_test.txt"): []byte("This is a TTPForge test file OKAAAAAAY."),
+		filepath.Join(tempDir, "/TTPForgeDestination/ttpforge_test.txt"):   []byte("This is a TTPForge test file but I'm already here!."),
+	}
+
+	for path, contents := range filesMap {
+		dirPath := filepath.Dir(path)
+		err := os.MkdirAll(dirPath, 0700)
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(path, contents, 0644)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AreDirsEqual recursively compares two directories for equality
+// NOTE: filepath.Wale guarantees lexical order traversal (elements already ordered) thus allowing us to use a slice
+// as opposed to a map.
+func AreDirsEqual(source string, dest string) (bool, error) {
+	var files1, files2 []string
+	err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			files1 = append(files1, string(content))
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	err = filepath.Walk(dest, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			files2 = append(files2, string(content))
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return cmp.Equal(files1, files2), nil
 }
