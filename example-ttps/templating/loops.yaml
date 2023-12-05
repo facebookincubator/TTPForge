@@ -1,0 +1,38 @@
+---
+name: Creating Loops with Templating
+description: |
+  TTPForge's support for native Golang-style templates can
+  be used to create dynamic nested loops that execute a
+  step (or multiple steps) several times
+args:
+  - name: max_i
+    type: int
+    default: 2
+  - name: max_j
+    type: int
+    default: 3
+  - name: max_k
+    type: int
+    default: 4
+steps:
+  # we declare our loop limit variables here for two reasons:
+  # 1. We can shift to one-based indexing for our loops
+  # 2. Using (for example) ".Args.max_j" inside the loop over $i
+  #    is not possible due to template scoping rules
+  {{$lim_i := int (add .Args.max_i 1)}}
+  {{$lim_j := int (add .Args.max_j 1)}}
+  {{$lim_k := int (add .Args.max_k 1)}}
+  {{range $i := untilStep 1 $lim_i 1}}
+    {{range $j := untilStep 1 $lim_j 1}}
+      - name: outer_step_{{$i}}_{{$j}}
+        print_str: "Executing outer step with (i,j) = ({{$i}},{{$j}})"
+        # note that we need the indentation of the step in the inner
+        # loop to match the outer loop or our YAML will be invalid.
+        # Hence, the lines inside the $k loop are not indented as much
+        # as you might expect
+        {{range $k := untilStep 1 $lim_k 1}}
+      - name: inner_step_{{$i}}_{{$j}}_{{$k}}
+        print_str: "Executing inner step with (i,j,k) = ({{$i}},{{$j}},{{$k}})"
+        {{end}}
+    {{end}}
+  {{end}}
