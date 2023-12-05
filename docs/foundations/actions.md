@@ -4,6 +4,7 @@ TTPForge supports the following types of actions:
 
 - [inline:](actions/inline.md) Run Shell Commands
 - [create_file:](actions/create_file.md) Create Files on Disk
+- [copy_path:](actions/copy_path.md) Copy File or Directory on Disk
 - [edit_file:](actions/edit_file.md) Append/Delete/Replace Lines in Files
 - [remove_path:](actions/remove_path.md) Delete Files/Directories
 - [print_str:](actions/print_str.md) Print Strings to the Screen
