@@ -10,7 +10,7 @@ file - check out the examples below to learn more.
 This example shows how to use the `append` and `delete` functionality of the
 `edit_file` action:
 
-https://github.com/facebookincubator/TTPForge/blob/bf2fbb3312a227323d1930ba500b76f041329ca2/example-ttps/actions/edit_file/append_delete.yaml#L1-L35
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/actions/edit-file/append-delete.yaml#L1-L35
 
 You can experiment with the above TTP by installing the `examples` TTP
 repository (skip this if `ttpforge list repos` shows that the `examples` repo is
@@ -23,7 +23,7 @@ ttpforge install repo https://github.com/facebookincubator/TTPForge --name examp
 and then running the below command:
 
 ```bash
-ttpforge run examples//actions/edit_file/append_delete.yaml
+ttpforge run examples//actions/edit-file/append-delete.yaml
 ```
 
 ## Replacing Lines
@@ -32,12 +32,12 @@ You can also use `edit_file` to replace lines in a file and optionally use
 powerful regular expressions to perform complex transformations. The next
 example shows this functionality in action:
 
-https://github.com/facebookincubator/TTPForge/blob/bf2fbb3312a227323d1930ba500b76f041329ca2/example-ttps/actions/edit_file/replace.yaml#L1-L47
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/actions/edit-file/replace.yaml#L1-L47
 
 Try out the above TTP by running this command:
 
 ```bash
-ttpforge run examples//actions/edit_file/replace.yaml
+ttpforge run examples//actions/edit-file/replace.yaml
 ```
 
 ## Fields

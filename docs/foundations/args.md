@@ -12,7 +12,7 @@ ttpforge install repo https://github.com/facebookincubator/TTPForge --name examp
 TTPForge allows users to control TTP execution through its support for
 command-line arguments - check out the TTP below to see how it works:
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/args/basic.yaml#L1-L33
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/args/basic.yaml#L1-L33
 
 You can run this TTP and provide values for all relevant arguments as follows:
 
@@ -61,7 +61,7 @@ the example below (just focus on the `args:` section for now, though you can
 check out the [edit_file documentation](actions/edit_file.md) if you are
 curious):
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/actions/edit_file/append_delete.yaml#L1-L35
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/actions/edit-file/append-delete.yaml#L1-L35
 
 You must use `type: path` because when you execute `ttpforge run [ttp]`,
 **TTPForge changes its working directory to the folder containing the TTP.**
@@ -76,7 +76,7 @@ Sometimes only certain specific values make sense for a given argument. TTPForge
 lets you restrict the allowed values for an argument using the `choices:`
 keyword, as shown below
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/args/choices.yaml#L1-L29
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/args/choices.yaml#L1-L29
 
 You can run the above TTP as follows:
 
@@ -99,7 +99,7 @@ expression (which is useful for ensuring that you don't get strange errors
 halfway through a TTP due to user error) you can use the `regexp:` syntax
 demonstrated below:
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/args/regexp.yaml#L1-L20
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/args/regexp.yaml#L1-L20
 
 You can use any regular expression allowed by the Golang regular expression
 [syntax](https://pkg.go.dev/regexp), although if you use YAML metacharacters

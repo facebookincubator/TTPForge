@@ -4,7 +4,7 @@ The `create_file` action can be used to drop files on disk without the need to
 loudly invoke a shell and use `cat` or `echo`. Check out the TTP below to see
 how it works:
 
-https://github.com/facebookincubator/TTPForge/blob/0d62cf5139cb97686f4a6ef76fdf2bf7a30681be/example-ttps/actions/create_file/basic.yaml#L1-L22
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/actions/create-file/basic.yaml#L1-L22
 
 You can experiment with the above TTP by installing the `examples` TTP
 repository (skip this if `ttpforge list repos` shows that the `examples` repo is
@@ -17,7 +17,7 @@ ttpforge install repo https://github.com/facebookincubator/TTPForge --name examp
 and then running the below command:
 
 ```bash
-ttpforge run examples//actions/create_file/basic.yaml
+ttpforge run examples//actions/create-file/basic.yaml
 ```
 
 ## Fields
