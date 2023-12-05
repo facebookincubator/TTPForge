@@ -12,7 +12,7 @@ together to form new composite TTPs. This is useful for two primary reasons:
 To chain multiple TTPs together, use the `ttp:` action, as shown in the example
 below:
 
-https://github.com/facebookincubator/TTPForge/blob/e46dd002280d1f38e068817ff1c2a7a9f2e7d088/example-ttps/chaining/basic.yaml#L1-L21
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/chaining/basic.yaml#L1-L21
 
 Run this example TTP by executing the following command:
 

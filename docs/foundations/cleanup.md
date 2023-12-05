@@ -37,7 +37,7 @@ Every step in a TTPForge TTP can be associated with a cleanup action. That
 cleanup action can be any valid TTPForge [action type](actions.md). Here's an
 example TTP with several steps that have associated cleanup actions:
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/cleanup/basic.yaml#L1-L24
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/cleanup/basic.yaml#L1-L25
 
 You can run this example with the command:
 `ttpforge run examples//cleanup/basic.yaml` - based on the output, notice the
@@ -81,7 +81,7 @@ case of `create_file`, the default cleanup action removes the created file.
 Check out the example below, which you can run with
 `ttpforge run examples//cleanup/default.yaml`:
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/cleanup/default.yaml#L1-L12
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/cleanup/default.yaml#L1-L12
 
 ## Handling Failures Gracefully
 
@@ -90,7 +90,7 @@ step (the step immediately preceding the failure). The example below (which you
 can run with `ttpforge run examples//cleanup/failure.yaml`) shows how cleanup
 actions gracefully handle the failure of a step:
 
-https://github.com/facebookincubator/TTPForge/blob/246f1a2b6b57714a56c5ac3f321399d49243a4eb/example-ttps/cleanup/failure.yaml#L1-L27
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/cleanup/failure.yaml#L1-L27
 
 Note that **we don't clean up the failed step itself**, because that is usually
 not desired behavior. Consider the following example situations:

@@ -16,7 +16,7 @@ The example below demonstrates how to tell TTPForge (and your TTP's users) that
 your TTP is only compatible with (and should therefore only be run) on certain
 platforms:
 
-https://github.com/facebookincubator/TTPForge/blob/b748db9af4a15702847ae562583a0d4e04c808a5/example-ttps/requirements/os_and_superuser.yaml#L1-L21
+https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/requirements/os-and-superuser.yaml#L1-L21
 
 Each entry in the `platforms` list should contain one or both of the following
 fields:
