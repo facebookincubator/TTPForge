@@ -1,0 +1,18 @@
+---
+tests:
+  - name: default
+
+name: copy_path_example
+description: |
+  This TTP shows you how to use the copy_path action type
+  to copy a file on disk.
+requirements:
+  platforms:
+    - os: darwin
+    - os: linux
+steps:
+  - name: copy-passwd-file
+    copy_path: /etc/passwd
+    to: /tmp/ttpforge_copy_{{randAlphaNum 10}}
+    mode: 0600
+    cleanup: default
