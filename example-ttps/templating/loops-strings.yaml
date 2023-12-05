@@ -1,0 +1,22 @@
+---
+name: Creating Loops with Templating - Strings Example
+description: |
+  This example demonstrates how to loop over specific
+  sets of string values during TTP execution.
+args:
+  - name: first_list
+  - name: second_list
+tests:
+  - name: Loop Over Lists of Letters
+    args:
+      first_list: "a,b,c"
+      second_list: "d,e,f"
+steps:
+  {{$first_args := splitList "," .Args.first_list}}
+  {{$second_args := splitList "," .Args.second_list}}
+  {{range $first_arg := $first_args}}
+    {{range $second_arg := $second_args}}
+      - name: print_combo_{{$first_arg}}_{{$second_arg}}
+        print_str: "Combination: ({{$first_arg}},{{$second_arg}})"
+    {{end}}
+  {{end}}
