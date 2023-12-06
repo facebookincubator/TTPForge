@@ -4,23 +4,7 @@ The `copy_path` action can be used to copy files on disk without the need to
 loudly invoke a shell and use `cat`, `echo`, or `cp`. Check out the TTP below to
 see how it works:
 
-```yaml
----
-name: copy_path_example
-description: |
-  This TTP shows you how to use the copy_path action type
-  to copy a file on disk.
-requirements:
-  platforms:
-    - os: darwin
-    - os: linux
-steps:
-  - name: copy-passwd-file
-    copy_path: /etc/passwd
-    to: /tmp/ttpforge_copy_{{randAlphaNum 10}}
-    mode: 0600
-    cleanup: default
-```
+https://github.com/facebookincubator/TTPForge/blob/ce5561457f6d9a6f61cf3b6ed0b3ea69a32550eb/example-ttps/actions/copy-path/basic.yaml#L1-L18
 
 You can experiment with the above TTP by installing the `examples` TTP
 repository (skip this if `ttpforge list repos` shows that the `examples` repo is
