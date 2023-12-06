@@ -1,7 +1,4 @@
 ---
-tests:
-  - name: default
-
 name: copy_path_example
 description: |
   This TTP shows you how to use the copy_path action type
@@ -10,6 +7,8 @@ requirements:
   platforms:
     - os: darwin
     - os: linux
+tests:
+  - name: default
 steps:
   - name: copy-passwd-file
     copy_path: /etc/passwd
