@@ -26,6 +26,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 
@@ -35,14 +36,18 @@ import (
 )
 
 type testCase struct {
-	Name   string            `yaml:"name"`
-	Args   map[string]string `yaml:"args"`
-	DryRun bool              `yaml:"dry_run"`
+	Name        string            `yaml:"name"`
+	Description string            `yaml:"description"`
+	Args        map[string]string `yaml:"args"`
+	DryRun      bool              `yaml:"dry_run"`
 }
 
-type ttpFields struct {
-	Name  string     `yaml:"name"`
-	Cases []testCase `yaml:"tests"`
+// We want to verify everything but the steps themselves against
+// our schema. The steps will, in turn, be validated
+// by the subsequent invocation of the `ttpforge run` command.
+type ttpNonStepFields struct {
+	blocks.PreambleFields `yaml:",inline"`
+	Cases                 []testCase `yaml:"tests"`
 }
 
 // Note - this command cannot be unit tested
@@ -78,6 +83,9 @@ func buildTestCommand(cfg *Config) *cobra.Command {
 }
 
 func runTestsForTTP(ttpAbsPath string, timeoutSeconds int) error {
+	logging.DividerThick()
+	logging.L().Infof("TESTING TTP FILE:")
+	logging.L().Info(ttpAbsPath)
 	// preprocess to separate out the `tests:` section from the `steps:`
 	// section and avoid YAML parsing errors associated with template syntax
 	contents, err := afero.ReadFile(afero.NewOsFs(), ttpAbsPath)
@@ -89,13 +97,19 @@ func runTestsForTTP(ttpAbsPath string, timeoutSeconds int) error {
 		return err
 	}
 
-	// load the test cases - we don't want to load the entire ttp
-	// because that's one of the parts of the code that this
-	// command is trying to test
-	var ttpf ttpFields
+	// load the test cases and preamble fields - we don't load
+	// the steps themselves because that process will
+	// be tested when we call `ttpforge run`
+	var ttpf ttpNonStepFields
 	err = yaml.Unmarshal(preprocessResult.PreambleBytes, &ttpf)
 	if err != nil {
-		return fmt.Errorf("failed to parse `test:` section of TTP file %v: %w", ttpAbsPath, err)
+		return fmt.Errorf("failed to parse TTP file %v: %w", ttpAbsPath, err)
+	}
+
+	// validate as many fields as we can prior to actually
+	// invoking `ttpforge run`
+	if err := ttpf.PreambleFields.Validate(); err != nil {
+		return fmt.Errorf("invalid TTP file %v: %w", ttpAbsPath, err)
 	}
 
 	// look up the path of this binary (ttpforge)
@@ -104,16 +118,28 @@ func runTestsForTTP(ttpAbsPath string, timeoutSeconds int) error {
 		return fmt.Errorf("could not resolve self path (path to current ttpforge binary): %w", err)
 	}
 
+	var testCases []testCase
 	if len(ttpf.Cases) == 0 {
-		logging.L().Warnf("No tests defined in TTP file %v; exiting...", ttpAbsPath)
-		return nil
+		if len(ttpf.ArgSpecs) == 0 {
+			// since this TTP doesn't accept arguments, it doesn't need a test case
+			// to validate its steps - so we can add an implicit dry run case
+			testCases = append(testCases, testCase{
+				Name:        "auto_generated_dry_run",
+				Description: "Auto-generated dry run test case",
+				DryRun:      true,
+			})
+		} else {
+			logging.L().Warnf("No tests defined in TTP file %v; exiting...", ttpAbsPath)
+			return nil
+		}
+	} else {
+		testCases = append(testCases, ttpf.Cases...)
 	}
 
 	// run all cases
 	logging.DividerThick()
-	logging.L().Infof("TTP: %q", ttpf.Name)
-	logging.L().Infof("EXECUTING %v TEST CASE(S)", len(ttpf.Cases))
-	for tcIdx, tc := range ttpf.Cases {
+	logging.L().Infof("EXECUTING %v TEST CASE(S)", len(testCases))
+	for tcIdx, tc := range testCases {
 		logging.DividerThin()
 		logging.L().Infof("RUNNING TEST CASE #%d: %q", tcIdx+1, tc.Name)
 		logging.DividerThin()

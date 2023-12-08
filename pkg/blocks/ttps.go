@@ -26,7 +26,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/platforms"
@@ -39,21 +38,13 @@ import (
 //
 // **Attributes:**
 //
-// Name: The name of the TTP.
-// Description: A description of the TTP.
-// MitreAttackMapping: A MitreAttack object containing mappings to the MITRE ATT&CK framework.
 // Environment: A map of environment variables to be set for the TTP.
 // Steps: An slice of steps to be executed for the TTP.
-// ArgSpecs: An slice of argument specifications for the TTP.
 // WorkDir: The working directory for the TTP.
 type TTP struct {
-	Name               string              `yaml:"name,omitempty"`
-	Description        string              `yaml:"description"`
-	MitreAttackMapping *MitreAttack        `yaml:"mitre,omitempty"`
-	Environment        map[string]string   `yaml:"env,flow,omitempty"`
-	Requirements       *RequirementsConfig `yaml:"requirements,omitempty"`
-	Steps              []Step              `yaml:"steps,omitempty,flow"`
-	ArgSpecs           []args.Spec         `yaml:"args,omitempty,flow"`
+	PreambleFields `yaml:",inline"`
+	Environment    map[string]string `yaml:"env,flow,omitempty"`
+	Steps          []Step            `yaml:"steps,omitempty,flow"`
 	// Omit WorkDir, but expose for testing.
 	WorkDir string `yaml:"-"`
 }
@@ -137,16 +128,13 @@ func reduceIndentation(b []byte, n int) []byte {
 func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	logging.L().Debugf("Validating TTP %q...", t.Name)
 
-	// validate MITRE mapping
-	if t.MitreAttackMapping != nil && len(t.MitreAttackMapping.Tactics) == 0 {
-		return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", t.Name)
+	// Validate preamble fields
+	err := t.PreambleFields.Validate()
+	if err != nil {
+		return err
 	}
 
-	// validate requirements
-	if err := t.Requirements.Validate(); err != nil {
-		return fmt.Errorf("TTP '%s' has an invalid requirements section: %w", t.Name, err)
-	}
-
+	// Validate steps
 	for _, step := range t.Steps {
 		stepCopy := step
 		if err := stepCopy.Validate(execCtx); err != nil {
@@ -189,7 +177,6 @@ func (t *TTP) chdir() (func(), error) {
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
 func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) {
-	logging.DividerThick()
 	logging.L().Infof("RUNNING TTP: %v", t.Name)
 
 	// verify that we actually meet the necessary requirements to execute this TTP
