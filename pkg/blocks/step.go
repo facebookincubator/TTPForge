@@ -190,8 +190,7 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 // ParseAction decodes an action (from step or cleanup) in YAML
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
-	// actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep()}
-	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep(), NewCopyPathStep(), &PrintStrAction{}}
+	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep(), NewCopyPathStep(), NewRemovePathAction(), &PrintStrAction{}}
 	var action Action
 	for _, actionType := range actionCandidates {
 		err := node.Decode(actionType)
