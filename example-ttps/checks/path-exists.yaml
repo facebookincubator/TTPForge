@@ -1,0 +1,24 @@
+---
+name: Demo of the path_exists Post-Execution Check
+description: |
+  The `path_exists` check can be used to verify that a given
+  file exists and has the correct hash. This helps
+  TTP authors ensure that their TTP executed correctly and wasn't
+  blocked by EDR/AV.
+requirements:
+  platforms:
+    - os: darwin
+    - os: linux
+tests:
+  - name: default
+steps:
+  - name: create_demo_file
+    create_file: |-
+      {{$target_path := (printf "/tmp/ttpforge-path-exists-demo-%v" (randAlphaNum 10))}}{{$target_path}}
+    contents: foo
+    cleanup: default
+    checks:
+      - msg: "Expected path does not exist or does not have correct contents!"
+        path_exists: "{{$target_path}}"
+        checksum:
+          sha256: 2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae
