@@ -178,7 +178,7 @@ func TestTTP(t *testing.T) {
 	testCases := []struct {
 		name               string
 		content            string
-		execConfig         TTPExecutionConfig
+		args               map[string]interface{}
 		expectedByIndexOut map[int]string
 		expectedByNameOut  map[string]string
 		wantError          bool
@@ -204,7 +204,6 @@ steps:
       inline: echo "step4"
       cleanup:
         inline: echo "cleanup4"`,
-			execConfig: TTPExecutionConfig{},
 			expectedByIndexOut: map[int]string{
 				0: "step1\n",
 				1: "step2\n",
@@ -236,11 +235,9 @@ steps:
   - name: optional_step_2
     inline: echo "optional step 2"
 {{ end }}`,
-			execConfig: TTPExecutionConfig{
-				Args: map[string]interface{}{
-					"arg1":               "victory",
-					"do_optional_step_2": true,
-				},
+			args: map[string]interface{}{
+				"arg1":               "victory",
+				"do_optional_step_2": true,
 			},
 			expectedByIndexOut: map[int]string{
 				0: "arg value is victory\n",
@@ -269,10 +266,8 @@ steps:
     inline: echo "first output is baz"
   - name: step3
     inline: echo "arg value is {{ .Args.arg1 }}"`,
-			execConfig: TTPExecutionConfig{
-				Args: map[string]interface{}{
-					"arg1": "victory",
-				},
+			args: map[string]interface{}{
+				"arg1": "victory",
 			},
 			expectedByIndexOut: map[int]string{
 				0: "{\"foo\":{\"bar\":\"baz\"}}\n",
@@ -296,7 +291,6 @@ steps:
       A
       B
       EOF`,
-			execConfig: TTPExecutionConfig{},
 			expectedByIndexOut: map[int]string{
 				0: "A\nB\n",
 			},
@@ -327,7 +321,9 @@ steps:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Render the templated TTP first
-			ttp, err := RenderTemplatedTTP(tc.content, &tc.execConfig)
+			ttp, err := RenderTemplatedTTP(tc.content, RenderParameters{
+				Args: tc.args,
+			})
 			if err != nil {
 				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
 				return
@@ -338,9 +334,7 @@ steps:
 			require.NoError(t, err)
 
 			// run it
-			stepResults, err := ttp.Execute(&TTPExecutionContext{
-				Cfg: tc.execConfig,
-			})
+			stepResults, err := ttp.Execute(&TTPExecutionContext{})
 			if tc.wantError {
 				require.Error(t, err)
 				return

@@ -51,12 +51,6 @@ func TestExpandVariablesStepResults(t *testing.T) {
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["second_step"])
 	stepResults.ByIndex = append(stepResults.ByIndex, stepResults.ByName["third_step"])
 	execCtx := TTPExecutionContext{
-		Cfg: TTPExecutionConfig{
-			Args: map[string]any{
-				"arg1": "myarg1",
-				"arg2": "myarg2",
-			},
-		},
 		StepResults: stepResults,
 	}
 

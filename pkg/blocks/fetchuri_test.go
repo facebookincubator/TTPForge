@@ -181,12 +181,7 @@ steps:
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			assert.NoError(t, err)
 
-			execCtx := TTPExecutionContext{
-				Cfg: TTPExecutionConfig{
-					Args: map[string]any{},
-				},
-			}
-
+			var execCtx TTPExecutionContext
 			err = ttps.Validate(execCtx)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -207,11 +202,7 @@ location: /tmp/test.html
 overwrite: true
 `
 	var s FetchURIStep
-	execCtx := TTPExecutionContext{
-		Cfg: TTPExecutionConfig{
-			Args: map[string]any{},
-		},
-	}
+	var execCtx TTPExecutionContext
 	err := yaml.Unmarshal([]byte(content), &s)
 	require.NoError(t, err)
 

@@ -36,6 +36,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// RenderParameters is a container for all of the
+// runtime parameters used in the
+// TTP template rendering process
+type RenderParameters struct {
+	Args map[string]interface{}
+}
+
 // RenderTemplatedTTP is a function that utilizes Golang's `text/template` for template substitution.
 // It replaces template expressions like `{{ .Args.myarg }}` with corresponding values.
 // This function must be invoked prior to YAML unmarshaling, as the template syntax `{{ ... }}`
@@ -50,8 +57,7 @@ import (
 //
 // *TTP: A pointer to the TTP object created from the template.
 // error: An error if the rendering or unmarshaling process fails.
-func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error) {
-
+func RenderTemplatedTTP(ttpStr string, rp RenderParameters) (*TTP, error) {
 	tmpl, err := template.New("ttp").Funcs(sprig.TxtFuncMap()).Parse(ttpStr)
 
 	if err != nil {
@@ -59,7 +65,7 @@ func RenderTemplatedTTP(ttpStr string, execCfg *TTPExecutionConfig) (*TTP, error
 	}
 
 	var result bytes.Buffer
-	err = tmpl.Execute(&result, execCfg)
+	err = tmpl.Execute(&result, rp)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +123,11 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
 	}
-	execCfg.Args = argValues
 
-	ttp, err := RenderTemplatedTTP(string(ttpBytes), execCfg)
+	rp := RenderParameters{
+		Args: argValues,
+	}
+	ttp, err := RenderTemplatedTTP(string(ttpBytes), rp)
 	if err != nil {
 		return nil, nil, err
 	}
