@@ -24,15 +24,22 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const sourceDirectory = "/TTPForgeSource"
-const destinationDirectory = "/TTPForgeDestination"
-
 func TestCopyPathExecute(t *testing.T) {
+	const sourceDirectory = "TTPForgeSource"
+	const destinationDirectory = "TTPForgeDestination"
+
+	filesMap := map[string][]byte{
+		filepath.Join(sourceDirectory, "ttpforge_test.txt"):           []byte("This is a TTPForge test file."),
+		filepath.Join(sourceDirectory, "subdir1", "subdir1_test.txt"): []byte("This is a TTPForge test file OK."),
+		filepath.Join(sourceDirectory, "subdir2", "subdir2_test.txt"): []byte("This is a TTPForge test file OKAAAAAAY."),
+		filepath.Join(destinationDirectory, "ttpforge_test.txt"):      []byte("This is a TTPForge test file but I'm already here!."),
+	}
+
 	testCases := []struct {
 		name                string
 		description         string
@@ -45,28 +52,28 @@ func TestCopyPathExecute(t *testing.T) {
 		{
 			name:                "Attempt to copy non-existent file",
 			description:         "Expected to fail due to non-existent source file",
-			relativeSource:      "/thisfiledoesnotexistok",
-			relativeDestination: "/thisdoesntmatter",
+			relativeSource:      "thisfiledoesnotexistok",
+			relativeDestination: "thisdoesntmatter",
 			expectExecuteError:  true,
 		},
 		{
 			name:                "Copy existing file to new path",
 			description:         "This should succeed as source file exists and destination does not",
-			relativeSource:      filepath.Join(sourceDirectory, "/ttpforge_test.txt"),
-			relativeDestination: filepath.Join(destinationDirectory, "/ttpforge_test_copy.txt"),
+			relativeSource:      filepath.Join(sourceDirectory, "ttpforge_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "ttpforge_test_copy.txt"),
 		},
 		{
 			name:                "Copy to preexisting desitnation (no overwrite)",
 			description:         "This should fail since the destination file exists and we are not specifying to overwrite it",
-			relativeSource:      filepath.Join(sourceDirectory, "/ttpforge_test.txt"),
-			relativeDestination: filepath.Join(destinationDirectory, "/ttpforge_test.txt"),
+			relativeSource:      filepath.Join(sourceDirectory, "ttpforge_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "ttpforge_test.txt"),
 			expectExecuteError:  true,
 		},
 		{
-			name:                "Copy to preexisting desitnation (overwrite true)",
+			name:                "Copy to preexisting destination (overwrite true)",
 			description:         "This should pass since when destination file exists since we are specifying overwrite true",
-			relativeSource:      filepath.Join(sourceDirectory, "/ttpforge_test.txt"),
-			relativeDestination: filepath.Join(destinationDirectory, "/ttpforge_test.txt"),
+			relativeSource:      filepath.Join(sourceDirectory, "ttpforge_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "ttpforge_test.txt"),
 			overwrite:           true,
 		},
 		{
@@ -79,7 +86,7 @@ func TestCopyPathExecute(t *testing.T) {
 		},
 		{
 			name:                "Copy a directory to a destination that already exists (with overwrite)",
-			description:         "This should fail since the destination directory exists and we are not specifying overwrite true",
+			description:         "This should pass when the destination directory exists since we specifying overwrite true",
 			relativeSource:      sourceDirectory,
 			relativeDestination: destinationDirectory,
 			recursive:           true,
@@ -91,12 +98,10 @@ func TestCopyPathExecute(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// prep filesystem
-			tempDir, err := os.MkdirTemp("", "ttpforge")
-			if err != nil {
-				return
-			}
+			tempDir, err := testutils.MakeTempTestDir(filesMap)
+			require.NoError(t, err)
 			defer os.RemoveAll(tempDir)
-			PrepTestFs(tempDir)
+
 			// create copy step
 			copyTestPathStep := CopyPathStep{
 				Source:      filepath.Join(tempDir, tc.relativeSource),
@@ -121,7 +126,7 @@ func TestCopyPathExecute(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, destContentBytes, srcContentBytes)
 			} else {
-				dirsEqual, err := AreDirsEqual(copyTestPathStep.Source, copyTestPathStep.Destination)
+				dirsEqual, err := testutils.AreDirsEqual(copyTestPathStep.Source, copyTestPathStep.Destination)
 				require.NoError(t, err)
 				assert.True(t, dirsEqual)
 			}
@@ -135,62 +140,4 @@ func TestCopyPathExecute(t *testing.T) {
 
 		})
 	}
-}
-
-// PrepTestFs prepares the file system for testing, modify as needed if required when adding additional tests.
-func PrepTestFs(tempDir string) error {
-
-	filesMap := map[string][]byte{
-		filepath.Join(tempDir, "/TTPForgeSource/ttpforge_test.txt"):        []byte("This is a TTPForge test file."),
-		filepath.Join(tempDir, "/TTPForgeSource/subdir1/subdir1_test.txt"): []byte("This is a TTPForge test file OK."),
-		filepath.Join(tempDir, "/TTPForgeSource/subdir2/subdir2_test.txt"): []byte("This is a TTPForge test file OKAAAAAAY."),
-		filepath.Join(tempDir, "/TTPForgeDestination/ttpforge_test.txt"):   []byte("This is a TTPForge test file but I'm already here!."),
-	}
-
-	for path, contents := range filesMap {
-		dirPath := filepath.Dir(path)
-		err := os.MkdirAll(dirPath, 0700)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(path, contents, 0644)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// AreDirsEqual recursively compares two directories for equality
-// NOTE: filepath.Wale guarantees lexical order traversal (elements already ordered) thus allowing us to use a slice
-// as opposed to a map.
-func AreDirsEqual(source string, dest string) (bool, error) {
-	var files1, files2 []string
-	err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			files1 = append(files1, string(content))
-		}
-		return nil
-	})
-	if err != nil {
-		return false, err
-	}
-	err = filepath.Walk(dest, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			files2 = append(files2, string(content))
-		}
-		return nil
-	})
-	if err != nil {
-		return false, err
-	}
-	return cmp.Equal(files1, files2), nil
 }
