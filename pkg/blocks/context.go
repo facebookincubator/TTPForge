@@ -36,7 +36,6 @@ type TTPExecutionConfig struct {
 	DryRun              bool
 	NoCleanup           bool
 	CleanupDelaySeconds uint
-	Args                map[string]any
 	Repo                repos.Repo
 	Stdout              io.Writer
 	Stderr              io.Writer
