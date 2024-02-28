@@ -32,6 +32,11 @@ type PrintStrAction struct {
 	Message        string `yaml:"print_str,omitempty"`
 }
 
+// NewPrintStrAction creates a new PrintStrAction.
+func NewPrintStrAction() *PrintStrAction {
+	return &PrintStrAction{}
+}
+
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *PrintStrAction) IsNil() bool {
 	switch {

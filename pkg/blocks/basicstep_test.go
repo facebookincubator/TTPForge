@@ -84,10 +84,10 @@ outputs:
     filters:
     - json_path: foo.bar`
 	var s BasicStep
-	var execCtx TTPExecutionContext
+	execCtx := NewTTPExecutionContext()
 	err := yaml.Unmarshal([]byte(content), &s)
 	require.NoError(t, err)
-	err = s.Validate(TTPExecutionContext{})
+	err = s.Validate(execCtx)
 	require.NoError(t, err)
 
 	// execute and check result

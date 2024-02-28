@@ -43,9 +43,22 @@ type TTPExecutionConfig struct {
 
 // TTPExecutionContext - holds config and context for the currently executing TTP
 type TTPExecutionContext struct {
-	Cfg         TTPExecutionConfig
-	WorkDir     string
-	StepResults *StepResultsRecord
+	Cfg               TTPExecutionConfig
+	WorkDir           string
+	StepResults       *StepResultsRecord
+	actionResultsChan chan *ActResult
+	errorsChan        chan error
+	shutdownChan      chan bool
+}
+
+// NewTTPExecutionContext creates a new TTPExecutionContext with empty config and created channels
+func NewTTPExecutionContext() TTPExecutionContext {
+	return TTPExecutionContext{
+		StepResults:       NewStepResultsRecord(),
+		actionResultsChan: make(chan *ActResult, 1),
+		errorsChan:        make(chan error, 1),
+		shutdownChan:      SetupSignalHandler(),
+	}
 }
 
 // ExpandVariables takes a string containing the following types of variables

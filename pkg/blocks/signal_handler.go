@@ -19,28 +19,43 @@ THE SOFTWARE.
 
 package blocks
 
-// subTTPCleanupAction ensures that individual
-// steps of the subTTP are appropriately cleaned up
-type subTTPCleanupAction struct {
-	actionDefaults
-	step *SubTTPStep
-}
+import (
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
-// Execute will cleanup the subTTP starting from the last successful step
-func (a *subTTPCleanupAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	cleanupResults, err := a.step.ttp.startCleanupForCompletedSteps(*a.step.subExecCtx)
-	if err != nil {
-		return nil, err
+	"github.com/facebookincubator/ttpforge/pkg/logging"
+)
+
+var signalHandlerInstalled bool
+var signalHandlerLock = sync.Mutex{}
+var shutdownChan chan bool
+
+// SetupSignalHandler sets up SIGINT and SIGTERM handlers for graceful shutdown
+func SetupSignalHandler() chan bool {
+	// setup signal handling only once
+	signalHandlerLock.Lock()
+	if signalHandlerInstalled {
+		signalHandlerLock.Unlock()
+		return shutdownChan
 	}
-	return aggregateResults(cleanupResults), nil
-}
+	sigs := make(chan os.Signal, 2)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	shutdownChan = make(chan bool, 1)
+	signalHandlerInstalled = true
+	signalHandlerLock.Unlock()
 
-// IsNil is not needed here, as this is not a user-accessible step type
-func (a *subTTPCleanupAction) IsNil() bool {
-	return false
-}
+	go func() {
+		var sig os.Signal
+		var counter int
+		for {
+			sig = <-sigs
+			logging.L().Infof("[%v] Received signal %v, shutting down now", counter, sig)
+			shutdownChan <- true
+			counter++
+		}
+	}()
 
-// Validate is not needed here, as this is not a user-accessible step type
-func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
-	return nil
+	return shutdownChan
 }

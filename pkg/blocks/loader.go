@@ -149,16 +149,21 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 		}
 		ttp.WorkDir = wd
 	}
-	execCtx := &TTPExecutionContext{
-		Cfg:     *execCfg,
-		WorkDir: ttp.WorkDir,
+
+	execCtx := TTPExecutionContext{
+		Cfg:               *execCfg,
+		WorkDir:           ttp.WorkDir,
+		StepResults:       NewStepResultsRecord(),
+		actionResultsChan: make(chan *ActResult, 1),
+		errorsChan:        make(chan error, 1),
+		shutdownChan:      SetupSignalHandler(),
 	}
 
-	err = ttp.Validate(*execCtx)
+	err = ttp.Validate(execCtx)
 	if err != nil {
 		return nil, nil, err
 	}
-	return ttp, execCtx, nil
+	return ttp, &execCtx, nil
 }
 
 func readTTPBytes(ttpFilePath string, system afero.Fs) ([]byte, error) {
