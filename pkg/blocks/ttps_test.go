@@ -329,18 +329,20 @@ steps:
 				return
 			}
 
+			execCtx := NewTTPExecutionContext()
 			// validate the TTP
-			err = ttp.Validate(TTPExecutionContext{})
+			err = ttp.Validate(execCtx)
 			require.NoError(t, err)
 
 			// run it
-			stepResults, err := ttp.Execute(&TTPExecutionContext{})
+			err = ttp.Execute(execCtx)
 			if tc.wantError {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
 
+			stepResults := execCtx.StepResults
 			for index, output := range tc.expectedByIndexOut {
 				require.Equal(t, output, stepResults.ByIndex[index].Stdout)
 			}
@@ -391,7 +393,8 @@ mitre:
 			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			require.NoError(t, err)
-			err = ttp.Validate(TTPExecutionContext{})
+			execCtx := NewTTPExecutionContext()
+			err = ttp.Validate(execCtx)
 			if tc.wantError {
 				assert.Error(t, err)
 			} else {

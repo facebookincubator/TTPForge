@@ -29,7 +29,6 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/platforms"
-	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
 
@@ -149,6 +148,7 @@ func (t *TTP) chdir() (func(), error) {
 	// note: t.WorkDir may not be set in tests but should
 	// be set when actually using `ttpforge run`
 	if t.WorkDir == "" {
+		logging.L().Info("Not changing working directory in tests")
 		return func() {}, nil
 	}
 	origDir, err := os.Getwd()
@@ -165,6 +165,17 @@ func (t *TTP) chdir() (func(), error) {
 	}, nil
 }
 
+// verify that we actually meet the necessary requirements to execute this TTP
+func (t *TTP) verifyPlatform() error {
+	verificationCtx := checks.VerificationContext{
+		Platform: platforms.Spec{
+			OS:   runtime.GOOS,
+			Arch: runtime.GOARCH,
+		},
+	}
+	return t.Requirements.Verify(verificationCtx)
+}
+
 // Execute executes all of the steps in the given TTP,
 // then runs cleanup if appropriate
 //
@@ -176,45 +187,14 @@ func (t *TTP) chdir() (func(), error) {
 //
 // *StepResultsRecord: A StepResultsRecord containing the results of each step.
 // error: An error if any of the steps fail to execute.
-func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) {
+func (t *TTP) Execute(execCtx TTPExecutionContext) error {
 	logging.L().Infof("RUNNING TTP: %v", t.Name)
 
-	// verify that we actually meet the necessary requirements to execute this TTP
-	verificationCtx := checks.VerificationContext{
-		Platform: platforms.Spec{
-			OS:   runtime.GOOS,
-			Arch: runtime.GOARCH,
-		},
-	}
-	if err := t.Requirements.Verify(verificationCtx); err != nil {
-		return nil, fmt.Errorf("TTP requirements not met: %w", err)
+	if err := t.verifyPlatform(); err != nil {
+		return fmt.Errorf("TTP requirements not met: %w", err)
 	}
 
-	stepResults, firstStepToCleanupIdx, runErr := t.RunSteps(execCtx)
-	logging.DividerThin()
-	if runErr != nil {
-		// we need to run cleanup so we don't return here
-		logging.L().Errorf("[*] Error executing TTP: %v", runErr)
-	} else {
-		logging.L().Info("TTP Completed Successfully! ✅")
-	}
-	if !execCtx.Cfg.NoCleanup {
-		if execCtx.Cfg.CleanupDelaySeconds > 0 {
-			logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
-			time.Sleep(time.Duration(execCtx.Cfg.CleanupDelaySeconds) * time.Second)
-		}
-		cleanupResults, err := t.startCleanupAtStepIdx(firstStepToCleanupIdx, execCtx)
-		if err != nil {
-			return nil, err
-		}
-		// since ByIndex and ByName both contain pointers to
-		// the same underlying struct, this will update both
-		for cleanupIdx, cleanupResult := range cleanupResults {
-			execCtx.StepResults.ByIndex[cleanupIdx].Cleanup = cleanupResult
-		}
-	}
-	// still pass up the run error after our cleanup
-	return stepResults, runErr
+	return t.RunSteps(execCtx)
 }
 
 // RunSteps executes all of the steps in the given TTP.
@@ -225,69 +205,126 @@ func (t *TTP) Execute(execCtx *TTPExecutionContext) (*StepResultsRecord, error) 
 //
 // **Returns:**
 //
-// *StepResultsRecord: A StepResultsRecord containing the results of each step.
-// int: the index of the step where cleanup should start (usually the last successful step)
 // error: An error if any of the steps fail to execute.
-func (t *TTP) RunSteps(execCtx *TTPExecutionContext) (*StepResultsRecord, int, error) {
+func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 	// go to the configuration directory for this TTP
 	changeBack, err := t.chdir()
 	if err != nil {
-		return nil, -1, err
+		return err
 	}
 	defer changeBack()
 
+	var stepError error
+	var verifyError error
+	var shutdownFlag bool
+
 	// actually run all the steps
-	stepResults := NewStepResultsRecord()
-	execCtx.StepResults = stepResults
-	firstStepToCleanupIdx := -1
 	for stepIdx, step := range t.Steps {
-		stepCopy := step
 		logging.DividerThin()
 		logging.L().Infof("Executing Step #%d: %q", stepIdx+1, step.Name)
-
 		// core execution - run the step action
-		stepResult, err := stepCopy.Execute(*execCtx)
+		go func(step Step) {
+			_, err := step.Execute(execCtx)
+			if err != nil {
+				// This error was logged by the step itself
+				logging.L().Debugf("Error executing step %s: %v", step.Name, err)
+			}
+		}(step)
 
-		// this part is tricky - SubTTP steps
-		// must be cleaned up even on failure
-		// (because substeps may have succeeded)
-		// so in those cases, we need to save the result
-		// even if nil
-		if err != nil {
+		// await one of three outcomes:
+		// 1. step execution successful
+		// 2. step execution failed
+		// 3. shutdown signal received
+		select {
+		case stepResult := <-execCtx.actionResultsChan:
+			// step execution successful - record results
+			execResult := &ExecutionResult{
+				ActResult: *stepResult,
+			}
+			execCtx.StepResults.ByName[step.Name] = execResult
+			execCtx.StepResults.ByIndex = append(execCtx.StepResults.ByIndex, execResult)
+
+		case stepError = <-execCtx.errorsChan:
+			// this part is tricky - SubTTP steps
+			// must be cleaned up even on failure
+			// (because substeps may have succeeded)
+			// so in those cases, we need to save the result
+			// even if nil
 			if step.ShouldCleanupOnFailure() {
 				logging.L().Infof("[+] Cleaning up failed step %s", step.Name)
 				logging.L().Infof("[+] Full Cleanup will Run Afterward")
-				_, cleanupErr := step.Cleanup(*execCtx)
+				_, cleanupErr := step.Cleanup(execCtx)
 				if cleanupErr != nil {
-					logging.L().Errorf("error cleaning up failed step %v: %v", step.Name, err)
+					logging.L().Errorf("Error cleaning up failed step %v: %v", step.Name, cleanupErr)
 				}
 			}
-			return nil, firstStepToCleanupIdx, err
+
+		case shutdownFlag = <-execCtx.shutdownChan:
+			// TODO[nesusvet]: We should propagate signal to child processes if any
+			logging.L().Warn("Shutting down due to signal received")
 		}
 
 		// if the user specified custom success checks, run them now
-		verificationCtx := checks.VerificationContext{
-			FileSystem: afero.NewOsFs(),
-		}
-		for checkIdx, check := range step.Checks {
-			if err := check.Verify(verificationCtx); err != nil {
-				return nil, firstStepToCleanupIdx, fmt.Errorf("success check %d of step %q failed: %w", checkIdx+1, step.Name, err)
-			}
-			logging.L().Debugf("Success check %d (%q) of step %q PASSED", checkIdx+1, check.Msg, step.Name)
-		}
+		verifyError = step.VerifyChecks()
 
-		// step execution successful - record results
-		firstStepToCleanupIdx++
-		execResult := &ExecutionResult{
-			ActResult: *stepResult,
+		if stepError != nil || verifyError != nil || shutdownFlag {
+			logging.L().Debug("[*] Stopping TTP Early")
+			break
 		}
-		stepResults.ByName[step.Name] = execResult
-		stepResults.ByIndex = append(stepResults.ByIndex, execResult)
 	}
-	return stepResults, firstStepToCleanupIdx, nil
+
+	logging.DividerThin()
+	if stepError != nil {
+		logging.L().Errorf("[*] Error executing TTP: %v", stepError)
+		return stepError
+	}
+	if verifyError != nil {
+		logging.L().Errorf("[*] Error verifying TTP: %v", verifyError)
+		return verifyError
+	}
+	if shutdownFlag {
+		return fmt.Errorf("[*] Shutting Down now")
+	}
+
+	logging.L().Info("All steps completed successfully! ✅")
+	return nil
 }
 
-func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecutionContext) ([]*ActResult, error) {
+// RunCleanup executes all required cleanup for steps in the given TTP.
+//
+// **Parameters:**
+//
+// execCtx: The current TTPExecutionContext
+//
+// **Returns:**
+//
+// error: An error if any of the clean ups fail to execute.
+func (t *TTP) RunCleanup(execCtx TTPExecutionContext) error {
+	if execCtx.Cfg.NoCleanup {
+		logging.L().Info("[*] Skipping Cleanup as requested by Config")
+		return nil
+	}
+
+	if execCtx.Cfg.CleanupDelaySeconds > 0 {
+		logging.L().Infof("[*] Sleeping for Requested Cleanup Delay of %v Seconds", execCtx.Cfg.CleanupDelaySeconds)
+		time.Sleep(time.Duration(execCtx.Cfg.CleanupDelaySeconds) * time.Second)
+	}
+
+	// TODO[nesusvet]: We also should catch signals in clean ups
+	cleanupResults, err := t.startCleanupForCompletedSteps(execCtx)
+	if err != nil {
+		return err
+	}
+	// since ByIndex and ByName both contain pointers to
+	// the same underlying struct, this will update both
+	for cleanupIdx, cleanupResult := range cleanupResults {
+		execCtx.StepResults.ByIndex[cleanupIdx].Cleanup = cleanupResult
+	}
+
+	return nil
+}
+
+func (t *TTP) startCleanupForCompletedSteps(execCtx TTPExecutionContext) ([]*ActResult, error) {
 	// go to the configuration directory for this TTP
 	changeBack, err := t.chdir()
 	if err != nil {
@@ -296,15 +333,16 @@ func (t *TTP) startCleanupAtStepIdx(firstStepToCleanupIdx int, execCtx *TTPExecu
 	defer changeBack()
 
 	logging.DividerThick()
-	logging.L().Infof("CLEANING UP TTP: %q", t.Name)
-	var cleanupResults []*ActResult
-	for cleanupIdx := firstStepToCleanupIdx; cleanupIdx >= 0; cleanupIdx-- {
+	n := len(execCtx.StepResults.ByIndex)
+	logging.L().Infof("CLEANING UP %v steps of TTP: %q", n, t.Name)
+	cleanupResults := make([]*ActResult, n)
+	for cleanupIdx := n - 1; cleanupIdx >= 0; cleanupIdx-- {
 		stepToCleanup := t.Steps[cleanupIdx]
 		logging.DividerThin()
 		logging.L().Infof("Cleaning Up Step #%d: %q", cleanupIdx+1, stepToCleanup.Name)
-		cleanupResult, err := stepToCleanup.Cleanup(*execCtx)
+		cleanupResult, err := stepToCleanup.Cleanup(execCtx)
 		// must be careful to put these in step order, not in execution (reverse) order
-		cleanupResults = append([]*ActResult{cleanupResult}, cleanupResults...)
+		cleanupResults[cleanupIdx] = cleanupResult
 		if err != nil {
 			logging.L().Errorf("error cleaning up step: %v", err)
 			logging.L().Errorf("will continue to try to cleanup other steps")

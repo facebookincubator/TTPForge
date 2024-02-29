@@ -81,7 +81,7 @@ steps:
 			var ttp TTP
 			err := yaml.Unmarshal([]byte(tc.content), &ttp)
 			require.NoError(t, err)
-			var ctx TTPExecutionContext
+			ctx := NewTTPExecutionContext()
 			err = ttp.Validate(ctx)
 			if tc.expectValidateError {
 				require.Error(t, err)
@@ -89,7 +89,7 @@ steps:
 			}
 			require.NoError(t, err)
 
-			_, err = ttp.Execute(&ctx)
+			err = ttp.Execute(ctx)
 			if tc.expectExecuteError {
 				assert.Error(t, err)
 				return

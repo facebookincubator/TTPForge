@@ -58,7 +58,6 @@ func checkRunCmdTestCase(t *testing.T, tc runCmdTestCase) {
 	}
 	require.NoError(t, err)
 	assert.Equal(t, tc.expectedStdout, stdoutBuf.String())
-
 }
 
 func TestRun(t *testing.T) {
@@ -95,7 +94,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name:        "subttp-cleanup",
-			description: "verify that execution of a subTTP with cleanup succeeds",
+			description: "when one of subTTP causes failures then cleanups executed in right order",
 			args: []string{
 				"-c",
 				testConfigFilePath,

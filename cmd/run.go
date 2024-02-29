@@ -64,7 +64,15 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 				return nil
 			}
 
-			if _, err := ttp.Execute(execCtx); err != nil {
+			runErr := ttp.Execute(*execCtx)
+			// Run clean up always
+			cleanupErr := ttp.RunCleanup(*execCtx)
+
+			if cleanupErr != nil {
+				logging.L().Warnf("Failed to run cleanup: %v", cleanupErr)
+			}
+
+			if runErr != nil {
 				return fmt.Errorf("failed to run TTP at %v: %v", ttpAbsPath, err)
 			}
 			return nil

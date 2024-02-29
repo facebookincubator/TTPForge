@@ -25,6 +25,7 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )
 
@@ -151,13 +152,21 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-// Execute runs the action associated with this step
+// Execute runs the action associated with this step and sends result/error to channels of the context
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	desc := s.action.GetDescription()
 	if desc != "" {
 		logging.L().Infof("Description: %v", desc)
 	}
-	return s.action.Execute(execCtx)
+	result, err := s.action.Execute(execCtx)
+	if err != nil {
+		logging.L().Errorf("Failed to execute step %v: %v", s.Name, err)
+		execCtx.errorsChan <- err
+	} else {
+		logging.L().Debugf("Successfully executed step %v", s.Name)
+		execCtx.actionResultsChan <- result
+	}
+	return result, err
 }
 
 // Cleanup runs the cleanup action associated with this step
@@ -190,7 +199,17 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 // ParseAction decodes an action (from step or cleanup) in YAML
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
-	actionCandidates := []Action{NewBasicStep(), NewFileStep(), NewSubTTPStep(), NewEditStep(), NewFetchURIStep(), NewCreateFileStep(), NewCopyPathStep(), NewRemovePathAction(), &PrintStrAction{}}
+	actionCandidates := []Action{
+		NewBasicStep(),
+		NewFileStep(),
+		NewSubTTPStep(),
+		NewEditStep(),
+		NewFetchURIStep(),
+		NewCreateFileStep(),
+		NewCopyPathStep(),
+		NewRemovePathAction(),
+		NewPrintStrAction(),
+	}
 	var action Action
 	for _, actionType := range actionCandidates {
 		err := node.Decode(actionType)
@@ -213,4 +232,22 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		return nil, errors.New("action fields did not match any valid action type")
 	}
 	return action, nil
+}
+
+// VerifyChecks runs all checks and returns an error if any of them fail
+func (s *Step) VerifyChecks() error {
+	if len(s.Checks) == 0 {
+		logging.L().Debugf("No checks defined for step %v", s.Name)
+		return nil
+	}
+	verificationCtx := checks.VerificationContext{
+		FileSystem: afero.NewOsFs(),
+	}
+	for checkIdx, check := range s.Checks {
+		if err := check.Verify(verificationCtx); err != nil {
+			return fmt.Errorf("Success check %d of step %q failed: %w", checkIdx+1, s.Name, err)
+		}
+		logging.L().Debugf("Success check %d (%q) of step %q PASSED", checkIdx+1, check.Msg, s.Name)
+	}
+	return nil
 }

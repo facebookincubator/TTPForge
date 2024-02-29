@@ -112,7 +112,7 @@ cleanup: default`,
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var s Step
-			var execCtx TTPExecutionContext
+			execCtx := NewTTPExecutionContext()
 
 			// parse the step
 			err := yaml.Unmarshal([]byte(tc.content), &s)
@@ -191,7 +191,7 @@ cleanup:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var s Step
-			var execCtx TTPExecutionContext
+			execCtx := NewTTPExecutionContext()
 
 			// hack to get a valid temporary path without creating it
 			tmpFile, err := os.CreateTemp("", "ttpforge-test-cleanup-default")

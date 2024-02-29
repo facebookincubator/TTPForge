@@ -32,9 +32,8 @@ type SubTTPStep struct {
 	TtpRef         string            `yaml:"ttp"`
 	Args           map[string]string `yaml:"args"`
 
-	ttp                   *TTP
-	subExecCtx            TTPExecutionContext
-	firstStepToCleanupIdx int
+	ttp        *TTP
+	subExecCtx *TTPExecutionContext
 }
 
 // NewSubTTPStep creates a new SubTTPStep and returns a pointer to it.
@@ -78,19 +77,17 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 }
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
-// and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpRef)
-	execResults, firstStepToCleanupIdx, runErr := s.ttp.RunSteps(&execCtx)
-	s.firstStepToCleanupIdx = firstStepToCleanupIdx
+	runErr := s.ttp.RunSteps(*s.subExecCtx)
 	if runErr != nil {
-		return nil, runErr
+		return &ActResult{}, runErr
 	}
 	logging.L().Info("[*] Completed SubTTP - No Errors :)")
 
-	// just a little annoying plumbing due to subtle type differences0
+	// just a little annoying plumbing due to subtle type differences
 	var actResults []*ActResult
-	for _, execResult := range execResults.ByIndex {
+	for _, execResult := range s.subExecCtx.StepResults.ByIndex {
 		actResults = append(actResults, &execResult.ActResult)
 	}
 	return aggregateResults(actResults), nil
@@ -100,7 +97,7 @@ func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 	repo := execCtx.Cfg.Repo
-	subTTPAbsPath, err := execCtx.Cfg.Repo.FindTTP(s.TtpRef)
+	subTTPAbsPath, err := repo.FindTTP(s.TtpRef)
 	if err != nil {
 		return err
 	}
@@ -110,11 +107,13 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	ttps, _, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &s.subExecCtx.Cfg, subArgsKv)
+	ttps, ctx, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &execCtx.Cfg, subArgsKv)
 	if err != nil {
 		return err
 	}
 	s.ttp = ttps
+	s.subExecCtx = ctx
+
 	return nil
 }
 
@@ -144,5 +143,5 @@ func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	return s.ttp.Validate(execCtx)
+	return s.ttp.Validate(*s.subExecCtx)
 }

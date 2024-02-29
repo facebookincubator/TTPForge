@@ -125,11 +125,11 @@ ttp: with/cleanup.yaml`,
 			repo, err := tc.spec.Load(tc.fsys, "")
 			require.NoError(t, err)
 
-			execCtx := TTPExecutionContext{
-				Cfg: TTPExecutionConfig{
-					Repo: repo,
-				},
+			execCtx := NewTTPExecutionContext()
+			execCtx.Cfg = TTPExecutionConfig{
+				Repo: repo,
 			}
+
 			err = step.Validate(execCtx)
 			require.NoError(t, err, "step failed to validate")
 
