@@ -194,7 +194,11 @@ func (t *TTP) Execute(execCtx TTPExecutionContext) error {
 		return fmt.Errorf("TTP requirements not met: %w", err)
 	}
 
-	return t.RunSteps(execCtx)
+	err := t.RunSteps(execCtx)
+	if err == nil {
+		logging.L().Info("All TTP steps completed successfully! ✅")
+	}
+	return err
 }
 
 // RunSteps executes all of the steps in the given TTP.
@@ -286,7 +290,6 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 		return fmt.Errorf("[*] Shutting Down now")
 	}
 
-	logging.L().Info("All steps completed successfully! ✅")
 	return nil
 }
 
