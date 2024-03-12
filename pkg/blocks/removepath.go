@@ -53,8 +53,16 @@ func (s *RemovePathAction) IsNil() bool {
 	}
 }
 
-// Execute runs the step and returns an error if any occur.
-func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+// Validate validates the step, checking for the necessary attributes and dependencies
+func (s *RemovePathAction) Validate(_ TTPExecutionContext) error {
+	if s.Path == "" {
+		return fmt.Errorf("path field cannot be empty")
+	}
+	return nil
+}
+
+// Execute runs the step and returns an error if one occurs.
+func (s *RemovePathAction) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Removing path %v", s.Path)
 	fsys := s.FileSystem
 	if fsys == nil {
@@ -96,19 +104,7 @@ func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, err
 	return &ActResult{}, nil
 }
 
-// Validate validates the step
-//
-// **Returns:**
-//
-// error: An error if any validation checks fail.
-func (s *RemovePathAction) Validate(execCtx TTPExecutionContext) error {
-	if s.Path == "" {
-		return fmt.Errorf("path field cannot be empty")
-	}
-	return nil
-}
-
-// CanBeUsedInCompositeAction returns whether this action can be used as part of a composite step
+// CanBeUsedInCompositeAction enables this action to be used in a composite action
 func (s *RemovePathAction) CanBeUsedInCompositeAction() bool {
 	return true
 }

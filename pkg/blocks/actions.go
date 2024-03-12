@@ -23,12 +23,12 @@ package blocks
 // by all action types used in steps/cleanups
 // (such as create_file, inline, etc)
 type Action interface {
-	Execute(execCtx TTPExecutionContext) (*ActResult, error)
+	IsNil() bool
 	Validate(execCtx TTPExecutionContext) error
+	Execute(execCtx TTPExecutionContext) (*ActResult, error)
+	GetDescription() string
 	GetDefaultCleanupAction() Action
 	CanBeUsedInCompositeAction() bool
-	IsNil() bool
-	GetDescription() string
 }
 
 // Shared action fields struct that also provides
@@ -37,6 +37,12 @@ type Action interface {
 // Every new action type should embed this struct
 type actionDefaults struct {
 	Description string `yaml:"description,omitempty"`
+}
+
+// IsNil provides a default implementation
+// of the IsNil method from the Action interface.
+func (ad *actionDefaults) IsNil() bool {
+	return false
 }
 
 // GetDescription returns the description field from the action
@@ -59,14 +65,5 @@ func (ad *actionDefaults) GetDefaultCleanupAction() Action {
 // If a specific action needs to be used in a composite action,
 // it can override this step
 func (ad *actionDefaults) CanBeUsedInCompositeAction() bool {
-	return false
-}
-
-// IsNil provides a default implementation
-// of the IsNil method from the Action interface.
-// This saves us from having to declare this function for every steps
-// If a specific action needs to be used in a composite action,
-// it can override this step
-func (ad *actionDefaults) IsNil() bool {
 	return false
 }

@@ -26,15 +26,6 @@ type subTTPCleanupAction struct {
 	step *SubTTPStep
 }
 
-// Execute will cleanup the subTTP starting from the last successful step
-func (a *subTTPCleanupAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	cleanupResults, err := a.step.ttp.startCleanupForCompletedSteps(*a.step.subExecCtx)
-	if err != nil {
-		return nil, err
-	}
-	return aggregateResults(cleanupResults), nil
-}
-
 // IsNil is not needed here, as this is not a user-accessible step type
 func (a *subTTPCleanupAction) IsNil() bool {
 	return false
@@ -43,4 +34,13 @@ func (a *subTTPCleanupAction) IsNil() bool {
 // Validate is not needed here, as this is not a user-accessible step type
 func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
 	return nil
+}
+
+// Execute will cleanup the subTTP starting from the last successful step
+func (a *subTTPCleanupAction) Execute(_ TTPExecutionContext) (*ActResult, error) {
+	cleanupResults, err := a.step.ttp.startCleanupForCompletedSteps(*a.step.subExecCtx)
+	if err != nil {
+		return nil, err
+	}
+	return aggregateResults(cleanupResults), nil
 }

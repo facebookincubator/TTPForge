@@ -59,7 +59,7 @@ func NewBasicStep() *BasicStep {
 	return &BasicStep{}
 }
 
-// IsNil checks if a BasicStep is considered empty or uninitialized.
+// IsNil checks if a step is considered empty or uninitialized.
 func (b *BasicStep) IsNil() bool {
 	switch {
 	case b.Inline == "":
@@ -69,7 +69,7 @@ func (b *BasicStep) IsNil() bool {
 	}
 }
 
-// Validate validates the BasicStep, checking for the necessary attributes and dependencies.
+// Validate validates the step, checking for the necessary attributes and dependencies.
 func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	// Check if Inline is provided
 	if b.Inline == "" {
@@ -100,7 +100,7 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-// Execute runs the BasicStep and returns an error if any occur.
+// Execute runs the step and returns an error if one occurs.
 func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
 	defer cancel()

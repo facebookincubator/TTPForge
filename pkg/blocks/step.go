@@ -152,6 +152,20 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// Validate checks that both the step action and cleanup
+// action are valid
+func (s *Step) Validate(execCtx TTPExecutionContext) error {
+	if err := s.action.Validate(execCtx); err != nil {
+		return err
+	}
+	if s.cleanup != nil {
+		if err := s.cleanup.Validate(execCtx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Execute runs the action associated with this step and sends result/error to channels of the context
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	desc := s.action.GetDescription()
@@ -180,20 +194,6 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	}
 	logging.L().Infof("No Cleanup Action Defined for Step %v", s.Name)
 	return &ActResult{}, nil
-}
-
-// Validate checks that both the step action and cleanup
-// action are valid
-func (s *Step) Validate(execCtx TTPExecutionContext) error {
-	if err := s.action.Validate(execCtx); err != nil {
-		return err
-	}
-	if s.cleanup != nil {
-		if err := s.cleanup.Validate(execCtx); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // ParseAction decodes an action (from step or cleanup) in YAML
