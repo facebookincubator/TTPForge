@@ -57,8 +57,16 @@ func (s *CreateFileStep) IsNil() bool {
 	}
 }
 
-// Execute runs the step and returns an error if any occur.
-func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+// Validate validates the step, checking for the necessary attributes and dependencies.
+func (s *CreateFileStep) Validate(_ TTPExecutionContext) error {
+	if s.Path == "" {
+		return fmt.Errorf("path field cannot be empty")
+	}
+	return nil
+}
+
+// Execute runs the step and returns an error if one occurs.
+func (s *CreateFileStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Creating file %v", s.Path)
 	fsys := s.FileSystem
 	if fsys == nil {
@@ -105,16 +113,4 @@ func (s *CreateFileStep) GetDefaultCleanupAction() Action {
 	return &RemovePathAction{
 		Path: s.Path,
 	}
-}
-
-// Validate validates the step
-//
-// **Returns:**
-//
-// error: An error if any validation checks fail.
-func (s *CreateFileStep) Validate(execCtx TTPExecutionContext) error {
-	if s.Path == "" {
-		return fmt.Errorf("path field cannot be empty")
-	}
-	return nil
 }

@@ -64,11 +64,6 @@ type MitreAttack struct {
 // MarshalYAML is a custom marshalling implementation for the TTP structure.
 // It encodes a TTP object into a formatted YAML string, handling the
 // indentation and structure of the output YAML.
-//
-// **Returns:**
-//
-// interface{}: The formatted YAML string representing the TTP object.
-// error: An error if the encoding process fails.
 func (t *TTP) MarshalYAML() (interface{}, error) {
 	marshaled, err := yaml.Marshal(*t)
 	if err != nil {
@@ -116,14 +111,6 @@ func reduceIndentation(b []byte, n int) []byte {
 // Validate ensures that all components of the TTP are valid
 // It checks key fields, then iterates through each step
 // and validates them in turn
-//
-// **Parameters:**
-//
-// execCtx: The TTPExecutionContext for the current TTP.
-//
-// **Returns:**
-//
-// error: An error if any part of the validation fails, otherwise nil.
 func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	logging.L().Debugf("Validating TTP %q...", t.Name)
 
@@ -144,49 +131,8 @@ func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-func (t *TTP) chdir() (func(), error) {
-	// note: t.WorkDir may not be set in tests but should
-	// be set when actually using `ttpforge run`
-	if t.WorkDir == "" {
-		logging.L().Info("Not changing working directory in tests")
-		return func() {}, nil
-	}
-	origDir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	if err := os.Chdir(t.WorkDir); err != nil {
-		return nil, err
-	}
-	return func() {
-		if err := os.Chdir(origDir); err != nil {
-			logging.L().Errorf("could not restore original directory %v: %v", origDir, err)
-		}
-	}, nil
-}
-
-// verify that we actually meet the necessary requirements to execute this TTP
-func (t *TTP) verifyPlatform() error {
-	verificationCtx := checks.VerificationContext{
-		Platform: platforms.Spec{
-			OS:   runtime.GOOS,
-			Arch: runtime.GOARCH,
-		},
-	}
-	return t.Requirements.Verify(verificationCtx)
-}
-
 // Execute executes all of the steps in the given TTP,
 // then runs cleanup if appropriate
-//
-// **Parameters:**
-//
-// execCfg: The TTPExecutionConfig for the current TTP.
-//
-// **Returns:**
-//
-// *StepResultsRecord: A StepResultsRecord containing the results of each step.
-// error: An error if any of the steps fail to execute.
 func (t *TTP) Execute(execCtx TTPExecutionContext) error {
 	logging.L().Infof("RUNNING TTP: %v", t.Name)
 
@@ -202,14 +148,6 @@ func (t *TTP) Execute(execCtx TTPExecutionContext) error {
 }
 
 // RunSteps executes all of the steps in the given TTP.
-//
-// **Parameters:**
-//
-// execCtx: The current TTPExecutionContext
-//
-// **Returns:**
-//
-// error: An error if any of the steps fail to execute.
 func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 	// go to the configuration directory for this TTP
 	changeBack, err := t.chdir()
@@ -294,14 +232,6 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 }
 
 // RunCleanup executes all required cleanup for steps in the given TTP.
-//
-// **Parameters:**
-//
-// execCtx: The current TTPExecutionContext
-//
-// **Returns:**
-//
-// error: An error if any of the clean ups fail to execute.
 func (t *TTP) RunCleanup(execCtx TTPExecutionContext) error {
 	if execCtx.Cfg.NoCleanup {
 		logging.L().Info("[*] Skipping Cleanup as requested by Config")
@@ -325,6 +255,38 @@ func (t *TTP) RunCleanup(execCtx TTPExecutionContext) error {
 	}
 
 	return nil
+}
+
+func (t *TTP) chdir() (func(), error) {
+	// note: t.WorkDir may not be set in tests but should
+	// be set when actually using `ttpforge run`
+	if t.WorkDir == "" {
+		logging.L().Info("Not changing working directory in tests")
+		return func() {}, nil
+	}
+	origDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.Chdir(t.WorkDir); err != nil {
+		return nil, err
+	}
+	return func() {
+		if err := os.Chdir(origDir); err != nil {
+			logging.L().Errorf("could not restore original directory %v: %v", origDir, err)
+		}
+	}, nil
+}
+
+// verify that we actually meet the necessary requirements to execute this TTP
+func (t *TTP) verifyPlatform() error {
+	verificationCtx := checks.VerificationContext{
+		Platform: platforms.Spec{
+			OS:   runtime.GOOS,
+			Arch: runtime.GOARCH,
+		},
+	}
+	return t.Requirements.Verify(verificationCtx)
 }
 
 func (t *TTP) startCleanupForCompletedSteps(execCtx TTPExecutionContext) ([]*ActResult, error) {

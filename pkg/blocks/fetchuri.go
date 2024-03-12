@@ -50,14 +50,7 @@ func NewFetchURIStep() *FetchURIStep {
 	return &FetchURIStep{}
 }
 
-// Cleanup is a method to establish a link with the Cleanup interface.
-// Assumes that the type is the cleanup step and is invoked by
-// f.CleanupStep.Cleanup.
-func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	return f.Execute(execCtx)
-}
-
-// IsNil checks if the FetchURIStep is nil or empty and returns a boolean value.
+// IsNil checks if the step is nil or empty and returns a boolean value.
 func (f *FetchURIStep) IsNil() bool {
 	switch {
 	case f.FetchURI == "":
@@ -69,7 +62,50 @@ func (f *FetchURIStep) IsNil() bool {
 	}
 }
 
-// Execute runs the FetchURIStep and returns an error if any occur.
+// Validate validates the FetchURIStep. It checks that the
+// Act field is valid, Location is set with
+// a valid file path, and Uri is set.
+//
+// If Location is set, it ensures that the path exists and retrieves
+// its absolute path.
+func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
+	if f.FetchURI == "" {
+		err := errors.New("require FetchURI to be set with fetchURI")
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+
+	if f.Location == "" {
+		err := errors.New("require Location to be set with fetchURI")
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+
+	if f.Proxy != "" {
+		uri, err := url.Parse(f.Proxy)
+		if err != nil {
+			return err
+		} else if uri.Host == "" || uri.Scheme == "" {
+			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
+		}
+	}
+
+	// Retrieve the absolute path to the file.
+	absLocal, err := FetchAbs(f.Location, execCtx.WorkDir)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+
+	_, err = os.Stat(absLocal)
+	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
+		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
+		return errors.New("file exists at location specified, remove and retry")
+	}
+	return nil
+}
+
+// Execute runs the step and returns an error if one occurs.
 func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Info("========= Executing ==========")
 
@@ -81,6 +117,13 @@ func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 	logging.L().Info("========= Result ==========")
 
 	return &ActResult{}, nil
+}
+
+// Cleanup is a method to establish a link with the Cleanup interface.
+// Assumes that the type is the cleanup step and is invoked by
+// f.CleanupStep.Cleanup.
+func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	return f.Execute(execCtx)
 }
 
 // fetchURI executes the FetchURIStep with the specified Location, Uri, and additional arguments,
@@ -136,52 +179,5 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 
 	logging.L().Debugw("wrote contents of URI to specified location", "location", absLocal, "uri", f.FetchURI)
 
-	return nil
-}
-
-// Validate validates the FetchURIStep. It checks that the
-// Act field is valid, Location is set with
-// a valid file path, and Uri is set.
-//
-// If Location is set, it ensures that the path exists and retrieves
-// its absolute path.
-//
-// **Returns:**
-//
-// error: An error if any validation checks fail.
-func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
-	if f.FetchURI == "" {
-		err := errors.New("require FetchURI to be set with fetchURI")
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
-	if f.Location == "" {
-		err := errors.New("require Location to be set with fetchURI")
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
-	if f.Proxy != "" {
-		uri, err := url.Parse(f.Proxy)
-		if err != nil {
-			return err
-		} else if uri.Host == "" || uri.Scheme == "" {
-			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
-		}
-	}
-
-	// Retrieve the absolute path to the file.
-	absLocal, err := FetchAbs(f.Location, execCtx.WorkDir)
-	if err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
-	_, err = os.Stat(absLocal)
-	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
-		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
-		return errors.New("file exists at location specified, remove and retry")
-	}
 	return nil
 }

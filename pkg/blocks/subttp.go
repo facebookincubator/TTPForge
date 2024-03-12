@@ -41,6 +41,53 @@ func NewSubTTPStep() *SubTTPStep {
 	return &SubTTPStep{}
 }
 
+// IsNil checks if the step is nil or empty and returns a boolean value.
+func (s *SubTTPStep) IsNil() bool {
+	switch {
+	case s.TtpRef == "":
+		return true
+	default:
+		return false
+	}
+}
+
+// Validate checks the validity of the SubTTPStep by ensuring
+// the following conditions are met:
+// The associated Act is valid.
+// The TTP file associated with the SubTTPStep can be successfully unmarshalled.
+// The TTP file path is not empty.
+// The steps within the TTP file do not contain any nested SubTTPSteps.
+// If any of these conditions are not met, an error is returned.
+func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
+	if s.TtpRef == "" {
+		return errors.New("a TTP reference is required and must not be empty")
+	}
+
+	if err := s.loadSubTTP(execCtx); err != nil {
+		return err
+	}
+
+	return s.ttp.Validate(execCtx)
+}
+
+// Execute runs each step of the TTP file associated with the SubTTPStep
+// and manages the outputs and cleanup steps.
+func (s *SubTTPStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
+	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpRef)
+	runErr := s.ttp.RunSteps(*s.subExecCtx)
+	if runErr != nil {
+		return &ActResult{}, runErr
+	}
+	logging.L().Info("[*] Completed SubTTP - No Errors :)")
+
+	// just a little annoying plumbing due to subtle type differences
+	actResults := make([]*ActResult, len(s.subExecCtx.StepResults.ByIndex))
+	for index, execResult := range s.subExecCtx.StepResults.ByIndex {
+		actResults[index] = &execResult.ActResult
+	}
+	return aggregateResults(actResults), nil
+}
+
 // GetDefaultCleanupAction will instruct the calling code
 // to cleanup all successful steps of this subTTP
 func (s *SubTTPStep) GetDefaultCleanupAction() Action {
@@ -76,23 +123,6 @@ func (s *SubTTPStep) processSubTTPArgs(execCtx TTPExecutionContext) ([]string, e
 	return expandedArgKvStrs, nil
 }
 
-// Execute runs each step of the TTP file associated with the SubTTPStep
-func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpRef)
-	runErr := s.ttp.RunSteps(*s.subExecCtx)
-	if runErr != nil {
-		return &ActResult{}, runErr
-	}
-	logging.L().Info("[*] Completed SubTTP - No Errors :)")
-
-	// just a little annoying plumbing due to subtle type differences
-	var actResults []*ActResult
-	for _, execResult := range s.subExecCtx.StepResults.ByIndex {
-		actResults = append(actResults, &execResult.ActResult)
-	}
-	return aggregateResults(actResults), nil
-}
-
 // loadSubTTP loads a TTP file into a SubTTPStep instance
 // and validates the contained steps.
 func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
@@ -115,33 +145,4 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 	s.subExecCtx = ctx
 
 	return nil
-}
-
-// IsNil checks if the SubTTPStep is empty or uninitialized.
-func (s *SubTTPStep) IsNil() bool {
-	switch {
-	case s.TtpRef == "":
-		return true
-	default:
-		return false
-	}
-}
-
-// Validate checks the validity of the SubTTPStep by ensuring
-// the following conditions are met:
-// The associated Act is valid.
-// The TTP file associated with the SubTTPStep can be successfully unmarshalled.
-// The TTP file path is not empty.
-// The steps within the TTP file do not contain any nested SubTTPSteps.
-// If any of these conditions are not met, an error is returned.
-func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
-	if s.TtpRef == "" {
-		return errors.New("a TTP reference is required and must not be empty")
-	}
-
-	if err := s.loadSubTTP(execCtx); err != nil {
-		return err
-	}
-
-	return s.ttp.Validate(*s.subExecCtx)
 }

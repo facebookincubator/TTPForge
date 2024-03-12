@@ -59,8 +59,19 @@ func (s *CopyPathStep) IsNil() bool {
 	}
 }
 
-// Execute runs the step and returns an error if any occur.
-func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+// Validate validates the step, checking for the necessary attributes and dependencies
+func (s *CopyPathStep) Validate(_ TTPExecutionContext) error {
+	if s.Source == "" {
+		return fmt.Errorf("src field cannot be empty")
+	}
+	if s.Destination == "" {
+		return fmt.Errorf("dest field cannot be empty")
+	}
+	return nil
+}
+
+// Execute runs the step and returns an error if one occurs.
+func (s *CopyPathStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Copying file(s) from %v to %v", s.Source, s.Destination)
 	fsys := s.FileSystem
 	if fsys == nil {
@@ -121,22 +132,7 @@ func (s *CopyPathStep) GetDefaultCleanupAction() Action {
 	}
 }
 
-// CanBeUsedInCompositeAction indicates whether this step can be used as part of a composite action.
+// CanBeUsedInCompositeAction enables this action to be used in a composite action
 func (s *CopyPathStep) CanBeUsedInCompositeAction() bool {
 	return true
-}
-
-// Validate validates the step
-//
-// **Returns:**
-//
-// error: An error if any validation checks fail.
-func (s *CopyPathStep) Validate(execCtx TTPExecutionContext) error {
-	if s.Source == "" {
-		return fmt.Errorf("src field cannot be empty")
-	}
-	if s.Destination == "" {
-		return fmt.Errorf("dest field cannot be empty")
-	}
-	return nil
 }

@@ -47,7 +47,15 @@ func (s *PrintStrAction) IsNil() bool {
 	}
 }
 
-// Execute runs the step and returns an error if any occur.
+// Validate validates the step, checking for the necessary attributes and dependencies
+func (s *PrintStrAction) Validate(_ TTPExecutionContext) error {
+	if s.Message == "" {
+		return fmt.Errorf("message field cannot be empty")
+	}
+	return nil
+}
+
+// Execute runs the step and returns an error if one occurs.
 func (s *PrintStrAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	// needs to be overwritable to capture output during testing
 	stdout := execCtx.Cfg.Stdout
@@ -65,16 +73,4 @@ func (s *PrintStrAction) Execute(execCtx TTPExecutionContext) (*ActResult, error
 		Stdout: stdoutBuf.String(),
 	}
 	return result, nil
-}
-
-// Validate validates the step
-//
-// **Returns:**
-//
-// error: An error if any validation checks fail.
-func (s *PrintStrAction) Validate(execCtx TTPExecutionContext) error {
-	if s.Message == "" {
-		return fmt.Errorf("message field cannot be empty")
-	}
-	return nil
 }

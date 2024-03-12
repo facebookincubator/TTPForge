@@ -46,14 +46,7 @@ func NewFileStep() *FileStep {
 	return &FileStep{}
 }
 
-// Cleanup is a method to establish a link with the Cleanup interface.
-// Assumes that the type is the cleanup step and is invoked by
-// f.CleanupStep.Cleanup.
-func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	return f.Execute(execCtx)
-}
-
-// IsNil checks if the FileStep is nil or empty and returns a boolean value.
+// IsNil checks if the step is nil or empty and returns a boolean value.
 func (f *FileStep) IsNil() bool {
 	switch {
 	case f.FilePath == "":
@@ -61,37 +54,6 @@ func (f *FileStep) IsNil() bool {
 	default:
 		return false
 	}
-}
-
-// Execute runs the FileStep and returns an error if any occur.
-func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	var cmd *exec.Cmd
-	expandedArgs, err := execCtx.ExpandVariables(f.Args)
-	if err != nil {
-		return nil, err
-	}
-	if f.Executor == ExecutorBinary {
-		cmd = exec.Command(f.FilePath, expandedArgs...)
-	} else {
-		args := []string{f.FilePath}
-		args = append(args, expandedArgs...)
-
-		logging.L().Debugw("command line execution:", "exec", f.Executor, "args", args)
-		cmd = exec.Command(f.Executor, args...)
-	}
-	envAsList := FetchEnv(f.Environment)
-	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
-	if err != nil {
-		return nil, err
-	}
-	cmd.Env = expandedEnvAsList
-	cmd.Dir = execCtx.WorkDir
-	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
-	if err != nil {
-		return nil, err
-	}
-	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
-	return result, err
 }
 
 // Validate validates the FileStep. It checks that the
@@ -105,10 +67,6 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 // It then checks that the executor is in the system path, and if CleanupStep
 // is not nil, it validates the cleanup step as well.
 // It logs any errors and returns them.
-//
-// **Returns:**
-//
-// error: An error if any validation checks fail.
 func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	if f.FilePath == "" {
 		err := errors.New("a TTP must include inline logic or path to a file with the logic")
@@ -147,6 +105,44 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	logging.L().Debugw("command found in path", "executor", f.Executor)
 
 	return nil
+}
+
+// Execute runs the step and returns an error if one occurs.
+func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	var cmd *exec.Cmd
+	expandedArgs, err := execCtx.ExpandVariables(f.Args)
+	if err != nil {
+		return nil, err
+	}
+	if f.Executor == ExecutorBinary {
+		cmd = exec.Command(f.FilePath, expandedArgs...)
+	} else {
+		args := []string{f.FilePath}
+		args = append(args, expandedArgs...)
+
+		logging.L().Debugw("command line execution:", "exec", f.Executor, "args", args)
+		cmd = exec.Command(f.Executor, args...)
+	}
+	envAsList := FetchEnv(f.Environment)
+	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
+	if err != nil {
+		return nil, err
+	}
+	cmd.Env = expandedEnvAsList
+	cmd.Dir = execCtx.WorkDir
+	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+	if err != nil {
+		return nil, err
+	}
+	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
+	return result, err
+}
+
+// Cleanup is a method to establish a link with the Cleanup interface.
+// Assumes that the type is the cleanup step and is invoked by
+// f.CleanupStep.Cleanup.
+func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	return f.Execute(execCtx)
 }
 
 // InferExecutor infers the executor based on the file extension and

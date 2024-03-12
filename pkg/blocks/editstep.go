@@ -51,7 +51,7 @@ func NewEditStep() *EditStep {
 	return &EditStep{}
 }
 
-// IsNil checks if an EditStep is considered empty or uninitialized.
+// IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *EditStep) IsNil() bool {
 	switch {
 	case s.FileToEdit == "":
@@ -61,12 +61,7 @@ func (s *EditStep) IsNil() bool {
 	}
 }
 
-// CanBeUsedInCompositeAction returns whether this action can be used as part of a composite action.
-func (s *EditStep) CanBeUsedInCompositeAction() bool {
-	return true
-}
-
-// Validate validates the EditStep, checking for the necessary attributes and dependencies.
+// Validate validates the step, checking for the necessary attributes and dependencies
 func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	if len(s.Edits) == 0 {
 		return fmt.Errorf("no edits specified")
@@ -126,29 +121,7 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-// GetDefaultCleanupAction will instruct the calling code
-// to copy the file to the backup file to the original path on cleanup.
-func (s *EditStep) GetDefaultCleanupAction() Action {
-
-	if s.BackupFile != "" {
-		return &CompositeAction{
-			actions: []Action{
-				&CopyPathStep{
-					Source:      s.BackupFile,
-					Destination: s.FileToEdit,
-					Overwrite:   true,
-					FileSystem:  s.FileSystem,
-				},
-				&RemovePathAction{
-					Path: s.BackupFile,
-				},
-			},
-		}
-	}
-	return nil
-}
-
-// Execute runs the EditStep and returns an error if any occur.
+// Execute runs the step and returns an error if one occurs.
 func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	fileSystem := s.FileSystem
 	targetPath := s.FileToEdit
@@ -218,4 +191,30 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	}
 
 	return &ActResult{}, nil
+}
+
+// GetDefaultCleanupAction will instruct the calling code
+// to copy the file to the backup file to the original path on cleanup.
+func (s *EditStep) GetDefaultCleanupAction() Action {
+	if s.BackupFile != "" {
+		return &CompositeAction{
+			actions: []Action{
+				&CopyPathStep{
+					Source:      s.BackupFile,
+					Destination: s.FileToEdit,
+					Overwrite:   true,
+					FileSystem:  s.FileSystem,
+				},
+				&RemovePathAction{
+					Path: s.BackupFile,
+				},
+			},
+		}
+	}
+	return nil
+}
+
+// CanBeUsedInCompositeAction enables this action to be used in a composite action
+func (s *EditStep) CanBeUsedInCompositeAction() bool {
+	return true
 }

@@ -27,17 +27,7 @@ type CompositeAction struct {
 	actions        []Action
 }
 
-// Execute executes all actions
-func (ca *CompositeAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	for _, a := range ca.actions {
-		if _, err := a.Execute(execCtx); err != nil {
-			return nil, err
-		}
-	}
-	return &ActResult{}, nil
-}
-
-// Validate each action and returns an error if any are thrown
+// Validate validates the CompositeAction, checking for the necessary attributes and dependencies
 func (ca *CompositeAction) Validate(execCtx TTPExecutionContext) error {
 	for _, a := range ca.actions {
 		if !a.CanBeUsedInCompositeAction() {
@@ -50,16 +40,17 @@ func (ca *CompositeAction) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-// CanBeUsedInCompositeAction set to true
-func (ca *CompositeAction) CanBeUsedInCompositeAction() bool {
-	return true
+// Execute runs the step and returns an error if one occurs.
+func (ca *CompositeAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	for _, a := range ca.actions {
+		if _, err := a.Execute(execCtx); err != nil {
+			return nil, err
+		}
+	}
+	return &ActResult{}, nil
 }
 
-// IsNil provides a default implementation
-// of the IsNil method from the Action interface.
-// This saves us from having to declare this function for every steps
-// If a specific action needs to be used in a composite action,
-// it can override this step
-func IsNil() bool {
-	return false
+// CanBeUsedInCompositeAction enables this action to be used in a composite action
+func (ca *CompositeAction) CanBeUsedInCompositeAction() bool {
+	return true
 }
