@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 5e539ad7-1f78-4301-8c73-2794915fc05f
 name: edit_file_append_delete
 description: |
   Learn how to append and delete lines

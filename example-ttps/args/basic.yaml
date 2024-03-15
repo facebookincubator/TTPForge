@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 2ae7c2ae-39be-4114-8618-306a62eedec2
 name: Basic Command-Line Arguments
 description: |
   TTPForge allows users to configure their TTPs' expected command-line

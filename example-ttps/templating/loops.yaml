@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 97484c5d-e1ab-4162-8d55-ce53343b1a4c
 name: Creating Loops with Templating
 description: |
   TTPForge's support for native Golang-style templates can

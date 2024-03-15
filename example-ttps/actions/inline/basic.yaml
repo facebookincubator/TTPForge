@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 69f62d37-d68c-4a37-a3e2-871d1f292717
 name: inline_basic
 description: |
   This TTP shows you how to use the inline action type to

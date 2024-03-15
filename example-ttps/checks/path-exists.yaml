@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 7ba3a119-dde3-4900-97cb-9e105ca6e357
 name: Demo of the path_exists Post-Execution Check
 description: |
   The `path_exists` check can be used to verify that a given

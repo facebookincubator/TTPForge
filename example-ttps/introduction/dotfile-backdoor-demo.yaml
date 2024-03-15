@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 4fdffbb9-714a-4489-b7c7-1af99d213681
 name: dotfile_backdoor
 description: |
   This TTP demonstrates the core features of TTPForge:

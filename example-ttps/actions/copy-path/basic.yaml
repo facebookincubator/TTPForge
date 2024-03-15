@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 9f0ca08c-acd3-4dac-aeb9-41d07486d815
 name: copy_path_example
 description: |
   This TTP shows you how to use the copy_path action type

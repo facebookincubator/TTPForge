@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 8035624b-810f-4d03-9584-5331a6f311a7
 name: Explicitly Allowed Choices for Command-Line Arguments
 description: |
   Sometimes, you might need a TTP to only accept
