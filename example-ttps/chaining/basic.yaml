@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: d4f07331-8807-4725-a69b-e9b0ed2a8719
 name: Basic TTP Chaining
 description: |
   You can chain existing TTPs together to make larger

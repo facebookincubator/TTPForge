@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: efb70470-4365-4be5-83e0-a009c0f2d49a
 name: Basic Cleanup Demonstration
 description: |
   Every time a step completes successfully, its cleanup action is enqueued.

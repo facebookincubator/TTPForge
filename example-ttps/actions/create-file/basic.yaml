@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: df306aab-5824-4e32-bd04-76fb49da6b17
 name: create_file_basic
 description: |
   This TTP shows you how to use the create_file action type

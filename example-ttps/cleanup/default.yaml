@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: 763a6408-d395-4737-92ba-4b8bb20b7976
 name: Default Cleanup Actions Demo
 description: |
   Certain types of actions, such as `create_file`, have a default cleanup

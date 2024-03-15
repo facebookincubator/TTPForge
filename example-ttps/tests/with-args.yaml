@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: ec37ddc7-37f6-4311-a05e-e7f00ae41504
 name: Multiple Test Cases with Arguments
 description: |
   This TTP illustrates how to use the `tests` feature

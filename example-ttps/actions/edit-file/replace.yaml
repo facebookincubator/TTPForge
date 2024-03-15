@@ -1,4 +1,6 @@
 ---
+api_version: 2.0
+uuid: aac712b5-b5d4-4074-85ea-68a763172560
 name: edit_file_replace
 description: |
   This TTP shows you how to use the edit_file action type
