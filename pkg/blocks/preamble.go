@@ -21,6 +21,7 @@ package blocks
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 
 	"github.com/facebookincubator/ttpforge/pkg/args"
 )
@@ -36,6 +37,8 @@ import (
 // Requirements: The Requirements to run the TTP
 // ArgSpecs: An slice of argument specifications for the TTP.
 type PreambleFields struct {
+	APIVersion         string              `yaml:"api_version,omitempty"`
+	UUID               string              `yaml:"uuid,omitempty"`
 	Name               string              `yaml:"name,omitempty"`
 	Description        string              `yaml:"description"`
 	MitreAttackMapping *MitreAttack        `yaml:"mitre,omitempty"`
@@ -45,7 +48,12 @@ type PreambleFields struct {
 
 // Validate validates the preamble fields.
 // It is used by both `ttpforge run` and `ttpforge test`
-func (pf *PreambleFields) Validate() error {
+func (pf *PreambleFields) Validate(strict bool) error {
+	if strict {
+		if _, err := uuid.Parse(pf.UUID); err != nil {
+			return fmt.Errorf("TTP '%s' has an invalid UUID", pf.Name)
+		}
+	}
 	// validate MITRE mapping
 	if pf.MitreAttackMapping != nil && len(pf.MitreAttackMapping.Tactics) == 0 {
 		return fmt.Errorf("TTP '%s' has a MitreAttackMapping but no Tactic is defined", pf.Name)

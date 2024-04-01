@@ -108,7 +108,7 @@ func runTestsForTTP(ttpAbsPath string, timeoutSeconds int) error {
 
 	// validate as many fields as we can prior to actually
 	// invoking `ttpforge run`
-	if err := ttpf.PreambleFields.Validate(); err != nil {
+	if err := ttpf.PreambleFields.Validate(true); err != nil {
 		return fmt.Errorf("invalid TTP file %v: %w", ttpAbsPath, err)
 	}
 
