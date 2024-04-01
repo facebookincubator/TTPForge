@@ -115,7 +115,7 @@ func (t *TTP) Validate(execCtx TTPExecutionContext) error {
 	logging.L().Debugf("Validating TTP %q...", t.Name)
 
 	// Validate preamble fields
-	err := t.PreambleFields.Validate()
+	err := t.PreambleFields.Validate(false)
 	if err != nil {
 		return err
 	}
