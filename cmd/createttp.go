@@ -21,12 +21,13 @@ package cmd
 
 import (
 	"fmt"
-	"text/template"
-
 	"github.com/facebookincubator/ttpforge/pkg/platforms"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"os"
+	"path/filepath"
+	"text/template"
 )
 
 const ttpTemplate = `---
@@ -72,6 +73,12 @@ func buildCreateTTPCommand() *cobra.Command {
 			}
 			if exists {
 				return fmt.Errorf("%v already exists", newTTPFilePath)
+			}
+
+			// create the directory for the new TTP file, if it doesn't already exist
+			err = fsys.MkdirAll(filepath.Dir(newTTPFilePath), os.ModePerm)
+			if err != nil {
+				return fmt.Errorf("failed to create directory for new TTP file: %w", err)
 			}
 
 			// create the new TTP file with afero
