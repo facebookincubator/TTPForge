@@ -5,7 +5,14 @@
 [![🚨 Semgrep Analysis](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml/badge.svg)](https://github.com/facebookincubator/TTPForge/actions/workflows/semgrep.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/facebookincubator/TTPForge/badge.svg)](https://coveralls.io/github/facebookincubator/TTPForge)
 
-TTPForge is a cyber attack simulation platform. This project promotes a Purple
+TTPForge is a cyber attack simulation platform designed and built by Sam Manzer (@d3sch41n),
+Alek Straumann (@CrimsonK1ng), and Geoff Pamerleau (@Sy14r),
+and including subsequent contributions from many good folks
+in Meta’s Red, Blue, and Purple security teams.
+Jayson Grace (@l50) migrated the project to GitHub and
+assisted with preparation for the project’s open source release.
+
+This project promotes a Purple
 Team approach to cybersecurity with the following goals:
 
 - To help blue teams accurately measure their detection and response
