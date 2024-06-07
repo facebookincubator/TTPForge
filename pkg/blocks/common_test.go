@@ -104,7 +104,7 @@ func TestFindFilePath(t *testing.T) {
 	assert.NoError(t, err)
 
 	tempDir := filepath.Join(workdir, "temp_test_directory")
-	err = os.Mkdir(tempDir, 0755)
+	err = os.MkdirAll(tempDir, 0755)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
