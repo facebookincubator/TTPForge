@@ -1,0 +1,20 @@
+api_version: 2.0
+uuid: 7be9d2be-49be-4114-8618-306a62eedec2
+name: Complex Expect Step with Python Script
+description: |
+  This TTP demonstrates the usage of an expect step to automate interaction
+  with an interactive Python script, using the go-expect library.
+args:
+  - name: expect_string
+    description: The string to expect in the console output
+    default: "You are 25 years old."
+  - name: command
+    description: The command to execute
+    default: "python3 interactive.py"
+steps:
+  - name: expect_step
+    expect_string: "{{.Args.expect_string}}"
+    send_commands: |
+      send_line "Alice"
+      send_line "25"
+    command: "{{.Args.command}}"

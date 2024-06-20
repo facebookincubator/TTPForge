@@ -172,14 +172,17 @@ func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if desc != "" {
 		logging.L().Infof("Description: %v", desc)
 	}
+	logging.L().Infof("Starting execution of step: %v", s.Name)
 	result, err := s.action.Execute(execCtx)
 	if err != nil {
 		logging.L().Errorf("Failed to execute step %v: %v", s.Name, err)
 		execCtx.errorsChan <- err
 	} else {
-		logging.L().Debugf("Successfully executed step %v", s.Name)
+		logging.L().Infof("Successfully executed step %v", s.Name)
 		execCtx.actionResultsChan <- result
 	}
+
+	logging.L().Infof("Finished execution of step: %v", s.Name)
 	return result, err
 }
 
@@ -209,6 +212,7 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		NewCopyPathStep(),
 		NewRemovePathAction(),
 		NewPrintStrAction(),
+		NewExpectStep(),
 	}
 	var action Action
 	for _, actionType := range actionCandidates {

@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-case-conflict
       - id: check-merge-conflict
@@ -17,8 +17,7 @@ repos:
     hooks:
       - id: codespell
         entry: |
-          codespell -q 3 -f
-          -S ".git,go.*"
+          codespell -q 3 -f --skip=".git,.github,go.*" README.md
 
   - repo: local
     hooks:
@@ -27,6 +26,16 @@ repos:
         entry: .hooks/go-no-replacement.sh
         language: script
         files: go.mod
+      
+      - id: go-vet
+        name: Run go vet
+        language: script
+        entry: .hooks/go-vet.sh
+        files: '\.go$'
+        always_run: true
+        pass_filenames: true
+        require_serial: true
+        log_file: /tmp/go-vet.log
 
       - id: go-unit-tests
         name: Go unit tests
