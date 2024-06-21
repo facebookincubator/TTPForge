@@ -1,5 +1,5 @@
 /*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
+Copyright © 2024-present, Meta Platforms, Inc. and affiliates
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -202,11 +202,32 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 	var typeField struct {
 		Inline    string     `yaml:"inline"`
+		File      string     `yaml:"file"`
+		TTP       string     `yaml:"ttp"`
+		EditFile  string     `yaml:"edit_file"`
 		Responses []Response `yaml:"responses"`
 	}
 
 	if err := node.Decode(&typeField); err != nil {
 		return nil, err
+	}
+
+	// Check for ambiguous types
+	typesCount := 0
+	if typeField.Inline != "" {
+		typesCount++
+	}
+	if typeField.File != "" {
+		typesCount++
+	}
+	if typeField.TTP != "" {
+		typesCount++
+	}
+	if typeField.EditFile != "" {
+		typesCount++
+	}
+	if typesCount > 1 {
+		return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
 	}
 
 	// If responses are present, treat it as an ExpectStep
