@@ -47,7 +47,6 @@ const (
 
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	Type           string `yaml:"type"`
 	actionDefaults `yaml:",inline"`
 	Executor       string                  `yaml:"executor,omitempty"`
 	Inline         string                  `yaml:"inline,flow"`
@@ -57,7 +56,7 @@ type BasicStep struct {
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
 func NewBasicStep() *BasicStep {
-	return &BasicStep{Type: "basic"}
+	return &BasicStep{}
 }
 
 // IsNil checks if a step is considered empty or uninitialized.

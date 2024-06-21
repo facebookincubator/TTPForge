@@ -11,20 +11,22 @@ import (
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	expect "github.com/l50/go-expect"
 	"go.uber.org/zap"
 )
 
 // ExpectStep represents an expect command
 type ExpectStep struct {
-	Type           string `yaml:"type"`
 	actionDefaults `yaml:",inline"`
-	Chdir          string     `yaml:"chdir,omitempty"`
-	Responses      []Response `yaml:"responses,omitempty"`
-	Timeout        int        `yaml:"timeout,omitempty"`
-	Executor       string     `yaml:"executor,omitempty"`
-	Inline         string     `yaml:"inline"`
-	CleanupStep    string     `yaml:"cleanup,omitempty"`
+	Chdir          string                  `yaml:"chdir,omitempty"`
+	Responses      []Response              `yaml:"responses,omitempty"`
+	Timeout        int                     `yaml:"timeout,omitempty"`
+	Executor       string                  `yaml:"executor,omitempty"`
+	Environment    map[string]string       `yaml:"env,omitempty"`
+	Inline         string                  `yaml:"inline"`
+	CleanupStep    string                  `yaml:"cleanup,omitempty"`
+	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
 }
 
 type Response struct {
@@ -34,7 +36,7 @@ type Response struct {
 
 // NewExpectStep creates a new ExpectStep instance
 func NewExpectStep() *ExpectStep {
-	return &ExpectStep{Type: "expect"}
+	return &ExpectStep{}
 }
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
@@ -44,6 +46,13 @@ func (s *ExpectStep) IsNil() bool {
 
 // Validate validates the step, checking for the necessary attributes and dependencies.
 func (s *ExpectStep) Validate(execCtx TTPExecutionContext) error {
+	// Check if Responses are provided
+	if len(s.Responses) == 0 {
+		err := errors.New("responses must be provided")
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+
 	// Check if Inline is provided
 	if s.Inline == "" {
 		err := errors.New("inline must be provided")

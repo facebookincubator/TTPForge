@@ -172,17 +172,15 @@ func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if desc != "" {
 		logging.L().Infof("Description: %v", desc)
 	}
-	logging.L().Infof("Starting execution of step: %v", s.Name)
 	result, err := s.action.Execute(execCtx)
 	if err != nil {
 		logging.L().Errorf("Failed to execute step %v: %v", s.Name, err)
 		execCtx.errorsChan <- err
 	} else {
-		logging.L().Infof("Successfully executed step %v", s.Name)
+		logging.L().Debugf("Successfully executed step %v", s.Name)
 		execCtx.actionResultsChan <- result
 	}
 
-	logging.L().Infof("Finished execution of step: %v", s.Name)
 	return result, err
 }
 
@@ -202,32 +200,39 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 // ParseAction decodes an action (from step or cleanup) in YAML
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
-	var typeField struct {
-		Type string `yaml:"type"`
+	actionCandidates := []Action{
+		NewBasicStep(),
+		NewFileStep(),
+		NewSubTTPStep(),
+		NewEditStep(),
+		NewExpectStep(),
+		NewFetchURIStep(),
+		NewCreateFileStep(),
+		NewCopyPathStep(),
+		NewRemovePathAction(),
+		NewPrintStrAction(),
 	}
-	if err := node.Decode(&typeField); err != nil {
-		return nil, err
-	}
-
 	var action Action
-	switch typeField.Type {
-	case "basic":
-		action = NewBasicStep()
-	case "expect":
-		action = NewExpectStep()
-	// Add cases for other action types here
-	default:
-		return nil, fmt.Errorf("unknown action type: %s", typeField.Type)
+	for _, actionType := range actionCandidates {
+		err := node.Decode(actionType)
+		if err == nil && !actionType.IsNil() {
+			if action != nil {
+				// Must catch bad steps with ambiguous types, such as:
+				// - name: hello
+				//   file: bar
+				//   ttp: foo
+				//
+				// we can't use KnownFields to solve this without a massive
+				// refactor due to https://github.com/go-yaml/yaml/issues/460
+				// note: we check for non-empty name earlier so s.Name will be non-empty
+				return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
+			}
+			action = actionType
+		}
 	}
-
-	if err := node.Decode(action); err != nil {
-		return nil, err
-	}
-
-	if action.IsNil() {
+	if action == nil {
 		return nil, errors.New("action fields did not match any valid action type")
 	}
-
 	return action, nil
 }
 
