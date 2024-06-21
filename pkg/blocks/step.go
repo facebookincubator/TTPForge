@@ -202,39 +202,32 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 // ParseAction decodes an action (from step or cleanup) in YAML
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
-	actionCandidates := []Action{
-		NewBasicStep(),
-		NewFileStep(),
-		NewSubTTPStep(),
-		NewEditStep(),
-		NewFetchURIStep(),
-		NewCreateFileStep(),
-		NewCopyPathStep(),
-		NewRemovePathAction(),
-		NewPrintStrAction(),
-		NewExpectStep(),
+	var typeField struct {
+		Type string `yaml:"type"`
 	}
+	if err := node.Decode(&typeField); err != nil {
+		return nil, err
+	}
+
 	var action Action
-	for _, actionType := range actionCandidates {
-		err := node.Decode(actionType)
-		if err == nil && !actionType.IsNil() {
-			if action != nil {
-				// Must catch bad steps with ambiguous types, such as:
-				// - name: hello
-				//   file: bar
-				//   ttp: foo
-				//
-				// we can't use KnownFields to solve this without a massive
-				// refactor due to https://github.com/go-yaml/yaml/issues/460
-				// note: we check for non-empty name earlier so s.Name will be non-empty
-				return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
-			}
-			action = actionType
-		}
+	switch typeField.Type {
+	case "basic":
+		action = NewBasicStep()
+	case "expect":
+		action = NewExpectStep()
+	// Add cases for other action types here
+	default:
+		return nil, fmt.Errorf("unknown action type: %s", typeField.Type)
 	}
-	if action == nil {
+
+	if err := node.Decode(action); err != nil {
+		return nil, err
+	}
+
+	if action.IsNil() {
 		return nil, errors.New("action fields did not match any valid action type")
 	}
+
 	return action, nil
 }
 
@@ -249,7 +242,7 @@ func (s *Step) VerifyChecks() error {
 	}
 	for checkIdx, check := range s.Checks {
 		if err := check.Verify(verificationCtx); err != nil {
-			return fmt.Errorf("Success check %d of step %q failed: %w", checkIdx+1, s.Name, err)
+			return fmt.Errorf("success check %d of step %q failed: %w", checkIdx+1, s.Name, err)
 		}
 		logging.L().Debugf("Success check %d (%q) of step %q PASSED", checkIdx+1, check.Msg, s.Name)
 	}
