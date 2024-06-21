@@ -6,7 +6,6 @@ toolchain go1.22.4
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/otiai10/copy v1.14.0

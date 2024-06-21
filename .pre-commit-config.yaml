@@ -26,7 +26,7 @@ repos:
         entry: .hooks/go-no-replacement.sh
         language: script
         files: go.mod
-      
+
       - id: go-vet
         name: Run go vet
         language: script

@@ -200,18 +200,46 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 // ParseAction decodes an action (from step or cleanup) in YAML
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
+	var typeField struct {
+		Inline    string     `yaml:"inline"`
+		Responses []Response `yaml:"responses"`
+	}
+
+	if err := node.Decode(&typeField); err != nil {
+		return nil, err
+	}
+
+	// If responses are present, treat it as an ExpectStep
+	if typeField.Inline != "" && len(typeField.Responses) > 0 {
+		expectStep := NewExpectStep()
+		if err := node.Decode(expectStep); err != nil {
+			return nil, err
+		}
+		return expectStep, nil
+	}
+
+	// Otherwise, treat it as a BasicStep
+	if typeField.Inline != "" {
+		basicStep := NewBasicStep()
+		if err := node.Decode(basicStep); err != nil {
+			return nil, err
+		}
+		return basicStep, nil
+	}
+
 	actionCandidates := []Action{
 		NewBasicStep(),
 		NewFileStep(),
 		NewSubTTPStep(),
 		NewEditStep(),
-		NewExpectStep(),
 		NewFetchURIStep(),
 		NewCreateFileStep(),
 		NewCopyPathStep(),
 		NewRemovePathAction(),
 		NewPrintStrAction(),
+		NewExpectStep(),
 	}
+
 	var action Action
 	for _, actionType := range actionCandidates {
 		err := node.Decode(actionType)
@@ -230,9 +258,11 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 			action = actionType
 		}
 	}
+
 	if action == nil {
 		return nil, errors.New("action fields did not match any valid action type")
 	}
+
 	return action, nil
 }
 
