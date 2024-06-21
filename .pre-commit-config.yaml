@@ -28,6 +28,38 @@ repos:
         language: script
         files: go.mod
 
+      - id: go-unit-tests
+        name: Go unit tests
+        language: script
+        entry: .hooks/run-go-tests.sh modified
+        files: '\.go$'
+        pass_filenames: true
+
+      - id: go-vet
+        name: Run go vet
+        language: script
+        entry: .hooks/go-vet.sh
+        files: '\.go$'
+        always_run: true
+        pass_filenames: true
+        require_serial: true
+        log_file: /tmp/go-vet.log
+
+      - id: go-licenses
+        name: Run go-licenses
+        language: script
+        entry: .hooks/go-licenses.sh check_forbidden
+
+      - id: go-vet
+        name: Run go vet
+        language: script
+        entry: .hooks/go-vet.sh
+        files: '\.go$'
+        always_run: true
+        pass_filenames: true
+        require_serial: true
+        log_file: /tmp/go-vet.log
+
       - id: go-copyright
         name: Ensure all go files have the copyright header
         language: script
