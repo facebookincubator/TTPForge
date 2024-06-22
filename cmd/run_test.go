@@ -23,7 +23,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-
+	"sync"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -44,6 +44,8 @@ type runCmdTestCase struct {
 	wantError      bool
 }
 
+var logMutex sync.Mutex
+
 func checkRunCmdTestCase(t *testing.T, tc runCmdTestCase) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	rc := BuildRootCommand(&TestConfig{
@@ -51,7 +53,9 @@ func checkRunCmdTestCase(t *testing.T, tc runCmdTestCase) {
 		Stderr: &stderrBuf,
 	})
 	rc.SetArgs(append([]string{"run"}, tc.args...))
+	logMutex.Lock()
 	err := rc.Execute()
+	logMutex.Unlock()
 	if tc.wantError {
 		require.Error(t, err)
 		return
@@ -155,11 +159,9 @@ func TestRun(t *testing.T) {
 	}
 }
 
-// TestRunPathArguments checks that
-// referencing relative paths in `--arg` values
-// when executing `ttpforge run` works as expected.
-// One typically needs to specify `type: path` in
-// the argument specification in order to get desired
+// TestRunPathArguments checks that referencing relative paths in `--arg` values
+// when executing `ttpforge run` works as expected. One typically needs to
+// specify `type: path` in the argument specification in order to get desired
 // behavior.
 func TestRunPathArguments(t *testing.T) {
 	// in this test, we initially execute every test case from a
