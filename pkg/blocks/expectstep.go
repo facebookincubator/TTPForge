@@ -100,21 +100,18 @@ func (s *ExpectStep) IsNil() bool {
 //
 // error: An error if validation fails.
 func (s *ExpectStep) Validate(execCtx TTPExecutionContext) error {
-	// Ensure response value(s) are provided
 	if len(s.Responses) == 0 {
 		err := errors.New("responses must be provided")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	// Ensure inline value is provided
 	if s.Inline == "" {
 		err := errors.New("inline must be provided")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	// Set Executor to "bash" if it is not provided
 	if s.Executor == "" && s.Inline != "" {
 		logging.L().Debug("defaulting to bash since executor was not provided")
 		s.Executor = ExecutorBash
@@ -124,14 +121,12 @@ func (s *ExpectStep) Validate(execCtx TTPExecutionContext) error {
 		return nil
 	}
 
-	// Check if the executor is in the system path
 	if _, err := exec.LookPath(s.Executor); err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	logging.L().Debugw("command found in path", "executor", s.Executor)
-
 	return nil
 }
 
@@ -150,6 +145,16 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if s == nil {
 		return nil, fmt.Errorf("expectStep is nil")
 	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current directory: %w", err)
+	}
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			fmt.Printf("failed to change back to original directory: %v\n", err)
+		}
+	}()
 
 	if s.Chdir != "" {
 		if err := os.Chdir(s.Chdir); err != nil {

@@ -17,7 +17,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package blocks
+package blocks_test
 
 import (
 	"os"
@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	expect "github.com/l50/go-expect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,19 +58,11 @@ func expectNoError(t *testing.T) expect.ConsoleOpt {
 	)
 }
 
-func createTestScript(t *testing.T) (string, string) {
+func createTestScript(t *testing.T, scriptContent string) (string, string) {
 	tempDir, err := os.MkdirTemp("", "python-script-test")
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(tempDir) })
 
-	scriptContent := `
-print("Enter your name:")
-name = input()
-print(f"Hello, {name}!")
-print("Enter your age:")
-age = input()
-print(f"You are {age} years old.")
-`
 	scriptPath := filepath.Join(tempDir, "interactive.py")
 	err = os.WriteFile(scriptPath, []byte(scriptContent), 0644)
 	require.NoError(t, err)
@@ -89,17 +82,17 @@ func sendNoError(t *testing.T) expect.ConsoleOpt {
 	)
 }
 
-func NewTestTTPExecutionContext(workDir string) TTPExecutionContext {
-	return TTPExecutionContext{
+func NewTestTTPExecutionContext(workDir string) blocks.TTPExecutionContext {
+	return blocks.TTPExecutionContext{
 		WorkDir: workDir,
 	}
 }
 
 func TestExpectStep(t *testing.T) {
-	scriptPath, tempDir := createTestScript(t)
-
+	t.Parallel()
 	testCases := []struct {
 		name               string
+		script             string
 		content            string
 		wantUnmarshalError bool
 		wantValidateError  bool
@@ -108,6 +101,14 @@ func TestExpectStep(t *testing.T) {
 	}{
 		{
 			name: "Test Unmarshal Expect Valid",
+			script: `
+print("Enter your name:")
+name = input()
+print(f"Hello, {name}!")
+print("Enter your age:")
+age = input()
+print(f"You are {age} years old.")
+`,
 			content: `
 steps:
   - name: run_expect_script
@@ -124,6 +125,14 @@ steps:
 		},
 		{
 			name: "Test Unmarshal Expect No Inline",
+			script: `
+print("Enter your name:")
+name = input()
+print(f"Hello, {name}!")
+print("Enter your age:")
+age = input()
+print(f"You are {age} years old.")
+`,
 			content: `
 steps:
   - name: run_expect_script
@@ -140,6 +149,14 @@ steps:
 		},
 		{
 			name: "Test ExpectStep Execute With Output",
+			script: `
+print("Enter your name:")
+name = input()
+print(f"Hello, {name}!")
+print("Enter your age:")
+age = input()
+print(f"You are {age} years old.")
+`,
 			content: `
 steps:
   - name: run_expect_script
@@ -154,15 +171,68 @@ steps:
           response: "30"
 `,
 		},
+		{
+			name: "Test ExpectStep with Chdir",
+			script: `
+import os
+print("Current directory:", os.getcwd())
+print("Enter a number:")
+number = input()
+print(f"You input {number}.")
+`,
+			content: `
+steps:
+  - name: run_expect_script
+    description: "Run an expect script to interact with the command."
+    expect:
+      chdir: "/tmp"
+      inline: |
+        python3 interactive.py
+      responses:
+        - prompt: "Enter a number:"
+          response: "30"
+`,
+		},
+		{
+			name: "Test ExpectStep with CleanupStep",
+			script: `
+print("Enter your name:")
+name = input()
+print(f"Hello, {name}!")
+print("Enter your age:")
+age = input()
+print(f"You are {age} years old.")
+`,
+			content: `
+steps:
+  - name: run_expect_script
+    description: "Run an expect script to interact with the command."
+    expect:
+      inline: |
+        python3 interactive.py
+      chdir: "/tmp"
+      responses:
+        - prompt: "Enter your name:"
+          response: "John"
+        - prompt: "Enter your age:"
+          response: "30"
+      cleanup: |
+        pwd
+        cat interactive.py
+        rm interactive.py
+`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			scriptPath, tempDir := createTestScript(t, tc.script)
+
 			var steps struct {
 				Steps []struct {
-					Name        string      `yaml:"name"`
-					Description string      `yaml:"description"`
-					Expect      *ExpectStep `yaml:"expect"`
+					Name        string             `yaml:"name"`
+					Description string             `yaml:"description"`
+					Expect      *blocks.ExpectStep `yaml:"expect"`
 				} `yaml:"steps"`
 			}
 
@@ -187,11 +257,9 @@ steps:
 			}
 			require.NoError(t, err)
 
-			if tc.name == "Test ExpectStep Execute With Output" {
+			if tc.name == "Test ExpectStep with Chdir" {
 				// Mock the command execution
 				execCtx := NewTestTTPExecutionContext(tempDir)
-
-				// prepare the console
 				console, err := expect.NewConsole(expectNoError(t), sendNoError(t), expect.WithStdout(os.Stdout), expect.WithStdin(os.Stdin))
 				require.NoError(t, err)
 				defer console.Close()
@@ -200,6 +268,55 @@ steps:
 				cmd.Stdin = console.Tty()
 				cmd.Stdout = console.Tty()
 				cmd.Stderr = console.Tty()
+
+				if expectStep.Chdir != "" {
+					cmd.Dir = expectStep.Chdir
+				}
+
+				err = cmd.Start()
+				require.NoError(t, err)
+
+				done := make(chan struct{})
+
+				// simulate console input
+				go func() {
+					defer close(done)
+					time.Sleep(1 * time.Second)
+					console.SendLine("30")
+					time.Sleep(1 * time.Second)
+					console.Tty().Close() // Close the TTY to signal EOF
+				}()
+
+				_, err = expectStep.Execute(execCtx)
+				require.NoError(t, err)
+				<-done
+
+				output, err := console.ExpectEOF()
+				require.NoError(t, err)
+
+				// Check the output of the command execution
+				normalizedOutput := strings.ReplaceAll(output, "\r\n", "\n")
+				expectedSubstring1 := "Current directory: /private/tmp\n"
+				expectedSubstring2 := "You input 30.\n"
+				assert.Contains(t, normalizedOutput, expectedSubstring1)
+				assert.Contains(t, normalizedOutput, expectedSubstring2)
+			}
+
+			if tc.name == "Test ExpectStep with CleanupStep" {
+				// Mock the command execution
+				execCtx := NewTestTTPExecutionContext(tempDir)
+				console, err := expect.NewConsole(expectNoError(t), sendNoError(t), expect.WithStdout(os.Stdout), expect.WithStdin(os.Stdin))
+				require.NoError(t, err)
+				defer console.Close()
+
+				cmd := exec.Command("sh", "-c", "python3 "+scriptPath)
+				cmd.Stdin = console.Tty()
+				cmd.Stdout = console.Tty()
+				cmd.Stderr = console.Tty()
+
+				if expectStep.Chdir != "" {
+					cmd.Dir = expectStep.Chdir
+				}
 
 				err = cmd.Start()
 				require.NoError(t, err)
@@ -217,27 +334,24 @@ steps:
 					console.Tty().Close() // Close the TTY to signal EOF
 				}()
 
-				// execute the step and check result
-				result, err := expectStep.Execute(execCtx)
-				if tc.wantExecuteError {
-					assert.Equal(t, tc.expectedErrTxt, err.Error())
-					return
-				}
+				_, err = expectStep.Execute(execCtx)
 				require.NoError(t, err)
-				assert.NotNil(t, result)
+				<-done
 
-				<-done // wait for the goroutine to finish
-
-				// Check the output of the command execution
 				output, err := console.ExpectEOF()
 				require.NoError(t, err)
 
-				// Normalize line endings for comparison
+				// Check the output of the command execution
 				normalizedOutput := strings.ReplaceAll(output, "\r\n", "\n")
 				expectedSubstring1 := "Hello, John!\n"
 				expectedSubstring2 := "You are 30 years old.\n"
 				assert.Contains(t, normalizedOutput, expectedSubstring1)
 				assert.Contains(t, normalizedOutput, expectedSubstring2)
+
+				// Execute cleanup step
+				result, err := expectStep.Cleanup(execCtx)
+				require.NoError(t, err)
+				assert.NotNil(t, result)
 			}
 		})
 	}
