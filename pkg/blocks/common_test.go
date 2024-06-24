@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -100,22 +101,22 @@ func TestFetchAbs(t *testing.T) {
 }
 
 func TestFindFilePath(t *testing.T) {
-	workdir, err := os.Getwd()
-	assert.NoError(t, err)
-
-	tempDir := filepath.Join(workdir, "temp_test_directory")
-	err = os.MkdirAll(tempDir, 0755)
+	tempDir, err := os.MkdirTemp("", "temp_test_directory")
+	tempDirName := filepath.Base(tempDir)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tempDir)
+	workDir := filepath.Dir(tempDir)
 
-	tempFile := filepath.Join(tempDir, "test_file.txt")
+	testFileName := "test_file.txt"
+	tempFile := filepath.Join(tempDir, testFileName)
 	f, err := os.Create(tempFile)
 	assert.NoError(t, err)
 	f.Close()
 	defer os.Remove(tempFile)
 
 	// Create a tilde file for testing
-	tildeFile := filepath.Join(os.Getenv("HOME"), "tilde_test_file.txt")
+	uniqueFileName := fmt.Sprintf("tilde_test_file%d.txt", os.Getpid())
+	tildeFile := filepath.Join(os.Getenv("HOME"), uniqueFileName)
 	f, err = os.Create(tildeFile)
 	assert.NoError(t, err)
 	f.Close()
@@ -137,8 +138,8 @@ func TestFindFilePath(t *testing.T) {
 		},
 		{
 			name:         "Relative path",
-			inputPath:    "temp_test_directory/test_file.txt",
-			inputWorkdir: workdir,
+			inputPath:    filepath.Join(tempDirName, testFileName),
+			inputWorkdir: workDir,
 			fsStat:       nil,
 			expectError:  false,
 		},
@@ -151,7 +152,7 @@ func TestFindFilePath(t *testing.T) {
 		},
 		{
 			name:         "Tilde path",
-			inputPath:    "~/tilde_test_file.txt",
+			inputPath:    filepath.Join("~", uniqueFileName),
 			inputWorkdir: "",
 			fsStat:       nil,
 			expectError:  false,
