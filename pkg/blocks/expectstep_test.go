@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
+	expect "github.com/Netflix/go-expect"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	expect "github.com/l50/go-expect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"

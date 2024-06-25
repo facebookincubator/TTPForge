@@ -29,9 +29,9 @@ import (
 	"strings"
 	"time"
 
+	expect "github.com/Netflix/go-expect"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
-	expect "github.com/l50/go-expect"
 	"go.uber.org/zap"
 )
 
