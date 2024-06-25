@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/google/go-cmp v0.6.0
+	github.com/google/uuid v1.6.0
 	github.com/otiai10/copy v1.14.0
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
@@ -18,7 +19,6 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

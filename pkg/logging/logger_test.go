@@ -1,5 +1,5 @@
 /*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
+Copyright © 2024-present, Meta Platforms, Inc. and affiliates
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -21,6 +21,7 @@ package logging
 
 import (
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,6 +39,7 @@ import (
 func TestInitLogStacktraceNoLogfile(t *testing.T) {
 	core, recordedLogs := observer.New(zapcore.InfoLevel)
 
+	initOnce = sync.Once{} // Reset the sync.Once for testing purposes
 	err := InitLog(Config{
 		Stacktrace: true,
 	})
@@ -101,7 +103,7 @@ func TestInitLog(t *testing.T) {
 			cfg := tc.config
 			cfg.LogFile = logFile
 
-			// initialize the logger for this test case
+			initOnce = sync.Once{} // Reset the sync.Once for testing purposes
 			err = InitLog(cfg)
 			require.NoError(t, err)
 

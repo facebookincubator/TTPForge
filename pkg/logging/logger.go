@@ -1,5 +1,5 @@
 /*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
+Copyright © 2024-present, Meta Platforms, Inc. and affiliates
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -21,6 +21,7 @@ package logging
 
 import (
 	"path/filepath"
+	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -34,7 +35,10 @@ type Config struct {
 	Stacktrace bool
 }
 
-var logger *zap.SugaredLogger
+var (
+	logger   *zap.SugaredLogger
+	initOnce sync.Once
+)
 
 func init() {
 	// default logger - will be used in tests
@@ -65,40 +69,38 @@ func DividerThin() {
 
 // InitLog initializes TTPForge global logger
 func InitLog(config Config) (err error) {
-	zcfg := zap.NewDevelopmentConfig()
-	if config.NoColor {
-		zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	} else {
-		zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	}
-
-	// setup Logger to write to file if provided
-	if config.LogFile != "" {
-		fullpath, err := filepath.Abs(config.LogFile)
-		if err != nil {
-			return err
+	initOnce.Do(func() {
+		zcfg := zap.NewDevelopmentConfig()
+		if config.NoColor {
+			zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+		} else {
+			zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		}
-		zcfg.OutputPaths = append(zcfg.OutputPaths, fullpath)
-	}
 
-	if config.Verbose {
-		zcfg.Level.SetLevel(zap.DebugLevel)
-	} else {
-		zcfg.Level.SetLevel(zap.InfoLevel)
-		// hide fields that will confuse users during simple user errors
-		zcfg.EncoderConfig.CallerKey = zapcore.OmitKey
-		zcfg.EncoderConfig.TimeKey = zapcore.OmitKey
-	}
+		if config.LogFile != "" {
+			fullpath, err := filepath.Abs(config.LogFile)
+			if err != nil {
+				panic(err) // Use panic here since sync.Once does not allow error return
+			}
+			zcfg.OutputPaths = append(zcfg.OutputPaths, fullpath)
+		}
 
-	if !config.Stacktrace {
-		zcfg.DisableStacktrace = true
-	}
+		if config.Verbose {
+			zcfg.Level.SetLevel(zap.DebugLevel)
+		} else {
+			zcfg.Level.SetLevel(zap.InfoLevel)
+			zcfg.EncoderConfig.CallerKey = zapcore.OmitKey
+			zcfg.EncoderConfig.TimeKey = zapcore.OmitKey
+		}
+		if !config.Stacktrace {
+			zcfg.DisableStacktrace = true
+		}
 
-	// use sugared logger
-	baseLogger, err := zcfg.Build()
-	if err != nil {
-		return err
-	}
-	logger = baseLogger.Sugar()
+		baseLogger, err := zcfg.Build()
+		if err != nil {
+			panic(err) // Use panic here since sync.Once does not allow error return
+		}
+		logger = baseLogger.Sugar()
+	})
 	return nil
 }
