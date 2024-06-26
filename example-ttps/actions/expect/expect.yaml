@@ -1,0 +1,26 @@
+api_version: 2.0
+uuid: 7be9d2be-49be-4114-8618-306a62eedec2
+name: Complex Expect Step with Python Script
+description: |
+  This TTP demonstrates the usage of an expect step to automate interaction
+  with an interactive Python script, using the go-expect library.
+args:
+  - name: command
+    description: The command to execute
+    default: "python3 interactive.py"
+steps:
+  - name: create_python_script
+    inline: |
+      echo 'print("Enter your name:")' > /tmp/interactive.py
+      echo 'name = input()' >> /tmp/interactive.py
+      echo 'print("Enter your age:")' >> /tmp/interactive.py
+      echo 'age = input()' >> /tmp/interactive.py
+      echo 'print(f"Hello {name}, you are {age} years old!")' >> /tmp/interactive.py
+  - name: run_expect_script
+    inline: |
+      python3 /tmp/interactive.py
+    responses:
+      - prompt: "Enter your name:"
+        response: "John"
+      - prompt: "Enter your age:"
+        response: "30"

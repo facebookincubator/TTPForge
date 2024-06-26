@@ -1,5 +1,5 @@
 /*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
+Copyright © 2024-present, Meta Platforms, Inc. and affiliates
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -180,6 +180,7 @@ func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		logging.L().Debugf("Successfully executed step %v", s.Name)
 		execCtx.actionResultsChan <- result
 	}
+
 	return result, err
 }
 
@@ -199,6 +200,54 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 // ParseAction decodes an action (from step or cleanup) in YAML
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
+	var typeField struct {
+		Inline    string     `yaml:"inline"`
+		File      string     `yaml:"file"`
+		TTP       string     `yaml:"ttp"`
+		EditFile  string     `yaml:"edit_file"`
+		Responses []Response `yaml:"responses"`
+	}
+
+	if err := node.Decode(&typeField); err != nil {
+		return nil, err
+	}
+
+	// Check for ambiguous types
+	typesCount := 0
+	if typeField.Inline != "" {
+		typesCount++
+	}
+	if typeField.File != "" {
+		typesCount++
+	}
+	if typeField.TTP != "" {
+		typesCount++
+	}
+	if typeField.EditFile != "" {
+		typesCount++
+	}
+	if typesCount > 1 {
+		return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
+	}
+
+	// If responses are present, treat it as an ExpectStep
+	if typeField.Inline != "" && len(typeField.Responses) > 0 {
+		expectStep := NewExpectStep()
+		if err := node.Decode(expectStep); err != nil {
+			return nil, err
+		}
+		return expectStep, nil
+	}
+
+	// Otherwise, treat it as a BasicStep
+	if typeField.Inline != "" {
+		basicStep := NewBasicStep()
+		if err := node.Decode(basicStep); err != nil {
+			return nil, err
+		}
+		return basicStep, nil
+	}
+
 	actionCandidates := []Action{
 		NewBasicStep(),
 		NewFileStep(),
@@ -209,7 +258,9 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		NewCopyPathStep(),
 		NewRemovePathAction(),
 		NewPrintStrAction(),
+		NewExpectStep(),
 	}
+
 	var action Action
 	for _, actionType := range actionCandidates {
 		err := node.Decode(actionType)
@@ -228,9 +279,11 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 			action = actionType
 		}
 	}
+
 	if action == nil {
 		return nil, errors.New("action fields did not match any valid action type")
 	}
+
 	return action, nil
 }
 
@@ -245,7 +298,7 @@ func (s *Step) VerifyChecks() error {
 	}
 	for checkIdx, check := range s.Checks {
 		if err := check.Verify(verificationCtx); err != nil {
-			return fmt.Errorf("Success check %d of step %q failed: %w", checkIdx+1, s.Name, err)
+			return fmt.Errorf("success check %d of step %q failed: %w", checkIdx+1, s.Name, err)
 		}
 		logging.L().Debugf("Success check %d (%q) of step %q PASSED", checkIdx+1, check.Msg, s.Name)
 	}
