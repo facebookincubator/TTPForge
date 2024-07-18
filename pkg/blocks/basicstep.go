@@ -36,13 +36,14 @@ import (
 // These are all the different executors that could run
 // our inline command
 const (
-	ExecutorPython     = "python3"
-	ExecutorBash       = "bash"
-	ExecutorSh         = "sh"
-	ExecutorPowershell = "powershell"
-	ExecutorRuby       = "ruby"
-	ExecutorBinary     = "binary"
-	ExecutorCmd        = "cmd.exe"
+	ExecutorPython            = "python3"
+	ExecutorBash              = "bash"
+	ExecutorSh                = "sh"
+	ExecutorPowershell        = "powershell"
+	ExecutorPowershellOnLinux = "pwsh"
+	ExecutorRuby              = "ruby"
+	ExecutorBinary            = "binary"
+	ExecutorCmd               = "cmd.exe"
 )
 
 // BasicStep is a type that represents a basic execution step.
@@ -149,10 +150,14 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 }
 
 func (b *BasicStep) buildCommand(ctx context.Context, executor string) *exec.Cmd {
-	if executor == ExecutorBash {
+	switch executor {
+	case ExecutorBash:
 		return exec.CommandContext(ctx, executor, "-o", "errexit")
+	case ExecutorPowershell, ExecutorPowershellOnLinux:
+		return exec.CommandContext(ctx, executor, "-NoLogo", "-NoProfile", "-Command", "-")
+	default:
+		return exec.CommandContext(ctx, executor)
 	}
-	return exec.CommandContext(ctx, executor)
 }
 
 func (b *BasicStep) prepareCommand(ctx context.Context, execCtx TTPExecutionContext, envAsList []string, inline string) *exec.Cmd {
