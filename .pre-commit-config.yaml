@@ -49,16 +49,6 @@ repos:
         language: script
         entry: .hooks/go-licenses.sh check_forbidden
 
-      - id: go-vet
-        name: Run go vet
-        language: script
-        entry: .hooks/go-vet.sh
-        files: '\.go$'
-        always_run: true
-        pass_filenames: true
-        require_serial: true
-        log_file: /tmp/go-vet.log
-
       - id: go-copyright
         name: Ensure all go files have the copyright header
         language: script

@@ -21,15 +21,13 @@ package blocks
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
 	"time"
 
-	expect "github.com/Netflix/go-expect"
+	"github.com/Netflix/go-expect"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
 	"go.uber.org/zap"
@@ -50,13 +48,23 @@ import (
 type ExpectStep struct {
 	actionDefaults `yaml:",inline"`
 	Chdir          string                  `yaml:"chdir,omitempty"`
-	Responses      []Response              `yaml:"responses,omitempty"`
 	Timeout        int                     `yaml:"timeout,omitempty"`
 	Executor       string                  `yaml:"executor,omitempty"`
+	Expect         *ExpectSpec             `yaml:"expect,omitempty"`
 	Environment    map[string]string       `yaml:"env,omitempty"`
-	Inline         string                  `yaml:"inline"`
 	CleanupStep    string                  `yaml:"cleanup,omitempty"`
 	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
+}
+
+// ExpectSpec represents the expect block in the expect step.
+//
+// **Attributes:**
+//
+// Inline: Inline script to execute.
+// Responses: List of expected prompts and responses.
+type ExpectSpec struct {
+	Inline    string     `yaml:"inline"`
+	Responses []Response `yaml:"responses"`
 }
 
 // Response represents a prompt-response pair.
@@ -85,7 +93,7 @@ func NewExpectStep() *ExpectStep {
 //
 // bool: True if the step is nil or empty, false otherwise.
 func (s *ExpectStep) IsNil() bool {
-	return s.Inline == "" && len(s.Responses) == 0
+	return s.Expect == nil || (s.Expect.Inline == "" && len(s.Expect.Responses) == 0)
 }
 
 // Validate validates the step, checking for the necessary attributes and
@@ -100,31 +108,24 @@ func (s *ExpectStep) IsNil() bool {
 //
 // error: An error if validation fails.
 func (s *ExpectStep) Validate(_ TTPExecutionContext) error {
-	if len(s.Responses) == 0 {
-		err := errors.New("responses must be provided")
-		logging.L().Error(zap.Error(err))
-		return err
+	if s.Expect == nil {
+		return fmt.Errorf("expectStep is nil")
 	}
 
-	if s.Inline == "" {
-		err := errors.New("inline must be provided")
-		logging.L().Error(zap.Error(err))
-		return err
+	if len(s.Expect.Responses) == 0 {
+		return fmt.Errorf("responses must be provided")
+	}
+
+	if s.Expect.Inline == "" {
+		return fmt.Errorf("inline must be provided")
 	} else if s.Executor == "" {
-		logging.L().Debug("defaulting to bash since executor was not provided")
-		s.Executor = ExecutorBash
-	}
-
-	if s.Executor == ExecutorBinary {
-		return nil
+		s.Executor = "bash"
 	}
 
 	if _, err := exec.LookPath(s.Executor); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("executor not found: %w", err)
 	}
 
-	logging.L().Debugw("command found in path", "executor", s.Executor)
 	return nil
 }
 
@@ -140,13 +141,16 @@ func (s *ExpectStep) Validate(_ TTPExecutionContext) error {
 // *ActResult: A pointer to the action result.
 // error: An error if execution fails.
 func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	if s == nil {
-		return nil, fmt.Errorf("expectStep is nil")
+	if s == nil || s.Expect == nil {
+		return nil, fmt.Errorf("expect block must be provided")
 	}
 
 	originalDir, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current directory: %w", err)
+	}
+	if err := s.Validate(execCtx); err != nil {
+		return nil, err
 	}
 	defer func() {
 		if err := os.Chdir(originalDir); err != nil {
@@ -166,8 +170,16 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	}
 	defer console.Close()
 
+	if s.Environment != nil {
+		for k, v := range s.Environment {
+			if err := os.Setenv(k, v); err != nil {
+				return nil, fmt.Errorf("failed to set environment variable: %w", err)
+			}
+		}
+	}
+
 	envAsList := os.Environ()
-	cmd := s.prepareCommand(context.Background(), execCtx, envAsList, s.Inline)
+	cmd := s.prepareCommand(context.Background(), execCtx, envAsList, s.Expect.Inline)
 	cmd.Stdin = console.Tty()
 	cmd.Stdout = console.Tty()
 	cmd.Stderr = console.Tty()
@@ -178,41 +190,48 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 
 	done := make(chan error, 1)
 	go func() {
-		for _, response := range s.Responses {
+		defer close(done)
+		for _, response := range s.Expect.Responses {
+			logging.L().Infof("Waiting for prompt: %s\n", response.Prompt)
 			re := regexp.MustCompile(response.Prompt)
-			if _, err := console.Expect(expect.Regexp(re)); err != nil {
+			timeout := 120 // Default timeout is 120 seconds
+			if s.Timeout > 0 {
+				timeout = s.Timeout // Use the provided timeout if it is greater than 0
+			}
+			matched, err := console.Expect(expect.Regexp(re), expect.WithTimeout(time.Duration(timeout)*time.Second))
+			if err != nil {
 				done <- fmt.Errorf("failed to expect %q: %w", re, err)
 				return
 			}
+			logging.L().Infof("Matched prompt: %s\n", matched)
+			logging.L().Infof("Sending response: %s\n", response.Response)
 			if _, err := console.SendLine(response.Response); err != nil {
 				done <- fmt.Errorf("failed to send response: %w", err)
 				return
 			}
 		}
-		// Close the console to send EOF
+
+		logging.L().Info("Closing console TTY...")
 		if err := console.Tty().Close(); err != nil {
 			done <- fmt.Errorf("failed to close console Tty: %w", err)
+			return
+		}
+
+		logging.L().Info("Waiting for command to exit...")
+		if err := cmd.Wait(); err != nil {
+			done <- fmt.Errorf("command failed: %w", err)
 			return
 		}
 		done <- nil
 	}()
 
-	timeout := 30 * time.Second
-	if s.Timeout != 0 {
-		timeout = time.Duration(s.Timeout) * time.Second
-	}
-
 	select {
 	case err := <-done:
 		if err != nil {
-			return nil, fmt.Errorf("error in expect: %w", err)
+			return nil, err
 		}
-	case <-time.After(timeout):
-		return nil, fmt.Errorf("timeout waiting for expect")
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("command wait failed: %w", err)
+	case <-time.After(120 * time.Second):
+		return nil, fmt.Errorf("command timed out")
 	}
 
 	if _, err := console.ExpectEOF(); err != nil {
@@ -240,7 +259,7 @@ func (s *ExpectStep) prepareCommand(ctx context.Context, execCtx TTPExecutionCon
 	cmd := exec.CommandContext(ctx, s.Executor, "-c", inline)
 	cmd.Env = envAsList
 	cmd.Dir = execCtx.WorkDir
-	cmd.Stdin = strings.NewReader(inline)
+
 	return cmd
 }
 
@@ -260,17 +279,21 @@ func (s *ExpectStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 		return &ActResult{}, nil
 	}
 
+	logging.L().Info("Running cleanup step")
+
 	envAsList := os.Environ()
 	cmd := s.prepareCommand(context.Background(), execCtx, envAsList, s.CleanupStep)
 
-	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
+		logging.L().Error("Failed to run cleanup command", zap.Error(err))
 		return nil, fmt.Errorf("failed to run cleanup command: %w", err)
 	}
 
+	logging.L().Info("Cleanup step completed successfully")
 	return &ActResult{}, nil
 }
 

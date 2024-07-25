@@ -1,3 +1,4 @@
+---
 api_version: 2.0
 uuid: 7be9d2be-49be-4114-8618-306a62eedec2
 name: Complex Expect Step with Python Script
@@ -17,10 +18,11 @@ steps:
       echo 'age = input()' >> /tmp/interactive.py
       echo 'print(f"Hello {name}, you are {age} years old!")' >> /tmp/interactive.py
   - name: run_expect_script
-    inline: |
-      python3 /tmp/interactive.py
-    responses:
-      - prompt: "Enter your name:"
-        response: "John"
-      - prompt: "Enter your age:"
-        response: "30"
+    expect:
+      inline: |
+        python3 /tmp/interactive.py
+      responses:
+        - prompt: "Enter your name:"
+          response: "John"
+        - prompt: "Enter your age:"
+          response: "30"
