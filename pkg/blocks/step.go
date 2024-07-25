@@ -230,8 +230,8 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
 	}
 
-	// If responses are present, treat it as an ExpectStep
-	if typeField.Inline != "" && len(typeField.Responses) > 0 {
+	// Check for ExpectStep
+	if len(typeField.Responses) > 0 {
 		expectStep := NewExpectStep()
 		if err := node.Decode(expectStep); err != nil {
 			return nil, err
