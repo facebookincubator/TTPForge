@@ -192,32 +192,28 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	go func() {
 		defer close(done)
 		for _, response := range s.Expect.Responses {
-			logging.L().Infof("Waiting for prompt: %s\n", response.Prompt)
 			re := regexp.MustCompile(response.Prompt)
 			timeout := 120 // Default timeout is 120 seconds
 			if s.Timeout > 0 {
 				timeout = s.Timeout // Use the provided timeout if it is greater than 0
 			}
-			matched, err := console.Expect(expect.Regexp(re), expect.WithTimeout(time.Duration(timeout)*time.Second))
+			_, err := console.Expect(expect.Regexp(re), expect.WithTimeout(time.Duration(timeout)*time.Second))
 			if err != nil {
 				done <- fmt.Errorf("failed to expect %q: %w", re, err)
 				return
 			}
-			logging.L().Infof("Matched prompt: %s\n", matched)
-			logging.L().Infof("Sending response: %s\n", response.Response)
+
 			if _, err := console.SendLine(response.Response); err != nil {
 				done <- fmt.Errorf("failed to send response: %w", err)
 				return
 			}
 		}
 
-		logging.L().Info("Closing console TTY...")
 		if err := console.Tty().Close(); err != nil {
 			done <- fmt.Errorf("failed to close console Tty: %w", err)
 			return
 		}
 
-		logging.L().Info("Waiting for command to exit...")
 		if err := cmd.Wait(); err != nil {
 			done <- fmt.Errorf("command failed: %w", err)
 			return
