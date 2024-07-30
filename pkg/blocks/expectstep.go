@@ -192,7 +192,7 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	go func() {
 		defer close(done)
 		for _, response := range s.Expect.Responses {
-			logging.L().Infof("Waiting for prompt: %s\n", response.Prompt)
+			logging.L().Debugf("Waiting for prompt: %s\n", response.Prompt)
 			re := regexp.MustCompile(response.Prompt)
 			timeout := 120 // Default timeout is 120 seconds
 			if s.Timeout > 0 {
@@ -203,21 +203,21 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 				done <- fmt.Errorf("failed to expect %q: %w", re, err)
 				return
 			}
-			logging.L().Infof("Matched prompt: %s\n", matched)
-			logging.L().Infof("Sending response: %s\n", response.Response)
+			logging.L().Debugf("Matched prompt: %s\n", matched)
+			logging.L().Debugf("Sending response: %s\n", response.Response)
 			if _, err := console.SendLine(response.Response); err != nil {
 				done <- fmt.Errorf("failed to send response: %w", err)
 				return
 			}
 		}
 
-		logging.L().Info("Closing console TTY...")
+		logging.L().Debugf("Closing console TTY...")
 		if err := console.Tty().Close(); err != nil {
 			done <- fmt.Errorf("failed to close console Tty: %w", err)
 			return
 		}
 
-		logging.L().Info("Waiting for command to exit...")
+		logging.L().Debugf("Waiting for command to exit...")
 		if err := cmd.Wait(); err != nil {
 			done <- fmt.Errorf("command failed: %w", err)
 			return
