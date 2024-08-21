@@ -1,5 +1,5 @@
 /*
-Copyright © 2023-present, Meta Platforms, Inc. and affiliates
+Copyright © 2024-present, Meta Platforms, Inc. and affiliates
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -23,9 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -33,23 +31,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// These are all the different executors that could run
-// our inline command
-const (
-	ExecutorPython            = "python3"
-	ExecutorBash              = "bash"
-	ExecutorSh                = "sh"
-	ExecutorPowershell        = "powershell"
-	ExecutorPowershellOnLinux = "pwsh"
-	ExecutorRuby              = "ruby"
-	ExecutorBinary            = "binary"
-	ExecutorCmd               = "cmd.exe"
-)
-
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
 	actionDefaults `yaml:",inline"`
-	Executor       string                  `yaml:"executor,omitempty"`
+	ExecutorName   string                  `yaml:"executor,omitempty"`
 	Inline         string                  `yaml:"inline,flow"`
 	Environment    map[string]string       `yaml:"env,omitempty"`
 	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
@@ -79,24 +64,25 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	// Set Executor to "bash" if it is not provided
-	if b.Executor == "" && b.Inline != "" {
+	// Set ExecutorName to "bash" if it is not provided
+	if b.ExecutorName == "" {
 		logging.L().Debug("defaulting to bash since executor was not provided")
-		b.Executor = ExecutorBash
+		b.ExecutorName = ExecutorBash
+		return nil
 	}
 
-	// Return if Executor is ExecutorBinary
-	if b.Executor == ExecutorBinary {
+	// Return if ExecutorName is ExecutorBinary
+	if b.ExecutorName == ExecutorBinary {
 		return nil
 	}
 
 	// Check if the executor is in the system path
-	if _, err := exec.LookPath(b.Executor); err != nil {
+	if _, err := exec.LookPath(b.ExecutorName); err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	logging.L().Debugw("command found in path", "executor", b.Executor)
+	logging.L().Debugw("command found in path", "executor", b.ExecutorName)
 
 	return nil
 }
@@ -110,34 +96,8 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	result, err := b.executeBashStdin(ctx, execCtx)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
-
-	ctx, cancel := context.WithCancel(ptx)
-	defer cancel()
-
-	// expand variables in command
-	expandedStrs, err := execCtx.ExpandVariables([]string{b.Inline})
-	if err != nil {
-		return nil, err
-	}
-
-	// expand variables in environment
-	envAsList := append(FetchEnv(b.Environment), os.Environ()...)
-	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := b.prepareCommand(ctx, execCtx, expandedEnvAsList, expandedStrs[0])
-
-	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+	executor := NewExecutor(b.ExecutorName, b.Inline, b.Environment)
+	result, err := executor.Execute(ctx, execCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -145,26 +105,5 @@ func (b *BasicStep) executeBashStdin(ptx context.Context, execCtx TTPExecutionCo
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
-}
-
-func (b *BasicStep) buildCommand(ctx context.Context, executor string) *exec.Cmd {
-	switch executor {
-	case ExecutorBash:
-		return exec.CommandContext(ctx, executor, "-o", "errexit")
-	case ExecutorPowershell, ExecutorPowershellOnLinux:
-		return exec.CommandContext(ctx, executor, "-NoLogo", "-NoProfile", "-Command", "-")
-	default:
-		return exec.CommandContext(ctx, executor)
-	}
-}
-
-func (b *BasicStep) prepareCommand(ctx context.Context, execCtx TTPExecutionContext, envAsList []string, inline string) *exec.Cmd {
-	cmd := b.buildCommand(ctx, b.Executor)
-	cmd.Env = envAsList
-	cmd.Dir = execCtx.WorkDir
-	cmd.Stdin = strings.NewReader(inline)
-
-	return cmd
 }
