@@ -20,10 +20,9 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"context"
 	"errors"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
@@ -109,28 +108,11 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 
 // Execute runs the step and returns an error if one occurs.
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	var cmd *exec.Cmd
-	expandedArgs, err := execCtx.ExpandVariables(f.Args)
-	if err != nil {
-		return nil, err
-	}
-	if f.Executor == ExecutorBinary {
-		cmd = exec.Command(f.FilePath, expandedArgs...)
-	} else {
-		args := []string{f.FilePath}
-		args = append(args, expandedArgs...)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
+	defer cancel()
 
-		logging.L().Debugw("command line execution:", "exec", f.Executor, "args", args)
-		cmd = exec.Command(f.Executor, args...)
-	}
-	envAsList := FetchEnv(f.Environment)
-	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
-	if err != nil {
-		return nil, err
-	}
-	cmd.Env = expandedEnvAsList
-	cmd.Dir = execCtx.WorkDir
-	result, err := streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+	executor := NewExecutor(f.Executor, "", f.FilePath, f.Args, f.Environment)
+	result, err := executor.Execute(ctx, execCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -142,33 +124,6 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 // Assumes that the type is the cleanup step and is invoked by
 // f.CleanupStep.Cleanup.
 func (f *FileStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
+	// TODO: why call Execute on a cleanup??
 	return f.Execute(execCtx)
-}
-
-// InferExecutor infers the executor based on the file extension and
-// returns it as a string.
-func InferExecutor(filePath string) string {
-	ext := filepath.Ext(filePath)
-	logging.L().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
-	switch ext {
-	case ".sh":
-		return ExecutorSh
-	case ".py":
-		return ExecutorPython
-	case ".rb":
-		return ExecutorRuby
-	case ".pwsh":
-		return ExecutorPowershell
-	case ".ps1":
-		return ExecutorPowershell
-	case ".bat":
-		return ExecutorCmd
-	case "":
-		return ExecutorBinary
-	default:
-		if runtime.GOOS == "windows" {
-			return ExecutorCmd
-		}
-		return ExecutorSh
-	}
 }

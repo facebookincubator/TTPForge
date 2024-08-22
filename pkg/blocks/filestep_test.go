@@ -67,8 +67,8 @@ func TestInferExecutor(t *testing.T) {
 		{filePath: "script.sh", expectedExec: ExecutorSh},
 		{filePath: "script.py", expectedExec: ExecutorPython},
 		{filePath: "script.rb", expectedExec: ExecutorRuby},
-		{filePath: "script.pwsh", expectedExec: ExecutorPowershell},
-		{filePath: "script.ps1", expectedExec: ExecutorPowershell},
+		{filePath: "script.pwsh", expectedExec: getPowerShellExecutor()},
+		{filePath: "script.ps1", expectedExec: getPowerShellExecutor()},
 		{filePath: "script.bat", expectedExec: ExecutorCmd},
 		{filePath: "binary", expectedExec: ExecutorBinary},
 		{filePath: "unknown.xyz", expectedExec: getDefaultExecutor()},
@@ -81,6 +81,13 @@ func TestInferExecutor(t *testing.T) {
 			assert.Equal(t, testCase.expectedExec, executor, "Expected executor %q for file path %q, but got %q", testCase.expectedExec, testCase.filePath, executor)
 		})
 	}
+}
+
+func getPowerShellExecutor() string {
+	if runtime.GOOS == "windows" {
+		return ExecutorPowershell
+	}
+	return ExecutorPowershellOnLinux
 }
 
 func getDefaultExecutor() string {

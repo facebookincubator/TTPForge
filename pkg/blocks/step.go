@@ -113,10 +113,6 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	}
 	s.CommonStepFields = csf
 
-	if s.Name == "" {
-		return errors.New("no name specified for step")
-	}
-
 	// figure out what kind of action is
 	// associated with executing this step
 	s.action, err = s.ParseAction(node)

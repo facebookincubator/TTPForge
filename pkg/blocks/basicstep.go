@@ -31,6 +31,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// DefaultExecutionTimeout is the default timeout for step execution.
+const DefaultExecutionTimeout = 100 * time.Minute
+
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
 	actionDefaults `yaml:",inline"`
@@ -89,14 +92,14 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 
 // Execute runs the step and returns an error if one occurs.
 func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
 	defer cancel()
 
 	if b.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	executor := NewExecutor(b.ExecutorName, b.Inline, b.Environment)
+	executor := NewExecutor(b.ExecutorName, b.Inline, "", nil, b.Environment)
 	result, err := executor.Execute(ctx, execCtx)
 	if err != nil {
 		return nil, err

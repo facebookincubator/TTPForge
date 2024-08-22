@@ -24,7 +24,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
+
+	"github.com/facebookincubator/ttpforge/pkg/logging"
 )
 
 // These are all the different executors that could run
@@ -45,19 +49,30 @@ type Executor interface {
 	Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error)
 }
 
-// DefaultExecutor encapsulates logic to execute TTP steps
-type DefaultExecutor struct {
+// ScriptExecutor executes TTP steps by passing script via stdin
+type ScriptExecutor struct {
 	Name        string
 	Inline      string
 	Environment map[string]string
 }
 
-// NewExecutor creates a new DefaultExecutor
-func NewExecutor(executorName string, inline string, environment map[string]string) Executor {
-	return &DefaultExecutor{Name: executorName, Inline: inline, Environment: environment}
+// FileExecutor executes TTP steps by calling a script file or binary with arguments
+type FileExecutor struct {
+	Name        string
+	FilePath    string
+	Args        []string
+	Environment map[string]string
 }
 
-func (e *DefaultExecutor) buildCommand(ctx context.Context) *exec.Cmd {
+// NewExecutor creates a new ScriptExecutor or FileExecutor based on the executorName
+func NewExecutor(executorName string, inline string, filePath string, args []string, environment map[string]string) Executor {
+	if filePath != "" {
+		return &FileExecutor{Name: executorName, FilePath: filePath, Args: args, Environment: environment}
+	}
+	return &ScriptExecutor{Name: executorName, Inline: inline, Environment: environment}
+}
+
+func (e *ScriptExecutor) buildCommand(ctx context.Context) *exec.Cmd {
 	if e.Name == ExecutorPowershell || e.Name == ExecutorPowershellOnLinux {
 		// @lint-ignore G204
 		return exec.CommandContext(ctx, e.Name, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "-")
@@ -71,7 +86,7 @@ func (e *DefaultExecutor) buildCommand(ctx context.Context) *exec.Cmd {
 }
 
 // Execute runs the command
-func (e *DefaultExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
+func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
 	// expand variables in command
 	expandedInlines, err := execCtx.ExpandVariables([]string{e.Inline})
 	if err != nil {
@@ -80,7 +95,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context, execCtx TTPExecutionConte
 
 	body := expandedInlines[0]
 	if e.Name == ExecutorPowershellOnLinux || e.Name == ExecutorPowershell {
-		// Write the TTP step to executor stdin
+		// Wrap the PowerShell command in a script block
 		body = fmt.Sprintf("&{%s}\n\n", body)
 	}
 
@@ -97,4 +112,61 @@ func (e *DefaultExecutor) Execute(ctx context.Context, execCtx TTPExecutionConte
 	cmd.Stdin = strings.NewReader(body)
 
 	return streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+}
+
+// Execute runs the binary with arguments
+func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
+	// expand variables in command line arguments
+	expandedArgs, err := execCtx.ExpandVariables(e.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	// expand variables in environment
+	envAsList := append(FetchEnv(e.Environment), os.Environ()...)
+	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
+	if err != nil {
+		return nil, err
+	}
+
+	var cmd *exec.Cmd
+	if e.Name == ExecutorBinary {
+		cmd = exec.CommandContext(ctx, e.FilePath, expandedArgs...)
+	} else {
+		args := append([]string{e.FilePath}, expandedArgs...)
+		cmd = exec.CommandContext(ctx, e.Name, args...)
+	}
+
+	cmd.Env = expandedEnvAsList
+	cmd.Dir = execCtx.WorkDir
+	return streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+}
+
+// InferExecutor infers the executor based on the file extension and
+// returns it as a string.
+func InferExecutor(filePath string) string {
+	ext := filepath.Ext(filePath)
+	logging.L().Debugw("file extension inferred", "filepath", filePath, "ext", ext)
+	switch ext {
+	case ".sh":
+		return ExecutorSh
+	case ".py":
+		return ExecutorPython
+	case ".rb":
+		return ExecutorRuby
+	case ".pwsh", ".ps1":
+		if runtime.GOOS == "windows" {
+			return ExecutorPowershell
+		}
+		return ExecutorPowershellOnLinux
+	case ".bat":
+		return ExecutorCmd
+	case "":
+		return ExecutorBinary
+	default:
+		if runtime.GOOS == "windows" {
+			return ExecutorCmd
+		}
+		return ExecutorSh
+	}
 }

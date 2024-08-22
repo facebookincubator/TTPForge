@@ -22,6 +22,7 @@ package blocks
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -92,6 +93,15 @@ func (s *CreateFileStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	mode := s.Mode
 	if mode == 0 {
 		mode = 0666
+	}
+
+	dir := filepath.Dir(pathToCreate)
+	exists, err = afero.Exists(fsys, dir)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		fsys.MkdirAll(dir, os.ModePerm)
 	}
 
 	// actually write the file
