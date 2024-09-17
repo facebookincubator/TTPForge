@@ -41,17 +41,9 @@ to learn more!
 1. Get latest TTPForge release:
 
    ```bash
-   bashutils_url="https://raw.githubusercontent.com/l50/dotfiles/main/bashutils"
-
-   bashutils_path="/tmp/bashutils"
-
-   if [[ ! -f "${bashutils_path}" ]]; then
-      curl -s "${bashutils_url}" -o "${bashutils_path}"
-   fi
-
-   source "${bashutils_path}"
-
-   fetchFromGithub "facebookincubator" "TTPForge" "latest" ttpforge
+   curl \
+   https://raw.githubusercontent.com/facebookincubator/TTPForge/main/dl-rl.sh \
+   | bash
    ```
 
    At this point, the latest `ttpforge` release should be in
