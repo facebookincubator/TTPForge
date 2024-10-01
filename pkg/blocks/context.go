@@ -41,10 +41,15 @@ type TTPExecutionConfig struct {
 	Stderr              io.Writer
 }
 
+// TTPExecutionVars - mutable store to carry variables between steps
+type TTPExecutionVars struct {
+	WorkDir string
+}
+
 // TTPExecutionContext - holds config and context for the currently executing TTP
 type TTPExecutionContext struct {
 	Cfg               TTPExecutionConfig
-	WorkDir           string
+	Vars              *TTPExecutionVars
 	StepResults       *StepResultsRecord
 	actionResultsChan chan *ActResult
 	errorsChan        chan error
@@ -54,6 +59,7 @@ type TTPExecutionContext struct {
 // NewTTPExecutionContext creates a new TTPExecutionContext with empty config and created channels
 func NewTTPExecutionContext() TTPExecutionContext {
 	return TTPExecutionContext{
+		Vars:              &TTPExecutionVars{WorkDir: "/"},
 		StepResults:       NewStepResultsRecord(),
 		actionResultsChan: make(chan *ActResult, 1),
 		errorsChan:        make(chan error, 1),

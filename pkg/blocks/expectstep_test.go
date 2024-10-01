@@ -57,7 +57,9 @@ func createTestScript(t *testing.T, scriptContent string) (string, string) {
 
 func NewTestTTPExecutionContext(workDir string) TTPExecutionContext {
 	return TTPExecutionContext{
-		WorkDir: workDir,
+		Vars: &TTPExecutionVars{
+			WorkDir: workDir,
+		},
 	}
 }
 
@@ -668,7 +670,11 @@ func TestExpectSSH(t *testing.T) {
 			mockStep := new(MockExpectStep)
 			mockStep.On("Execute", mock.Anything).Return(tc.mockRet, tc.mockErr)
 
-			execCtx := TTPExecutionContext{WorkDir: "."}
+			execCtx := TTPExecutionContext{
+				Vars: &TTPExecutionVars{
+					WorkDir: ".",
+				},
+			}
 			fmt.Println("Executing command:", tc.step.Expect.Inline)
 			_, err := mockStep.Execute(execCtx)
 			if (err != nil) != tc.wantErr {
@@ -744,7 +750,9 @@ func TestCleanup(t *testing.T) {
 			}
 
 			execCtx := TTPExecutionContext{
-				WorkDir: ".",
+				Vars: &TTPExecutionVars{
+					WorkDir: ".",
+				},
 			}
 
 			_, err := s.Cleanup(execCtx)

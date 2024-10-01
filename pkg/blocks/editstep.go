@@ -71,7 +71,7 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	fileSystem := s.FileSystem
 
 	if fileSystem == nil {
-		_, err := FetchAbs(targetPath, execCtx.WorkDir)
+		_, err := FetchAbs(targetPath, execCtx.Vars.WorkDir)
 		if err != nil {
 			return err
 		}
@@ -130,12 +130,12 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
 		var err error
-		targetPath, err = FetchAbs(targetPath, execCtx.WorkDir)
+		targetPath, err = FetchAbs(targetPath, execCtx.Vars.WorkDir)
 		if err != nil {
 			return nil, err
 		}
 		if backupPath != "" {
-			backupPath, err = FetchAbs(backupPath, execCtx.WorkDir)
+			backupPath, err = FetchAbs(backupPath, execCtx.Vars.WorkDir)
 			if err != nil {
 				return nil, err
 			}
