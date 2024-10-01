@@ -91,7 +91,7 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// Retrieve the absolute path to the file.
-	absLocal, err := FetchAbs(f.Location, execCtx.WorkDir)
+	absLocal, err := FetchAbs(f.Location, execCtx.Vars.WorkDir)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
@@ -135,7 +135,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 	if appFs == nil {
 		var err error
 		appFs = afero.NewOsFs()
-		absLocal, err = FetchAbs(f.Location, execCtx.WorkDir)
+		absLocal, err = FetchAbs(f.Location, execCtx.Vars.WorkDir)
 		if err != nil {
 			return err
 		}

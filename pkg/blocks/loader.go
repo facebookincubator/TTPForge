@@ -151,8 +151,10 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 	}
 
 	execCtx := TTPExecutionContext{
-		Cfg:               *execCfg,
-		WorkDir:           ttp.WorkDir,
+		Cfg: *execCfg,
+		Vars: &TTPExecutionVars{
+			WorkDir: ttp.WorkDir,
+		},
 		StepResults:       NewStepResultsRecord(),
 		actionResultsChan: make(chan *ActResult, 1),
 		errorsChan:        make(chan error, 1),

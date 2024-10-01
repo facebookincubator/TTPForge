@@ -108,7 +108,7 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 
 	cmd := e.buildCommand(ctx)
 	cmd.Env = expandedEnvAsList
-	cmd.Dir = execCtx.WorkDir
+	cmd.Dir = execCtx.Vars.WorkDir
 	cmd.Stdin = strings.NewReader(body)
 
 	return streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
@@ -138,7 +138,7 @@ func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext)
 	}
 
 	cmd.Env = expandedEnvAsList
-	cmd.Dir = execCtx.WorkDir
+	cmd.Dir = execCtx.Vars.WorkDir
 	return streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 }
 

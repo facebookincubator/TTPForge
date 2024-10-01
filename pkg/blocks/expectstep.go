@@ -258,7 +258,7 @@ func (s *ExpectStep) prepareCommand(ctx context.Context, execCtx TTPExecutionCon
 	/* #nosec G204 */
 	cmd := exec.CommandContext(ctx, s.Executor, "-c", inline)
 	cmd.Env = envAsList
-	cmd.Dir = execCtx.WorkDir
+	cmd.Dir = execCtx.Vars.WorkDir
 
 	return cmd
 }

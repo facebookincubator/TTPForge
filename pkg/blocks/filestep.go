@@ -74,14 +74,14 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// If FilePath is set, ensure that the file exists.
-	fullpath, err := FindFilePath(f.FilePath, execCtx.WorkDir, nil)
+	fullpath, err := FindFilePath(f.FilePath, execCtx.Vars.WorkDir, nil)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
 	// Retrieve the absolute path to the file.
-	f.FilePath, err = FetchAbs(fullpath, execCtx.WorkDir)
+	f.FilePath, err = FetchAbs(fullpath, execCtx.Vars.WorkDir)
 	if err != nil {
 		logging.L().Error(zap.Error(err))
 		return err

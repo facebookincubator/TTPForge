@@ -181,7 +181,7 @@ steps:
 			err := yaml.Unmarshal([]byte(tc.content), &ttps)
 			assert.NoError(t, err)
 
-			var execCtx TTPExecutionContext
+			execCtx := NewTTPExecutionContext()
 			err = ttps.Validate(execCtx)
 			if tc.wantError {
 				assert.Error(t, err)
@@ -202,7 +202,7 @@ location: /tmp/test.html
 overwrite: true
 `
 	var s FetchURIStep
-	var execCtx TTPExecutionContext
+	execCtx := NewTTPExecutionContext()
 	err := yaml.Unmarshal([]byte(content), &s)
 	require.NoError(t, err)
 

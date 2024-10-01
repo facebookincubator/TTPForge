@@ -261,7 +261,7 @@ edits:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var editStep EditStep
-			var execCtx TTPExecutionContext
+			execCtx := NewTTPExecutionContext()
 
 			// parse the step
 			err := yaml.Unmarshal([]byte(tc.content), &editStep)
