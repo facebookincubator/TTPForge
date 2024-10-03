@@ -250,6 +250,7 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 
 	actionCandidates := []Action{
 		NewBasicStep(),
+		NewChangeDirectoryStep(),
 		NewFileStep(),
 		NewSubTTPStep(),
 		NewEditStep(),
