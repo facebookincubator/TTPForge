@@ -1,0 +1,23 @@
+---
+api_version: 2.0
+uuid: 236f8a86-8034-43aa-a6e5-979337c375a4
+name: change_directory_example
+description: |
+  This TTP shows you how to use the change_directory action type
+  to change the working directory for all future actions.  If you specify cleanup
+  as default, the directory will be reverted during the cleanup phase.  This may
+  be useful if any of your cleanups make assumptions about their working directory.
+args:
+  - name: cd_destination
+    description: this argument is where we will try to cd to
+    default: /tmp
+steps:
+  - name: "Initial directory"
+    inline: |
+      echo "Current working directory is: \"$(pwd)\""
+  - name: "cd"
+    cd: {{.Args.cd_destination}}
+    cleanup: default
+  - name: "New directory"
+    inline: |
+      echo "Current working directory is: \"$(pwd)\""
