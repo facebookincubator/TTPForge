@@ -26,3 +26,5 @@ steps:
           response: "John"
         - prompt: "Enter your age:"
           response: "30"
+    cleanup:
+      inline: echo "Wipe it"

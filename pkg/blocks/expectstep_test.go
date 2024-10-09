@@ -372,35 +372,6 @@ steps:
           response: "30"
 `,
 		},
-		{
-			name: "Test ExpectStep with CleanupStep",
-			script: `
-print("Enter your name:")
-name = input()
-print(f"Hello, {name}!")
-print("Enter your age:")
-age = input()
-print(f"You are {age} years old.")
-`,
-			content: `
-steps:
-  - name: run_expect_script
-    description: "Run an expect script to interact with the command."
-    expect:
-      inline: |
-        python3 interactive.py
-      chdir: "/tmp"
-      responses:
-        - prompt: "Enter your name:"
-          response: "John"
-        - prompt: "Enter your age:"
-          response: "30"
-      cleanup: |
-        pwd
-        cat interactive.py
-        rm interactive.py
-`,
-		},
 	}
 
 	for _, tc := range testCases {
@@ -529,58 +500,6 @@ steps:
 				assert.Contains(t, normalizedOutput, actualDir)
 				assert.Contains(t, normalizedOutput, expectedSubstring2)
 			}
-
-			if tc.name == "Test ExpectStep with CleanupStep" {
-				// Mock the command execution
-				execCtx := NewTestTTPExecutionContext(tempDir)
-				console, err := expect.NewConsole(expectNoError(t), sendNoError(t), expect.WithStdout(os.Stdout), expect.WithStdin(os.Stdin))
-				require.NoError(t, err)
-				defer console.Close()
-
-				cmd := exec.Command("sh", "-c", "python3 "+scriptPath)
-				cmd.Stdin = console.Tty()
-				cmd.Stdout = console.Tty()
-				cmd.Stderr = console.Tty()
-
-				if expectStep.Chdir != "" {
-					cmd.Dir = expectStep.Chdir
-				}
-
-				err = cmd.Start()
-				require.NoError(t, err)
-
-				done := make(chan struct{})
-
-				// simulate console input
-				go func() {
-					defer close(done)
-					time.Sleep(1 * time.Second)
-					console.SendLine("John")
-					time.Sleep(1 * time.Second)
-					console.SendLine("30")
-					time.Sleep(1 * time.Second)
-					console.Tty().Close() // Close the Tty to signal EOF
-				}()
-
-				_, err = expectStep.Execute(execCtx)
-				require.NoError(t, err)
-				<-done
-
-				output, err := console.ExpectEOF()
-				require.NoError(t, err)
-
-				// Check the output of the command execution
-				normalizedOutput := strings.ReplaceAll(output, "\r\n", "\n")
-				expectedSubstring1 := "Hello, John!\n"
-				expectedSubstring2 := "You are 30 years old.\n"
-				assert.Contains(t, normalizedOutput, expectedSubstring1)
-				assert.Contains(t, normalizedOutput, expectedSubstring2)
-
-				// Execute cleanup step
-				result, err := expectStep.Cleanup(execCtx)
-				require.NoError(t, err)
-				assert.NotNil(t, result)
-			}
 		})
 	}
 }
@@ -696,71 +615,6 @@ type MockCommandExecutor struct {
 
 func (m MockCommandExecutor) Run() error {
 	return m.runFunc()
-}
-
-func TestCleanup(t *testing.T) {
-	testCases := []struct {
-		name          string
-		cleanupStep   string
-		mockRunOutput string
-		mockRunError  string
-		wantErr       bool
-	}{
-		{
-			name:          "No Cleanup Step",
-			cleanupStep:   "",
-			mockRunOutput: "",
-			mockRunError:  "",
-			wantErr:       false,
-		},
-		{
-			name:          "Successful Cleanup",
-			cleanupStep:   "echo 'cleaning up'",
-			mockRunOutput: "cleaning up",
-			mockRunError:  "",
-			wantErr:       false,
-		},
-		{
-			name:          "Failed Cleanup",
-			cleanupStep:   "exit 1",
-			mockRunOutput: "",
-			mockRunError:  "exit status 1",
-			wantErr:       true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			s := &ExpectStep{
-				CleanupStep: tc.cleanupStep,
-				Executor:    "sh",
-			}
-
-			// Mock execCommand for testing
-			execCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
-				cs := []string{"-test.run=TestHelperProcess", "--", name}
-				cs = append(cs, args...)
-				cmd := exec.CommandContext(ctx, os.Args[0], cs...)
-				cmd.Env = append(os.Environ(),
-					"GO_WANT_HELPER_PROCESS=1",
-					fmt.Sprintf("MOCK_RUN_OUTPUT=%s", tc.mockRunOutput),
-					fmt.Sprintf("MOCK_RUN_ERROR=%s", tc.mockRunError),
-				)
-				return cmd
-			}
-
-			execCtx := TTPExecutionContext{
-				Vars: &TTPExecutionVars{
-					WorkDir: ".",
-				},
-			}
-
-			_, err := s.Cleanup(execCtx)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("Cleanup() error = %v, wantErr %v", err, tc.wantErr)
-			}
-		})
-	}
 }
 
 func TestHelperProcess(*testing.T) {
