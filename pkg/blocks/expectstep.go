@@ -30,7 +30,6 @@ import (
 	"github.com/Netflix/go-expect"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
-	"go.uber.org/zap"
 )
 
 // ExpectStep represents an expect command.
@@ -52,7 +51,6 @@ type ExpectStep struct {
 	Executor       string                  `yaml:"executor,omitempty"`
 	Expect         *ExpectSpec             `yaml:"expect,omitempty"`
 	Environment    map[string]string       `yaml:"env,omitempty"`
-	CleanupStep    string                  `yaml:"cleanup,omitempty"`
 	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
 }
 
@@ -261,40 +259,6 @@ func (s *ExpectStep) prepareCommand(ctx context.Context, execCtx TTPExecutionCon
 	cmd.Dir = execCtx.Vars.WorkDir
 
 	return cmd
-}
-
-// Cleanup runs the cleanup command if specified.
-//
-// **Parameters:**
-//
-// execCtx: Execution context containing environment variables and working
-// directory.
-//
-// **Returns:**
-//
-// *ActResult: A pointer to the action result.
-// error: An error if cleanup fails.
-func (s *ExpectStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	if s.CleanupStep == "" {
-		return &ActResult{}, nil
-	}
-
-	logging.L().Info("Running cleanup step")
-
-	envAsList := os.Environ()
-	cmd := s.prepareCommand(context.Background(), execCtx, envAsList, s.CleanupStep)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		logging.L().Error("Failed to run cleanup command", zap.Error(err))
-		return nil, fmt.Errorf("failed to run cleanup command: %w", err)
-	}
-
-	logging.L().Info("Cleanup step completed successfully")
-	return &ActResult{}, nil
 }
 
 // CanBeUsedInCompositeAction enables this action to be used in a composite
