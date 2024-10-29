@@ -96,7 +96,7 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 	body := expandedInlines[0]
 	if e.Name == ExecutorPowershellOnLinux || e.Name == ExecutorPowershell {
 		// Wrap the PowerShell command in a script block
-		body = fmt.Sprintf("&{%s}\n\n", body)
+		body = fmt.Sprintf("$ErrorActionPreference = 'Stop' ; &{%s}\n\n", body)
 	}
 
 	// expand variables in environment
