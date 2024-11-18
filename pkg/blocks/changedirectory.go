@@ -63,21 +63,6 @@ func (step *ChangeDirectoryStep) Validate(_ TTPExecutionContext) error {
 		return err
 	}
 
-	// Check if cd is a valid directory
-	fsys := step.FileSystem
-	if fsys == nil {
-		fsys = afero.NewOsFs()
-	}
-
-	exists, err := afero.DirExists(fsys, step.Cd)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return fmt.Errorf("directory \"%s\" does not exist", step.Cd)
-	}
-
 	return nil
 }
 
@@ -94,6 +79,25 @@ func (step *ChangeDirectoryStep) Execute(ctx TTPExecutionContext) (*ActResult, e
 			return nil, fmt.Errorf("no previous directory found in parent cd step")
 		}
 		step.Cd = step.PreviousCDStep.PreviousDir
+	}
+
+	// Check if cd is a valid directory
+	fsys := step.FileSystem
+	if fsys == nil {
+		if step.PreviousCDStep != nil && step.PreviousCDStep.FileSystem != nil {
+			fsys = step.PreviousCDStep.FileSystem
+		} else {
+			fsys = afero.NewOsFs()
+		}
+	}
+
+	exists, err := afero.DirExists(fsys, step.Cd)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, fmt.Errorf("directory \"%s\" does not exist", step.Cd)
 	}
 
 	logging.L().Infof("Changing directory to %s", step.Cd)
