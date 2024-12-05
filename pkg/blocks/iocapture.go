@@ -27,39 +27,80 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 )
 
-type zapWriter struct {
-	prefix string
+type bufferedWriter struct {
+	buff   bytes.Buffer
+	writer io.Writer
 }
 
-func (z *zapWriter) Write(b []byte) (int, error) {
-	n := len(b)
-	// extra-defensive programming :P
-	if n <= 0 {
-		return 0, nil
-	}
-
-	// strip trailing newline
-	if b[n-1] == '\n' {
-		b = b[:n-1]
-	}
-
-	// split lines
-	lines := bytes.Split(b, []byte{'\n'})
-	for _, line := range lines {
-		logging.L().Info(z.prefix, string(line))
+func (bw *bufferedWriter) Write(b []byte) (n int, err error) {
+	n = len(b)
+	for len(b) > 0 {
+		b = bw.writeLine(b)
 	}
 	return n, nil
 }
 
+func (bw *bufferedWriter) writeLine(line []byte) (remaining []byte) {
+	idx := bytes.IndexByte(line, '\n')
+	if idx < 0 {
+		// If there are no newlines, buffer the entire string.
+		bw.buff.Write(line)
+		return nil
+	}
+
+	// Split on the newline, buffer and flush the left.
+	line, remaining = line[:idx], line[idx+1:]
+
+	// Fast path: if we don't have a partial message from a previous write
+	// in the buffer, skip the buffer and log directly.
+	if bw.buff.Len() == 0 {
+		bw.log(line)
+		return remaining
+	}
+
+	bw.buff.Write(line)
+	bw.log(bw.buff.Bytes())
+	bw.buff.Reset()
+	return remaining
+}
+
+func (bw *bufferedWriter) log(line []byte) {
+	_, err := bw.writer.Write(line)
+	if err != nil {
+		logging.L().Errorw("failed to log", "err", err)
+	}
+}
+
+func (bw *bufferedWriter) Close() error {
+	if bw.buff.Len() != 0 {
+		bw.log(bw.buff.Bytes())
+		bw.buff.Reset()
+	}
+	return nil
+}
+
+type zapWriter struct {
+	prefix string
+}
+
+func (zw *zapWriter) Write(p []byte) (n int, err error) {
+	logging.L().Info(zw.prefix, string(p))
+	return len(p), nil
+}
+
 func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
 	if stdout == nil {
-		stdout = &zapWriter{
-			prefix: "[STDOUT] ",
+		stdout = &bufferedWriter{
+			writer: &zapWriter{
+				prefix: "[STDOUT] ",
+			},
 		}
 	}
 	if stderr == nil {
-		stderr = &zapWriter{
-			prefix: "[STDERR] ",
+		stderr = &bufferedWriter{
+			writer: &zapWriter{
+				prefix: "[STDERR] ",
+			},
 		}
 	}
 
@@ -75,8 +116,5 @@ func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error
 	result := ActResult{}
 	result.Stdout = outStr
 	result.Stderr = errStr
-	if err != nil {
-		return nil, err
-	}
 	return &result, nil
 }
