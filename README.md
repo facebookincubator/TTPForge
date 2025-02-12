@@ -32,7 +32,6 @@ to learn more!
 - [Documentation](docs/foundations/README.md)
 - [Getting Started - Developer](docs/dev/README.md)
 - [Go Package Documentation](https://pkg.go.dev/github.com/facebookincubator/ttpforge@main)
-- [Creating a new release](docs/release.md)
 
 ---
 
