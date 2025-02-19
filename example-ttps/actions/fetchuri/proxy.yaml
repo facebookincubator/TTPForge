@@ -1,0 +1,12 @@
+---
+api_version: 2.0
+uuid: 81af6d8f-0da9-49cd-8fff-8edd4adc7bfe
+name: fetch_uri_proxy_example
+description: |
+  This TTP shows you how to use the fetch action type fetch files with an http request through an http proxy.
+steps:
+  - name: Fetch Something Through Proxy
+    fetch_uri: https://raw.githubusercontent.com/facebookincubator/TTPForge/refs/heads/main/README.md
+    location: /tmp/ttpforge_fetch_uri_file_{{randAlphaNum 10}}
+    proxy: http://localhost:8080
+    cleanup: default

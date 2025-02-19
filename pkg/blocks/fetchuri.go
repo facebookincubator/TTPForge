@@ -108,22 +108,15 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 // Execute runs the step and returns an error if one occurs.
 func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Info("========= Executing ==========")
-
+	logging.L().Infof("FetchURI: %s", f.FetchURI)
 	if err := f.fetchURI(execCtx); err != nil {
 		logging.L().Error(zap.Error(err))
 		return nil, err
 	}
 
 	logging.L().Info("========= Result ==========")
-
+	logging.L().Infof("Fetched URI to location: %s", f.Location)
 	return &ActResult{}, nil
-}
-
-// Cleanup is a method to establish a link with the Cleanup interface.
-// Assumes that the type is the cleanup step and is invoked by
-// f.CleanupStep.Cleanup.
-func (f *FetchURIStep) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
-	return f.Execute(execCtx)
 }
 
 // fetchURI executes the FetchURIStep with the specified Location, Uri, and additional arguments,
@@ -180,4 +173,12 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 	logging.L().Debugw("wrote contents of URI to specified location", "location", absLocal, "uri", f.FetchURI)
 
 	return nil
+}
+
+// GetDefaultCleanupAction will instruct the calling code
+// to remove the file fetched by this action.
+func (s *FetchURIStep) GetDefaultCleanupAction() Action {
+	return &RemovePathAction{
+		Path: s.Location,
+	}
 }
