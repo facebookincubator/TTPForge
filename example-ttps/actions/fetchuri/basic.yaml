@@ -1,0 +1,11 @@
+---
+api_version: 2.0
+uuid: fe7f257f-19d2-4324-8590-bfddeb1156e2
+name: fetch_uri_basic_example
+description: |
+  This TTP shows you how to use the fetch action type fetch files with an http request.
+steps:
+  - name: Fetch Something
+    fetch_uri: https://raw.githubusercontent.com/facebookincubator/TTPForge/refs/heads/main/README.md
+    location: /tmp/ttpforge_fetch_uri_file_{{randAlphaNum 10}}
+    cleanup: default
