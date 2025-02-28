@@ -1,0 +1,46 @@
+---
+api_version: 2.0
+uuid: af81ce65-70d2-496f-9aae-9086ce52bc4b
+name: http_request_post_example_full
+description: |
+  This TTP shows you how to use the http request action type to send a POST request containing
+  data, parsing the response with a regular expression and storing the result in an environmental
+  variable accessed in the next step.
+args:
+  - name: host
+    description: The target host for the requests to be made to.
+    default: api.example.com
+  - name: user_agent
+    description: The User-Agent header string to be sent with the requests.
+    default: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)
+steps:
+  - name: POST Request With Regex
+    http_request: https://{{.Args.host}}/api/v1/config
+    type: POST
+    headers:
+      - field: User-Agent
+        value: {{.Args.user_agent}}
+      - field: Content-Type
+        value: application/x-www-form-urlencoded; charset=UTF-8
+      - field: Accepted-Encoding
+        value: gzip, deflate
+    body: >
+      params={
+        "client_input_params": {
+          "username_input": "",
+          "device_id": "android-3072a22f5cc5db69",
+        },
+        "example_params": {
+          "current_step": "LOGIN"
+        }
+      }
+      &bloks_versioning_id=6
+    regex: |
+      [^"]*arm
+    response: REQUEST_1_CONTEXT
+    cleanup:
+      inline: |
+        echo "No cleanup required."
+  - name: Do next
+    inline: |
+      echo $REQUEST_1_CONTEXT
