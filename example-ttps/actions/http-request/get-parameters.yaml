@@ -1,0 +1,15 @@
+---
+api_version: 2.0
+uuid: b2d21ff8-92ea-4bf9-a21c-fc6bef0203d3
+name: http_request_with_parameters_example
+description: |
+  This TTP shows you how to use the http request action type to send a GET request to a url, with specified parameters.
+steps:
+  - name: make_request
+    http_request: https://exampleapi.com/facts/random
+    type: GET
+    parameters:
+      - name: "animal"
+        value: "cat"
+      - name: "amount"
+        value: "5"

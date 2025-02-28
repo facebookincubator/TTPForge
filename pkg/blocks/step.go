@@ -260,6 +260,7 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		NewRemovePathAction(),
 		NewPrintStrAction(),
 		NewExpectStep(),
+		NewHTTPRequestStep(),
 	}
 
 	var action Action
