@@ -1,0 +1,20 @@
+---
+api_version: 2.0
+uuid: ce732c7f-13d3-1321-8590-bfeeeb11c6e2
+name: http_request_basic_example
+description: |
+  This TTP shows you how to use the http request action type to send a GET request to a url, with and without an http proxy.
+steps:
+  - name: Basic GET Request
+    http_request: https://facebook.com
+    type: GET
+    cleanup:
+      inline: |
+        echo "No cleanup required."
+  - name: Proxied GET Request
+    http_request: https://facebook.com
+    type: GET
+    proxy: http://localhost:8080
+    cleanup:
+      inline: |
+        echo "No cleanup required."
