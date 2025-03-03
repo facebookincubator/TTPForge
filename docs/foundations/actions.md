@@ -9,6 +9,8 @@ TTPForge supports the following types of actions:
 - [expect:](actions/expect.md) Automate Interactive Command Executions via
   Expect.
 - [remove_path:](actions/remove_path.md) Delete Files/Directories
+- [http_request:](actions/http_request.md) Executes an HTTP Request and Saves
+  Response as Variable.
 - [fetch_uri:](actions/fetch_uri.md) Downloads a File from URL to Disk
 - [print_str:](actions/print_str.md) Print Strings to the Screen
 - [file:](actions/file.md) Execute an External Program (No Shell)
