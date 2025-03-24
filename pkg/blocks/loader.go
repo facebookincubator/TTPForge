@@ -31,6 +31,7 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/facebookincubator/ttpforge/pkg/args"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/platforms"
 	"github.com/facebookincubator/ttpforge/pkg/preprocess"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
@@ -40,7 +41,8 @@ import (
 // runtime parameters used in the
 // TTP template rendering process
 type RenderParameters struct {
-	Args map[string]interface{}
+	Args     map[string]interface{}
+	Platform platforms.Spec
 }
 
 // RenderTemplatedTTP is a function that utilizes Golang's `text/template` for template substitution.
@@ -125,7 +127,8 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, arg
 	}
 
 	rp := RenderParameters{
-		Args: argValues,
+		Args:     argValues,
+		Platform: platforms.GetCurrentPlatformSpec(),
 	}
 	ttp, err := RenderTemplatedTTP(string(ttpBytes), rp)
 	if err != nil {
