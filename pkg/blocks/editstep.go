@@ -121,11 +121,29 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *EditStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.FileToEdit, err = execCtx.templateStep(step.FileToEdit)
+	if err != nil {
+		return err
+	}
+	step.BackupFile, err = execCtx.templateStep(step.BackupFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
-func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	fileSystem := s.FileSystem
-	targetPath := s.FileToEdit
-	backupPath := s.BackupFile
+func (step *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	fileSystem := step.FileSystem
+	targetPath := step.FileToEdit
+	backupPath := step.BackupFile
 
 	if fileSystem == nil {
 		fileSystem = afero.NewOsFs()
@@ -152,15 +170,14 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if backupPath != "" {
 		err = afero.WriteFile(fileSystem, backupPath, []byte(contents), 0644)
 		if err != nil {
-			return nil, fmt.Errorf("could not write backup file %v: %w", s.BackupFile, err)
+			return nil, fmt.Errorf("could not write backup file %v: %w", step.BackupFile, err)
 		}
 	}
 
 	// this is inefficient - searches string 2 * num_edits times -
 	// but it's unlikely to be a performance issue in practice. If it is,
 	// we can optimize
-	for editIdx, edit := range s.Edits {
-
+	for editIdx, edit := range step.Edits {
 		if edit.Append != "" {
 			contents += "\n" + edit.Append
 			continue
@@ -175,7 +192,7 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 				"pattern '%v' from edit #%d was not found in file %v",
 				edit.Old,
 				editIdx+1,
-				s.FileToEdit,
+				step.FileToEdit,
 			)
 		}
 		newStr := edit.New

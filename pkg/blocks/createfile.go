@@ -66,6 +66,24 @@ func (s *CreateFileStep) Validate(_ TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *CreateFileStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.Path, err = execCtx.templateStep(step.Path)
+	if err != nil {
+		return err
+	}
+	step.Contents, err = execCtx.templateStep(step.Contents)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (s *CreateFileStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Creating file %v", s.Path)

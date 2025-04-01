@@ -23,10 +23,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
@@ -69,19 +69,24 @@ func (f *FetchURIStep) IsNil() bool {
 // If Location is set, it ensures that the path exists and retrieves
 // its absolute path.
 func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
-	if f.FetchURI == "" {
+	fsys := f.FileSystem
+	if fsys == nil {
+		fsys = afero.NewOsFs()
+	}
+
+	if f.FetchURI == "" && !strings.Contains(f.FetchURI, stepTemplateLeftDelim) {
 		err := errors.New("require FetchURI to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.Location == "" {
+	if f.Location == "" && !strings.Contains(f.Location, stepTemplateLeftDelim) {
 		err := errors.New("require Location to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.Proxy != "" {
+	if f.Proxy != "" && !strings.Contains(f.Proxy, stepTemplateLeftDelim) {
 		uri, err := url.Parse(f.Proxy)
 		if err != nil {
 			return err
@@ -96,26 +101,101 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
-
-	_, err = os.Stat(absLocal)
-	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
+	exists, err := afero.Exists(fsys, absLocal)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	if exists && !f.Overwrite {
 		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
 		return errors.New("file exists at location specified, remove and retry")
 	}
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *FetchURIStep) Template(execCtx TTPExecutionContext) error {
+	fsys := step.FileSystem
+	if fsys == nil {
+		fsys = afero.NewOsFs()
+	}
+
+	var err error
+
+	// Template URI
+	step.FetchURI, err = execCtx.templateStep(step.FetchURI)
+	if err != nil {
+		return err
+	}
+
+	// Template retries
+	step.Retries, err = execCtx.templateStep(step.Retries)
+	if err != nil {
+		return err
+	}
+
+	// Template and revalidate location
+	step.Location, err = execCtx.templateStep(step.Location)
+	if err != nil {
+		return err
+	}
+	absLocal, err := FetchAbs(step.Location, execCtx.Vars.WorkDir)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	exists, err := afero.Exists(fsys, absLocal)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	if exists && !step.Overwrite {
+		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
+		return errors.New("file exists at location specified, remove and retry")
+	}
+
+	// Template and revalidate proxy
+	step.Proxy, err = execCtx.templateStep(step.Proxy)
+	if err != nil {
+		return err
+	}
+	if step.Proxy != "" {
+		uri, err := url.Parse(step.Proxy)
+		if err != nil {
+			return err
+		} else if uri.Host == "" || uri.Scheme == "" {
+			return fmt.Errorf("invalid URI given for Proxy: %s", step.Proxy)
+		}
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
-func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+func (step *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Info("========= Executing ==========")
-	logging.L().Infof("FetchURI: %s", f.FetchURI)
-	if err := f.fetchURI(execCtx); err != nil {
+	logging.L().Infof("FetchURI: %s", step.FetchURI)
+	if err := step.fetchURI(execCtx); err != nil {
 		logging.L().Error(zap.Error(err))
 		return nil, err
 	}
 
 	logging.L().Info("========= Result ==========")
-	logging.L().Infof("Fetched URI to location: %s", f.Location)
+	logging.L().Infof("Fetched URI to location: %s", step.Location)
+	// Send file contents to the output variable
+	if step.OutputVar != "" {
+		// TODO: maybe we make this step able to just send the output to a var and make the file output optional?
+		content, err := os.ReadFile(step.Location)
+		if err != nil {
+			logging.L().Error(zap.Error(err))
+			return nil, err
+		}
+		execCtx.Vars.StepVars[step.OutputVar] = string(content)
+	}
+
 	return &ActResult{}, nil
 }
 

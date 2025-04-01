@@ -106,17 +106,45 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *FileStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.FilePath, err = execCtx.templateStep(step.FilePath)
+	if err != nil {
+		return err
+	}
+	step.Executor, err = execCtx.templateStep(step.Executor)
+	if err != nil {
+		return err
+	}
+	for index, value := range step.Args {
+		step.Args[index], err = execCtx.templateStep(value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
-func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+func (step *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
 	defer cancel()
 
-	executor := NewExecutor(f.Executor, "", f.FilePath, f.Args, f.Environment)
+	executor := NewExecutor(step.Executor, "", step.FilePath, step.Args, step.Environment)
 	result, err := executor.Execute(ctx, execCtx)
 	if err != nil {
 		return nil, err
 	}
-	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
+	result.Outputs, err = outputs.Parse(step.Outputs, result.Stdout)
+	// Send stdout to the output variable
+	if step.OutputVar != "" {
+		execCtx.Vars.StepVars[step.OutputVar] = result.Stdout
+	}
 	return result, err
 }
 

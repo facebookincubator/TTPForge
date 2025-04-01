@@ -90,23 +90,37 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+func (step *BasicStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.Inline, err = execCtx.templateStep(step.Inline)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
-func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+func (step *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
 	defer cancel()
 
-	if b.Inline == "" {
+	if step.Inline == "" {
 		return nil, fmt.Errorf("empty inline value in Execute(...)")
 	}
 
-	executor := NewExecutor(b.ExecutorName, b.Inline, "", nil, b.Environment)
+	executor := NewExecutor(step.ExecutorName, step.Inline, "", nil, step.Environment)
 	result, err := executor.Execute(ctx, execCtx)
 	if err != nil {
 		return nil, err
 	}
-	result.Outputs, err = outputs.Parse(b.Outputs, result.Stdout)
+	result.Outputs, err = outputs.Parse(step.Outputs, result.Stdout)
 	if err != nil {
 		return nil, err
+	}
+	// Send stdout to the output variable
+	if step.OutputVar != "" {
+		execCtx.Vars.StepVars[step.OutputVar] = result.Stdout
 	}
 	return result, nil
 }

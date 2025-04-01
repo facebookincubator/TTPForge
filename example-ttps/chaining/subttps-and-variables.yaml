@@ -1,0 +1,16 @@
+---
+api_version: 2.0
+uuid: d95a64f2-643e-4476-9efb-db2b1938d978
+name: Basic TTP Chaining
+description: |
+  SubTTps can set variables that can be used by other TTPs.  Variables set in SubTTps
+  are surfaced up to the parent TTP.
+tests:
+  - name: default
+steps:
+  - name: subttp_that_sets_variable
+    description: this step invokes another TTP, which sets the foo variable within its steps
+    ttp: //chaining/variables.yaml
+  - name: use_variable
+    description: this step uses a variable created in the previous subttp step
+    print_str: "Template this: {[{ .StepVars.foo }]}"

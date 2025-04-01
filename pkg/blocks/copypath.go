@@ -70,6 +70,24 @@ func (s *CopyPathStep) Validate(_ TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *CopyPathStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.Source, err = execCtx.templateStep(step.Source)
+	if err != nil {
+		return err
+	}
+	step.Destination, err = execCtx.templateStep(step.Destination)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (s *CopyPathStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Copying file(s) from %v to %v", s.Source, s.Destination)
