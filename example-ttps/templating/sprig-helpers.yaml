@@ -1,0 +1,21 @@
+---
+api_version: 2.0
+uuid: 6e35795a-7d18-460b-935e-46d41cc593ef
+name: spring_helpers
+description: |
+  This TTP shows you how to use sprig helpers in your template injections.
+  You can use them with step variables too.
+args:
+  - name: word_to_b64_encode
+    description: The word to base64 encode
+    default: "Apple"
+steps:
+  - name: print_word
+    inline: echo "The word is {{ .Args.word_to_b64_encode }}"
+  - name: base64_encode_word
+    inline: echo "The b64 encoded word is {{ .Args.word_to_b64_encode | b64enc }}"
+  - name: base64_encode_word_to_variable
+    inline: echo "{{ .Args.word_to_b64_encode | b64enc }}"
+    outputvar: base64_encoded_word
+  - name: decode_word
+    print_str: "The b64 decoded word is {[{ .StepVars.base64_encoded_word | b64dec }]}"

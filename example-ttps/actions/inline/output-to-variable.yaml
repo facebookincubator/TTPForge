@@ -1,0 +1,19 @@
+---
+api_version: 2.0
+uuid: 69f62d37-d68c-4a37-a3e2-871d1f292717
+name: inline_basic
+description: |
+  This TTP shows you how to use the inline action type to
+  run basic shell commands and store the outputs in variables.
+steps:
+  - name: bash_output
+    inline: echo "This will be stored as a variable!"
+    outputvar: bash_output
+  - name: python_output
+    executor: python3
+    inline: |
+      msg = "This will also be stored as a variable!"
+      print(msg)
+    outputvar: python_output
+  - name: print_variables
+    print_str: "bash_output: {[{ .StepVars.bash_output }]}\npython_output: {[{ .StepVars.python_output }]}"

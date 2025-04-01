@@ -35,11 +35,13 @@ func TestEditStep(t *testing.T) {
 		name                      string
 		content                   string
 		wantUnmarshalError        bool
-		wantValidateError         bool
-		wantExecuteError          bool
+		expectValidateError       bool
+		expectTemplateError       bool
+		expectExecuteError        bool
 		expectedContentsAfterEdit string
 		expectedErrTxt            string
 		fsysContents              map[string][]byte
+		stepVars                  map[string]string
 	}{
 		{
 			name: "Test Unmarshal Edit Valid",
@@ -63,8 +65,8 @@ edits:
   - old: wutwut
   - old: another
     new: one`,
-			wantValidateError: true,
-			expectedErrTxt:    "edit #2 is missing 'new:'",
+			expectValidateError: true,
+			expectedErrTxt:      "edit #2 is missing 'new:'",
 		},
 		{
 			name: "Test Unmarshal No Old",
@@ -76,8 +78,8 @@ edits:
     new: haha
   - old: another
     new: one`,
-			wantValidateError: true,
-			expectedErrTxt:    "edit #1 is missing 'old:'",
+			expectValidateError: true,
+			expectedErrTxt:      "edit #1 is missing 'old:'",
 		},
 		{
 			name: "Test Unmarshal Empty Edits",
@@ -85,8 +87,8 @@ edits:
 steps:
   - name: no_edits
     edit_file: yolo`,
-			wantValidateError: true,
-			expectedErrTxt:    "no edits specified",
+			expectValidateError: true,
+			expectedErrTxt:      "no edits specified",
 		},
 		{
 			name: "Test Execute Simple",
@@ -159,9 +161,9 @@ edit_file: b.txt
 edits:
   - old: not_going_to_find_this
     new: will_not_be_used`,
-			fsysContents:     map[string][]byte{"b.txt": []byte("not_goung_to_find_this")},
-			wantExecuteError: true,
-			expectedErrTxt:   "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt",
+			fsysContents:       map[string][]byte{"b.txt": []byte("not_goung_to_find_this")},
+			expectExecuteError: true,
+			expectedErrTxt:     "pattern 'not_going_to_find_this' from edit #1 was not found in file b.txt",
 		},
 		{
 			name: "Test Append Old",
@@ -170,8 +172,8 @@ edit_file: yolo
 edits:
   - old: help
     append: nooooo`,
-			wantValidateError: true,
-			expectedErrTxt:    "append is not to be used in conjunction with 'old:'",
+			expectValidateError: true,
+			expectedErrTxt:      "append is not to be used in conjunction with 'old:'",
 		},
 		{
 			name: "Test Append New",
@@ -180,8 +182,8 @@ edit_file: yolo
 edits:
   - new: me
     append: nooooo`,
-			wantValidateError: true,
-			expectedErrTxt:    "append is not to be used in conjunction with 'new:'",
+			expectValidateError: true,
+			expectedErrTxt:      "append is not to be used in conjunction with 'new:'",
 		},
 		{
 			name: "Test Append Regex",
@@ -192,8 +194,8 @@ edits:
     new:
     append: nooooo
     regexp: true`,
-			wantValidateError: true,
-			expectedErrTxt:    "append is not to be used in conjunction with 'regexp:'",
+			expectValidateError: true,
+			expectedErrTxt:      "append is not to be used in conjunction with 'regexp:'",
 		},
 		{
 			name: "Test Delete Old",
@@ -203,8 +205,8 @@ edits:
   - old: help
     new: me
     delete: you`,
-			wantValidateError: true,
-			expectedErrTxt:    "delete is not to be used in conjunction with 'old:'",
+			expectValidateError: true,
+			expectedErrTxt:      "delete is not to be used in conjunction with 'old:'",
 		},
 		{
 			name: "Test Delete New",
@@ -213,8 +215,8 @@ edit_file: yolo
 edits:
   - new: me
     delete: you`,
-			wantValidateError: true,
-			expectedErrTxt:    "delete is not to be used in conjunction with 'new:'",
+			expectValidateError: true,
+			expectedErrTxt:      "delete is not to be used in conjunction with 'new:'",
 		},
 		{
 			name: "Test Append",
@@ -257,11 +259,40 @@ edits:
 			fsysContents:              map[string][]byte{"a.txt": []byte("foo\nanother")},
 			expectedContentsAfterEdit: "another",
 		},
+		{
+			name: "Test Unmarshal Edit Valid with templating",
+			content: `
+edit_file: /tmp/{[{.StepVars.filename}]}
+backup_file: /tmp/{[{.StepVars.filename}]}_backup
+edits:
+  - old: foo
+    new: yolo
+  - old: another
+    new: one`,
+			fsysContents:              map[string][]byte{"/tmp/test": []byte("foo\nanother")},
+			stepVars:                  map[string]string{"filename": "test"},
+			expectedContentsAfterEdit: "yolo\none",
+		},
+		{
+			name: "Test Unmarshal raises error if variable missing during template",
+			content: `
+edit_file: /tmp/{[{.StepVars.filename}]}
+backup_file: /tmp/{[{.StepVars.filename}]}_backup
+edits:
+  - old: foo
+    new: yolo
+  - old: another
+    new: one`,
+			fsysContents:        map[string][]byte{"/tmp/test": []byte("foo\nanother")},
+			expectTemplateError: true,
+			expectedErrTxt:      "template: BasicStep:1:17: executing \"BasicStep\" at <.StepVars.filename>: map has no entry for key \"filename\"",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var editStep EditStep
 			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
 
 			// parse the step
 			err := yaml.Unmarshal([]byte(tc.content), &editStep)
@@ -273,7 +304,15 @@ edits:
 
 			// validate the step
 			err = editStep.Validate(execCtx)
-			if tc.wantValidateError {
+			if tc.expectValidateError {
+				assert.Equal(t, tc.expectedErrTxt, err.Error())
+				return
+			}
+			require.NoError(t, err)
+
+			// template the step
+			err = editStep.Template(execCtx)
+			if tc.expectTemplateError {
 				assert.Equal(t, tc.expectedErrTxt, err.Error())
 				return
 			}
@@ -292,7 +331,7 @@ edits:
 
 			// execute the step and check output
 			_, err = editStep.Execute(execCtx)
-			if tc.wantExecuteError {
+			if tc.expectExecuteError {
 				assert.Equal(t, tc.expectedErrTxt, err.Error())
 				return
 			}

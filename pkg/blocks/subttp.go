@@ -63,11 +63,39 @@ func (s *SubTTPStep) Validate(execCtx TTPExecutionContext) error {
 		return errors.New("a TTP reference is required and must not be empty")
 	}
 
-	if err := s.loadSubTTP(execCtx); err != nil {
+	if !strings.Contains(s.TtpRef, stepTemplateLeftDelim) {
+		if err := s.loadSubTTP(execCtx); err != nil {
+			return err
+		}
+
+		return s.ttp.Validate(execCtx)
+	}
+	return nil
+}
+
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *SubTTPStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.TtpRef, err = execCtx.templateStep(step.TtpRef)
+	if err != nil {
+		return err
+	}
+	for key, value := range step.Args {
+		step.Args[key], err = execCtx.templateStep(value)
+		if err != nil {
+			return err
+		}
+	}
+	// revalidate the step after template resolution
+	if err := step.loadSubTTP(execCtx); err != nil {
 		return err
 	}
 
-	return s.ttp.Validate(execCtx)
+	return step.ttp.Validate(execCtx)
 }
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
@@ -137,7 +165,7 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 		return err
 	}
 
-	ttps, ctx, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &execCtx.Cfg, subArgsKv)
+	ttps, ctx, err := LoadTTP(subTTPAbsPath, repo.GetFs(), &execCtx.Cfg, execCtx.Vars.StepVars, subArgsKv)
 	if err != nil {
 		return err
 	}

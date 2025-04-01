@@ -70,9 +70,8 @@ func (r *HTTPRequestStep) IsNil() bool {
 
 // Validate validates the HTTPRequestStep.
 func (r *HTTPRequestStep) Validate(execCtx TTPExecutionContext) error {
-
-	// Validate the target URL
-	if r.HTTPRequest != "" {
+	// Validate the target URL, skip if contains template
+	if r.HTTPRequest != "" && !strings.Contains(r.HTTPRequest, stepTemplateLeftDelim) {
 		uri, err := url.Parse(r.HTTPRequest)
 		if err != nil {
 			return err
@@ -82,7 +81,7 @@ func (r *HTTPRequestStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// Validate the proxy URL
-	if r.Proxy != "" {
+	if r.Proxy != "" && !strings.Contains(r.Proxy, stepTemplateLeftDelim) {
 		uri, err := url.Parse(r.Proxy)
 		if err != nil {
 			return err
@@ -92,7 +91,7 @@ func (r *HTTPRequestStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// Validate the http request type is valid
-	if r.Type != "" {
+	if r.Type != "" && !strings.Contains(r.Type, stepTemplateLeftDelim) {
 		isHTTPMethod := false
 		for _, method := range []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"} {
 			if strings.EqualFold(r.Type, method) {
@@ -120,21 +119,121 @@ func (r *HTTPRequestStep) Validate(execCtx TTPExecutionContext) error {
 	}
 
 	// Validate regex
-	if r.Regex != "" {
+	if r.Regex != "" && !strings.Contains(r.Regex, stepTemplateLeftDelim) {
 		regexTrim := strings.TrimSuffix(r.Regex, "\n")
 		_, err := regexp.Compile(regexTrim)
 		if err != nil {
-			return fmt.Errorf("invalid regular expression: %v", err)
+			return fmt.Errorf("invalid regular expression: %w", err)
 		}
 	}
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *HTTPRequestStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+
+	// Template and revalidate httprequest
+	step.HTTPRequest, err = execCtx.templateStep(step.HTTPRequest)
+	if err != nil {
+		return err
+	}
+	if step.HTTPRequest != "" {
+		uri, err := url.Parse(step.HTTPRequest)
+		if err != nil {
+			return err
+		} else if uri.Host == "" || uri.Scheme == "" {
+			return fmt.Errorf("invalid URL given for request URL: %s", step.HTTPRequest)
+		}
+	}
+
+	// Template and revalidate type
+	step.Type, err = execCtx.templateStep(step.Type)
+	if err != nil {
+		return err
+	}
+	if step.Type != "" {
+		isHTTPMethod := false
+		for _, method := range []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"} {
+			if strings.EqualFold(step.Type, method) {
+				isHTTPMethod = true
+				break
+			}
+		}
+		if !isHTTPMethod {
+			return fmt.Errorf("unsupported HTTP request type: %s", step.Type)
+		}
+	}
+
+	// Template headers
+	for i := range step.Headers {
+		step.Headers[i].Field, err = execCtx.templateStep(step.Headers[i].Field)
+		if err != nil {
+			return err
+		}
+		step.Headers[i].Value, err = execCtx.templateStep(step.Headers[i].Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template parameters
+	for i := range step.Parameters {
+		step.Parameters[i].Name, err = execCtx.templateStep(step.Parameters[i].Name)
+		if err != nil {
+			return err
+		}
+		step.Parameters[i].Value, err = execCtx.templateStep(step.Parameters[i].Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template body
+	step.Body, err = execCtx.templateStep(step.Body)
+	if err != nil {
+		return err
+	}
+
+	// Template and revalidate regex
+	step.Regex, err = execCtx.templateStep(step.Regex)
+	if err != nil {
+		return err
+	}
+	if step.Regex != "" {
+		regexTrim := strings.TrimSuffix(step.Regex, "\n")
+		_, err := regexp.Compile(regexTrim)
+		if err != nil {
+			return fmt.Errorf("invalid regular expression: %w", err)
+		}
+	}
+
+	// Template and revalidate response
+	step.Proxy, err = execCtx.templateStep(step.Proxy)
+	if err != nil {
+		return err
+	}
+	if step.Proxy != "" {
+		uri, err := url.Parse(step.Proxy)
+		if err != nil {
+			return err
+		} else if uri.Host == "" || uri.Scheme == "" {
+			return fmt.Errorf("invalid URL given for Proxy: %s", step.Proxy)
+		}
+	}
+
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
-func (r *HTTPRequestStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+func (step *HTTPRequestStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Info("========= Executing ==========")
-	logging.L().Infof("HTTPRequest to: %s", r.HTTPRequest)
-	if err := r.SendRequest(execCtx); err != nil {
+	logging.L().Infof("HTTPRequest to: %s", step.HTTPRequest)
+	if err := step.SendRequest(execCtx); err != nil {
 		logging.L().Error(zap.Error(err))
 		return nil, err
 	}
@@ -227,6 +326,10 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 	}
 
 	logging.L().Infof("Response: %s", finalResponse)
+
+	if r.OutputVar != "" {
+		execCtx.Vars.StepVars[r.OutputVar] = finalResponse
+	}
 
 	return nil
 }

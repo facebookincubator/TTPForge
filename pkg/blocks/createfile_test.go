@@ -37,11 +37,13 @@ func TestCreateFileExecute(t *testing.T) {
 	require.NoError(t, err)
 
 	testCases := []struct {
-		name               string
-		description        string
-		step               *CreateFileStep
-		fsysContents       map[string][]byte
-		expectExecuteError bool
+		name                string
+		description         string
+		step                *CreateFileStep
+		fsysContents        map[string][]byte
+		stepVars            map[string]string
+		expectTemplateError bool
+		expectExecuteError  bool
 	}{
 		{
 			name:        "Create Valid File",
@@ -103,6 +105,27 @@ func TestCreateFileExecute(t *testing.T) {
 				homedir + "/placeholder": []byte("creating homedir in afero so that it works"),
 			},
 		},
+		{
+			name:        "Create Valid File with templating",
+			description: "Create a single unremarkable file with a templated name and contents",
+			step: &CreateFileStep{
+				Path:     "{[{.StepVars.name}]}.txt",
+				Contents: "{[{.StepVars.contents}]}",
+			},
+			stepVars: map[string]string{
+				"name":     "file-name",
+				"contents": "hello world",
+			},
+		},
+		{
+			name:        "Raises error when template fails",
+			description: "Raise a template error when templated variables don't exist",
+			step: &CreateFileStep{
+				Path:     "{[{.StepVars.name}]}.txt",
+				Contents: "{[{.StepVars.contents}]}",
+			},
+			expectTemplateError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -116,9 +139,20 @@ func TestCreateFileExecute(t *testing.T) {
 				tc.step.FileSystem = afero.NewMemMapFs()
 			}
 
+			// prep execution context
+			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
+
+			// template and check error
+			err := tc.step.Template(execCtx)
+			if tc.expectTemplateError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
 			// execute and check error
-			var execCtx TTPExecutionContext
-			_, err := tc.step.Execute(execCtx)
+			_, err = tc.step.Execute(execCtx)
 			if tc.expectExecuteError {
 				require.Error(t, err)
 				return
