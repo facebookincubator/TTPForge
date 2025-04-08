@@ -127,6 +127,38 @@ func (s *ExpectStep) Validate(_ TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *ExpectStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.Chdir, err = execCtx.templateStep(step.Chdir)
+	if err != nil {
+		return err
+	}
+	step.Executor, err = execCtx.templateStep(step.Executor)
+	if err != nil {
+		return err
+	}
+	step.Expect.Inline, err = execCtx.templateStep(step.Expect.Inline)
+	if err != nil {
+		return err
+	}
+	for i := range step.Expect.Responses {
+		step.Expect.Responses[i].Prompt, err = execCtx.templateStep(step.Expect.Responses[i].Prompt)
+		if err != nil {
+			return err
+		}
+		step.Expect.Responses[i].Response, err = execCtx.templateStep(step.Expect.Responses[i].Response)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 //
 // **Parameters:**

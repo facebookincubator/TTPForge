@@ -121,6 +121,24 @@ func (s *EditStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (s *EditStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	s.FileToEdit, err = execCtx.templateStep(s.FileToEdit)
+	if err != nil {
+		return err
+	}
+	s.BackupFile, err = execCtx.templateStep(s.BackupFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	fileSystem := s.FileSystem
@@ -160,7 +178,6 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	// but it's unlikely to be a performance issue in practice. If it is,
 	// we can optimize
 	for editIdx, edit := range s.Edits {
-
 		if edit.Append != "" {
 			contents += "\n" + edit.Append
 			continue

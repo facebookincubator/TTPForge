@@ -1,0 +1,19 @@
+---
+api_version: 2.0
+uuid: 052e4cc0-b5eb-4680-859a-6756057fbab8
+name: TTP Variable Chaining
+description: |
+  This TTP demonstrates that you can output variables from some types of steps and use them
+  in other steps.  If a variable is already set, setting it again will overwrite the value.
+steps:
+  - name: create_variable
+    description: this step invokes a step that creates a variable
+    inline: "echo 'asdf'"
+    outputvar: foo
+  - name: overwrite_variable
+    description: this step overwrites the variable created in the previous step
+    inline: "echo 'qwerty'"
+    outputvar: foo
+  - name: use_variable
+    description: this step uses a variable created in the previous step
+    print_str: "Template this: {[{ .StepVars.foo }]}"

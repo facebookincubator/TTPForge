@@ -32,7 +32,12 @@ func (a *subTTPCleanupAction) IsNil() bool {
 }
 
 // Validate is not needed here, as this is not a user-accessible step type
-func (a *subTTPCleanupAction) Validate(execCtx TTPExecutionContext) error {
+func (a *subTTPCleanupAction) Validate(_ TTPExecutionContext) error {
+	return nil
+}
+
+// Template is not needed here, as this is not a user-accessible step type
+func (a *subTTPCleanupAction) Template(_ TTPExecutionContext) error {
 	return nil
 }
 

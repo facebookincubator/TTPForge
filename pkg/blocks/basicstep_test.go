@@ -96,3 +96,72 @@ outputs:
 	require.Equal(t, 1, len(result.Outputs))
 	assert.Equal(t, "baz", result.Outputs["first"], "first output should be correct")
 }
+
+func TestBasicStepExecuteWithTemplate(t *testing.T) {
+	content := `name: test_basic_step
+inline: echo -n "this is {[{.StepVars.foo}]}"`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	execCtx.Vars.StepVars = map[string]string{
+		"foo": "successfully templated",
+	}
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+	err = s.Template(execCtx)
+	require.NoError(t, err)
+	result, err := s.Execute(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "this is successfully templated", result.Stdout, "stdout should be templated")
+}
+
+func TestBasicStepRaisesErrorWithMissingTemplateVariable(t *testing.T) {
+	content := `name: test_basic_step
+inline: echo "this is {[{.StepVars.foo}]}"`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+	err = s.Template(execCtx)
+	require.Error(t, err)
+}
+
+func TestBasicStepExecuteOutputsToOutputVar(t *testing.T) {
+	content := `name: test_basic_step
+inline: echo -n "bar"
+outputvar: foo`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+	err = s.Template(execCtx)
+	require.NoError(t, err)
+	_, err = s.Execute(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "bar", execCtx.Vars.StepVars["foo"], "outputvar should be set")
+}
+
+func TestBasicStepExecuteOutputsToAndOverwritesOutputVar(t *testing.T) {
+	content := `name: test_basic_step
+inline: echo -n "bar"
+outputvar: foo`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	execCtx.Vars.StepVars = map[string]string{
+		"foo": "overwrite me",
+	}
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+	err = s.Template(execCtx)
+	require.NoError(t, err)
+	_, err = s.Execute(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "bar", execCtx.Vars.StepVars["foo"], "outputvar should be set")
+}

@@ -166,7 +166,11 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 		logging.L().Infof("Executing Step #%d: %q", stepIdx+1, step.Name)
 		// core execution - run the step action
 		go func(step Step) {
-			_, err := step.Execute(execCtx)
+			err := step.Template((execCtx))
+			if err != nil {
+				logging.L().Errorf("Error templating step %s: %v", step.Name, err)
+			}
+			_, err = step.Execute(execCtx)
 			if err != nil {
 				// This error was logged by the step itself
 				logging.L().Debugf("Error executing step %s: %v", step.Name, err)

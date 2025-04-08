@@ -23,10 +23,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
@@ -69,19 +69,24 @@ func (f *FetchURIStep) IsNil() bool {
 // If Location is set, it ensures that the path exists and retrieves
 // its absolute path.
 func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
-	if f.FetchURI == "" {
+	fsys := f.FileSystem
+	if fsys == nil {
+		fsys = afero.NewOsFs()
+	}
+
+	if f.FetchURI == "" && !strings.Contains(f.FetchURI, stepTemplateLeftDelim) {
 		err := errors.New("require FetchURI to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.Location == "" {
+	if f.Location == "" && !strings.Contains(f.Location, stepTemplateLeftDelim) {
 		err := errors.New("require Location to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
 		return err
 	}
 
-	if f.Proxy != "" {
+	if f.Proxy != "" && !strings.Contains(f.Proxy, stepTemplateLeftDelim) {
 		uri, err := url.Parse(f.Proxy)
 		if err != nil {
 			return err
@@ -96,11 +101,75 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
-
-	_, err = os.Stat(absLocal)
-	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
+	exists, err := afero.Exists(fsys, absLocal)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	if exists && !f.Overwrite {
 		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
 		return errors.New("file exists at location specified, remove and retry")
+	}
+	return nil
+}
+
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (f *FetchURIStep) Template(execCtx TTPExecutionContext) error {
+	fsys := f.FileSystem
+	if fsys == nil {
+		fsys = afero.NewOsFs()
+	}
+
+	var err error
+
+	// Template URI
+	f.FetchURI, err = execCtx.templateStep(f.FetchURI)
+	if err != nil {
+		return err
+	}
+
+	// Template retries
+	f.Retries, err = execCtx.templateStep(f.Retries)
+	if err != nil {
+		return err
+	}
+
+	// Template and revalidate location
+	f.Location, err = execCtx.templateStep(f.Location)
+	if err != nil {
+		return err
+	}
+	absLocal, err := FetchAbs(f.Location, execCtx.Vars.WorkDir)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	exists, err := afero.Exists(fsys, absLocal)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	if exists && !f.Overwrite {
+		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
+		return errors.New("file exists at location specified, remove and retry")
+	}
+
+	// Template and revalidate proxy
+	f.Proxy, err = execCtx.templateStep(f.Proxy)
+	if err != nil {
+		return err
+	}
+	if f.Proxy != "" {
+		uri, err := url.Parse(f.Proxy)
+		if err != nil {
+			return err
+		} else if uri.Host == "" || uri.Scheme == "" {
+			return fmt.Errorf("invalid URI given for Proxy: %s", f.Proxy)
+		}
 	}
 	return nil
 }
@@ -116,6 +185,17 @@ func (f *FetchURIStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 
 	logging.L().Info("========= Result ==========")
 	logging.L().Infof("Fetched URI to location: %s", f.Location)
+	// Send file contents to the output variable
+	if f.OutputVar != "" {
+		// TODO: maybe we make this step able to just send the output to a var and make the file output optional?
+		content, err := os.ReadFile(f.Location)
+		if err != nil {
+			logging.L().Error(zap.Error(err))
+			return nil, err
+		}
+		execCtx.Vars.StepVars[f.OutputVar] = string(content)
+	}
+
 	return &ActResult{}, nil
 }
 

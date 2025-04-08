@@ -40,6 +40,16 @@ func (ca *CompositeAction) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template each action in the composite action
+func (ca *CompositeAction) Template(execCtx TTPExecutionContext) error {
+	for _, a := range ca.actions {
+		if err := a.Template(execCtx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (ca *CompositeAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	for _, a := range ca.actions {

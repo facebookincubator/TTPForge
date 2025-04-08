@@ -1,0 +1,19 @@
+---
+api_version: 2.0
+uuid: 3f3dff0c-2a86-4f9f-89b0-d5c7a1c4aed6
+name: http_request_basic_example
+description: |
+  This TTP shows you how to use the http request action type to send a GET request to a url and store the response in a variable for
+  use in later steps.  Additionally, this TTP shows you how to use the regex action type to extract a portion of the response.
+steps:
+  - name: Basic GET Request
+    http_request: https://raw.githubusercontent.com/facebookincubator/TTPForge/refs/heads/main/README.md
+    type: GET
+    regex: "## Installation([^\n]*\n){10}"
+    outputvar: facebook_html
+    cleanup:
+      inline: |
+        echo "No cleanup required."
+  - name: Use variable
+    inline: |
+      echo 'The html returned from the GET request is: {[{.StepVars.facebook_html}]}'

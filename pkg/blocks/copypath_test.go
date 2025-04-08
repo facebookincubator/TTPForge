@@ -47,6 +47,8 @@ func TestCopyPathExecute(t *testing.T) {
 		relativeDestination string
 		overwrite           bool
 		recursive           bool
+		stepVars            map[string]string
+		expectTemplateError bool
 		expectExecuteError  bool
 	}{
 		{
@@ -54,6 +56,8 @@ func TestCopyPathExecute(t *testing.T) {
 			description:         "Expected to fail due to non-existent source file",
 			relativeSource:      "thisfiledoesnotexistok",
 			relativeDestination: "thisdoesntmatter",
+			stepVars:            map[string]string{},
+			expectTemplateError: false,
 			expectExecuteError:  true,
 		},
 		{
@@ -61,12 +65,16 @@ func TestCopyPathExecute(t *testing.T) {
 			description:         "This should succeed as source file exists and destination does not",
 			relativeSource:      filepath.Join(sourceDirectory, "ttpforge_test.txt"),
 			relativeDestination: filepath.Join(destinationDirectory, "ttpforge_test_copy.txt"),
+			stepVars:            map[string]string{},
+			expectTemplateError: false,
 		},
 		{
 			name:                "Copy to preexisting desitnation (no overwrite)",
 			description:         "This should fail since the destination file exists and we are not specifying to overwrite it",
 			relativeSource:      filepath.Join(sourceDirectory, "ttpforge_test.txt"),
 			relativeDestination: filepath.Join(destinationDirectory, "ttpforge_test.txt"),
+			stepVars:            map[string]string{},
+			expectTemplateError: false,
 			expectExecuteError:  true,
 		},
 		{
@@ -74,6 +82,8 @@ func TestCopyPathExecute(t *testing.T) {
 			description:         "This should pass since when destination file exists since we are specifying overwrite true",
 			relativeSource:      filepath.Join(sourceDirectory, "ttpforge_test.txt"),
 			relativeDestination: filepath.Join(destinationDirectory, "ttpforge_test.txt"),
+			stepVars:            map[string]string{},
+			expectTemplateError: false,
 			overwrite:           true,
 		},
 		{
@@ -82,6 +92,8 @@ func TestCopyPathExecute(t *testing.T) {
 			relativeSource:      sourceDirectory,
 			relativeDestination: destinationDirectory,
 			recursive:           true,
+			stepVars:            map[string]string{},
+			expectTemplateError: false,
 			expectExecuteError:  true,
 		},
 		{
@@ -90,7 +102,27 @@ func TestCopyPathExecute(t *testing.T) {
 			relativeSource:      sourceDirectory,
 			relativeDestination: destinationDirectory,
 			recursive:           true,
+			stepVars:            map[string]string{},
+			expectTemplateError: false,
 			overwrite:           true,
+		},
+		{
+			name:                "Successfully templates source and destination paths",
+			description:         "This should pass when the source and destination paths are templated",
+			relativeSource:      filepath.Join(sourceDirectory, "{[{.StepVars.foo}]}_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "{[{.StepVars.foo}]}_test_copy.txt"),
+			stepVars: map[string]string{
+				"foo": "ttpforge",
+			},
+			expectTemplateError: false,
+		},
+		{
+			name:                "Errors out when variable is missing",
+			description:         "This should fail when the foo variable is missing",
+			relativeSource:      filepath.Join(sourceDirectory, "{[{.StepVars.foo}]}_test.txt"),
+			relativeDestination: filepath.Join(destinationDirectory, "{[{.StepVars.foo}]}_test_copy.txt"),
+			stepVars:            map[string]string{},
+			expectTemplateError: true,
 		},
 	}
 
@@ -102,6 +134,10 @@ func TestCopyPathExecute(t *testing.T) {
 			require.NoError(t, err)
 			defer os.RemoveAll(tempDir)
 
+			// prep execution context
+			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
+
 			// create copy step
 			copyTestPathStep := CopyPathStep{
 				Source:      filepath.Join(tempDir, tc.relativeSource),
@@ -110,8 +146,15 @@ func TestCopyPathExecute(t *testing.T) {
 				Recursive:   tc.recursive,
 			}
 
+			// template and check error
+			err = copyTestPathStep.Template(execCtx)
+			if tc.expectTemplateError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
 			// execute and check error
-			var execCtx TTPExecutionContext
 			_, err = copyTestPathStep.Execute(execCtx)
 			if tc.expectExecuteError {
 				require.Error(t, err)

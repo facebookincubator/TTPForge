@@ -166,6 +166,19 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template replaces variables in the step action and cleanup
+func (s *Step) Template(execCtx TTPExecutionContext) error {
+	if err := s.action.Template(execCtx); err != nil {
+		return err
+	}
+	if s.cleanup != nil {
+		if err := s.cleanup.Template(execCtx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Execute runs the action associated with this step and sends result/error to channels of the context
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	desc := s.action.GetDescription()
