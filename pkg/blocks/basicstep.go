@@ -90,6 +90,16 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+func (b *BasicStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	b.Inline, err = execCtx.templateStep(b.Inline)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
@@ -107,6 +117,10 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	result.Outputs, err = outputs.Parse(b.Outputs, result.Stdout)
 	if err != nil {
 		return nil, err
+	}
+	// Send stdout to the output variable
+	if b.OutputVar != "" {
+		execCtx.Vars.StepVars[b.OutputVar] = result.Stdout
 	}
 	return result, nil
 }

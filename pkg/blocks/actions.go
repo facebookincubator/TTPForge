@@ -25,6 +25,7 @@ package blocks
 type Action interface {
 	IsNil() bool
 	Validate(execCtx TTPExecutionContext) error
+	Template(execCtx TTPExecutionContext) error
 	Execute(execCtx TTPExecutionContext) (*ActResult, error)
 	GetDescription() string
 	GetDefaultCleanupAction() Action
@@ -37,6 +38,7 @@ type Action interface {
 // Every new action type should embed this struct
 type actionDefaults struct {
 	Description string `yaml:"description,omitempty"`
+	OutputVar   string `yaml:"outputvar,omitempty"`
 }
 
 // IsNil provides a default implementation

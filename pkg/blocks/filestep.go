@@ -106,6 +106,30 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (f *FileStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	f.FilePath, err = execCtx.templateStep(f.FilePath)
+	if err != nil {
+		return err
+	}
+	f.Executor, err = execCtx.templateStep(f.Executor)
+	if err != nil {
+		return err
+	}
+	for index, value := range f.Args {
+		f.Args[index], err = execCtx.templateStep(value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
@@ -117,6 +141,10 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		return nil, err
 	}
 	result.Outputs, err = outputs.Parse(f.Outputs, result.Stdout)
+	// Send stdout to the output variable
+	if f.OutputVar != "" {
+		execCtx.Vars.StepVars[f.OutputVar] = result.Stdout
+	}
 	return result, err
 }
 
