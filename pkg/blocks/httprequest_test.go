@@ -20,6 +20,8 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -133,180 +135,167 @@ steps:
 	}
 }
 
-func TestValidateHTTPequest(t *testing.T) {
+func TestHTTPequest(t *testing.T) {
 	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
+		name                string
+		content             string
+		expectValidateError bool
+		expectExecuteError  bool
 	}{
 		{
 			name: "Simple http request",
 			content: `
-name: test basic
-description: this is a test basic test
-steps:
-  - name: get url
-    http_request: http://someuri.com
+name: get url
+http_request: http://someuri.com
 `,
-			wantError: false,
 		},
 		{
 			name: "Request with specified type GET",
 			content: `
-name: test get
-description: This is a test with specified type
-steps:
-  - name: specific request type
-    http_request: http://someuri.com
-    type: GET
+name: specific request type
+http_request: http://someuri.com
+type: GET
 `,
-			wantError: false,
 		},
 		{
 			name: "Request with proxy",
 			content: `
-name: test proxy
-description: This is a test with proxy
-steps:
-  - name: request through proxy
-    http_request: http://someuri.com
-    proxy: http://localhost:8080
+name: request through proxy
+http_request: http://someuri.com
+proxy: http://localhost:8080
 `,
-			wantError: false,
 		},
 		{
 			name: "Request with headers",
 			content: `
-name: test headers
-description: this is a test
-steps:
-  - name: request with headers
-    http_request: http://someuri.com
-    headers:
-      - field: "User-Agent"
-        value: "Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail appname/appversion Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail Firefox/firefox-version appname/appversion;"
-      - field: "Content-Type"
-        value: "application/x-www-form-urlencoded; charset=UTF-8"
+name: request with headers
+http_request: http://someuri.com
+headers:
+- field: "User-Agent"
+  value: "Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail appname/appversion Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail Firefox/firefox-version appname/appversion;"
+- field: "Content-Type"
+  value: "application/x-www-form-urlencoded; charset=UTF-8"
 `,
-			wantError: false,
 		},
 		{
 			name: "Request with parameters",
 			content: `
-name: test parameters
-description: this is a test with http parameters
-steps:
-  - name: fetch file
-    http_request: http://someuri.com
-    parameters:
-      - name: "foo"
-        value: "bar"
-      - name: "moo"
-        value: "cow"
+name: fetch file
+http_request: http://someuri.com
+parameters:
+- name: "foo"
+  value: "bar"
+- name: "moo"
+  value: "cow"
 `,
-			wantError: false,
 		},
 		{
 			name: "POST Request with headers and body",
 			content: `
-name: test headers and body of POST request
-description: this is a test typical POST test
-steps:
-  - name: request with headers
-    http_request: http://someuri.com
-    type: POST
-    headers:
-      - field: "User-Agent"
-        value: "Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail appname/appversion Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail Firefox/firefox-version appname/appversion;"
-      - field: "Content-Type"
-        value: "application/x-www-form-urlencoded; charset=UTF-8"
-    body: "{'this': 'is', 'a': 'test', 'body': 'of', 'post': 'request'}"
+name: request with headers
+http_request: http://someuri.com
+type: POST
+headers:
+- field: "User-Agent"
+  value: "Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail appname/appversion Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail Firefox/firefox-version appname/appversion;"
+- field: "Content-Type"
+  value: "application/x-www-form-urlencoded; charset=UTF-8"
+body: "{'this': 'is', 'a': 'test', 'body': 'of', 'post': 'request'}"
 `,
-			wantError: false,
 		},
 		{
 			name: "Invalid URL http request",
 			content: `
-name: test invalid url
-description: this is a test with an invalid url
-steps:
-  - name: get screwy url
-    http_request: somebrokenurl
+name: get screwy url
+http_request: somebrokenurl
 `,
-			wantError: true,
+			expectValidateError: true,
 		},
 		{
 			name: "Invalid Proxy URL request",
 			content: `
-name: test invalid proxy
-description: this is a test with an invalid proxy url
-steps:
-    - name: get url through bad proxy
-      http_request: https://someuri.com
-      proxy: thisnotaurlok
+name: get url through bad proxy
+http_request: https://someuri.com
+proxy: thisnotaurlok
 `,
-			wantError: true,
+			expectValidateError: true,
 		},
 		{
 			name: "Malformed headers",
 			content: `
-name: malformed headers
-description: this is a test with headers missing value
-steps:
-  - name: get request with malformed headers
-    http_request: https://someuri.com
-    headers:
-      - field: "User-Agent"
-        value: "Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail appname/appversion Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail Firefox/firefox-version appname/appversion;"
-      - field: "Content-Type"
+name: get request with malformed headers
+http_request: https://someuri.com
+headers:
+- field: "User-Agent"
+  value: "Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail appname/appversion Mozilla/5.0 (platform; rv:gecko-version) Gecko/gecko-trail Firefox/firefox-version appname/appversion;"
+- field: "Content-Type"
 `,
-			wantError: true,
+			expectValidateError: true,
 		},
 		{
 			name: "Malformed parameters",
 			content: `
-name: malformed parameters
-description: this is a test with parameter missing value
-steps:
-  - name: get url through bad proxy
-    http_request: https://someuri.com
-    parameters:
-      - name: "search"
-        value: "everything"
-      - name: "something_else"
+name: get url through bad proxy
+http_request: https://someuri.com
+parameters:
+- name: "search"
+  value: "everything"
+- name: "something_else"
 `,
-			wantError: true,
+			expectValidateError: true,
 		},
 		{
 			name: "Bad Regex",
 			content: `
-name: malformed regular expression
-description: this is a test with a weird regex pattern
-steps:
-  - name: get url through bad proxy
-    http_request: https://someuri.com
-    parameters:
-      - name: "search"
-        value: "everything"
-    regex: "(dfaefawefaew"
+name: get url through bad proxy
+http_request: https://someuri.com
+parameters:
+- name: "search"
+  value: "everything"
+regex: "(dfaefawefaew"
 `,
-			wantError: true,
+			expectValidateError: true,
 		},
 	}
 
+	// prepare test server
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Here's some data!"))
+	}))
+	defer testServer.Close()
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			// parse step
+			var step HTTPRequestStep
+			err := yaml.Unmarshal([]byte(tc.content), &step)
 			assert.NoError(t, err)
 
+			// prepare execution context
 			execCtx := NewTTPExecutionContext()
-			err = ttps.Validate(execCtx)
-			if tc.wantError {
+
+			// validate
+			err = step.Validate(execCtx)
+			if tc.expectValidateError {
 				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
+				return
 			}
+			assert.NoError(t, err)
+
+			// Point all requests to the test server
+			step.HTTPRequest = testServer.URL
+
+			// Turn off proxy after validate, since it's not supported by httptest
+			step.Proxy = ""
+
+			// execute
+			_, err = step.Execute(execCtx)
+			if tc.expectExecuteError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
 		})
 	}
 }
