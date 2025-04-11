@@ -21,11 +21,13 @@ package blocks
 
 import (
 	"fmt"
+	"github.com/spf13/afero"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/facebookincubator/ttpforge/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -90,104 +92,136 @@ steps:
 	}
 }
 
-func TestValidateFetchURI(t *testing.T) {
+func TestFetchURI(t *testing.T) {
 	testCases := []struct {
-		name      string
-		content   string
-		wantError bool
+		name                string
+		content             string
+		expectValidateError bool
+		expectExecuteError  bool
+		fsysContents        map[string][]byte
 	}{
 		{
 			name: "simple fetch",
 			content: `
-name: test
-description: this is a test
-steps:
-  - name: simple_fetch
-    fetch_uri: http://someuri.com
-    location: ./location
+name: simple_fetch
+fetch_uri: http://someuri.com
+location: /tmp/new_output.txt
 `,
-			wantError: false,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
 		},
 		{
 			name: "overwrite fetch",
 			content: `
-name: test
-description: this is a test
-steps:
-  - name: overwrite_fetch
-    fetch_uri: http://someuri.com
-    location: ./location
-    overwrite: true
+name: overwrite_fetch
+fetch_uri: http://someuri.com
+location: /tmp/test.txt
+overwrite: true
 `,
-			wantError: false,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
 		},
 		{
 			name: "proxy fetch",
 			content: `
-name: test
-description: this is a test
-steps:
-  - name: proxy_fetch
-    fetch_uri: http://someuri.com
-    location: ./location
-    proxy: http://localhost:8080
+name: proxy_fetch
+fetch_uri: http://someuri.com
+location: /tmp/new_output.txt
+proxy: http://localhost:8080
 `,
-			wantError: false,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
 		},
 		{
 			name: "bad proxy",
 			content: `
-name: test
-description: this is a test
-steps:
-  - name: bad_proxy
-    fetch_uri: http://someuri.com
-    location: ./location
-    proxy: bad param
+name: bad_proxy
+fetch_uri: http://someuri.com
+location: /tmp/new_output.txt
+proxy: bad param
 `,
-			wantError: true,
+			expectValidateError: true,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
 		},
 		{
 			name: "proxy without scheme",
 			content: `
-name: test
-description: this is a test
-steps:
-  - name: bad_proxy
-    fetch_uri: http://someuri.com
-    location: ./location
-    proxy: localhost:8888
+name: bad_proxy
+fetch_uri: http://someuri.com
+location: /tmp/new_output.txt
+proxy: localhost:8888
 `,
-			wantError: true,
+			expectValidateError: true,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
 		},
 		{
 			name: "non http/https proxy scheme",
 			content: `
-name: test
-description: this is a test
-steps:
-  - name: bad_proxy
-    fetch_uri: http://someuri.com
-    location: ./location
-    proxy: ssh://localhost:8888
+name: bad_proxy
+fetch_uri: http://someuri.com
+location: /tmp/new_output.txt
+proxy: ssh://localhost:8888
 `,
-			wantError: false,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
 		},
 	}
 
+	// prepare test server
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Here's some data!"))
+	}))
+	defer testServer.Close()
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var ttps TTP
-			err := yaml.Unmarshal([]byte(tc.content), &ttps)
+			// parse step
+			var step FetchURIStep
+			err := yaml.Unmarshal([]byte(tc.content), &step)
 			assert.NoError(t, err)
 
+			// prepare execution context
 			execCtx := NewTTPExecutionContext()
-			err = ttps.Validate(execCtx)
-			if tc.wantError {
-				assert.Error(t, err)
+
+			// prepare filesystem
+			if tc.fsysContents != nil {
+				fsys, err := testutils.MakeAferoTestFs(tc.fsysContents)
+				require.NoError(t, err)
+				step.FileSystem = fsys
 			} else {
-				assert.NoError(t, err)
+				step.FileSystem = afero.NewMemMapFs()
 			}
+
+			// validate
+			err = step.Validate(execCtx)
+			if tc.expectValidateError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+
+			// Point all requests to the test server
+			step.FetchURI = testServer.URL
+
+			// Turn off proxy after validate, since it's not supported by httptest
+			step.Proxy = ""
+
+			// execute
+			_, err = step.Execute(execCtx)
+			if tc.expectExecuteError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
 		})
 	}
 }

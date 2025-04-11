@@ -23,10 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
-	"os"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
@@ -69,6 +67,11 @@ func (f *FetchURIStep) IsNil() bool {
 // If Location is set, it ensures that the path exists and retrieves
 // its absolute path.
 func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
+	fsys := f.FileSystem
+	if fsys == nil {
+		fsys = afero.NewOsFs()
+	}
+
 	if f.FetchURI == "" {
 		err := errors.New("require FetchURI to be set with fetchURI")
 		logging.L().Error(zap.Error(err))
@@ -96,9 +99,12 @@ func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 		logging.L().Error(zap.Error(err))
 		return err
 	}
-
-	_, err = os.Stat(absLocal)
-	if !errors.Is(err, fs.ErrNotExist) && !f.Overwrite {
+	exists, err := afero.Exists(fsys, absLocal)
+	if err != nil {
+		logging.L().Error(zap.Error(err))
+		return err
+	}
+	if exists && !f.Overwrite {
 		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
 		return errors.New("file exists at location specified, remove and retry")
 	}
@@ -177,8 +183,8 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 
 // GetDefaultCleanupAction will instruct the calling code
 // to remove the file fetched by this action.
-func (s *FetchURIStep) GetDefaultCleanupAction() Action {
+func (f *FetchURIStep) GetDefaultCleanupAction() Action {
 	return &RemovePathAction{
-		Path: s.Location,
+		Path: f.Location,
 	}
 }
