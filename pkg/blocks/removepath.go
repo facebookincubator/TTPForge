@@ -61,6 +61,20 @@ func (s *RemovePathAction) Validate(_ TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (s *RemovePathAction) Template(execCtx TTPExecutionContext) error {
+	var err error
+	s.Path, err = execCtx.templateStep(s.Path)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (s *RemovePathAction) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Removing path %v", s.Path)

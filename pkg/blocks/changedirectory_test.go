@@ -30,12 +30,14 @@ import (
 func TestChangeDirectoryExecute(t *testing.T) {
 
 	testCases := []struct {
-		name          string
-		description   string
-		step          *ChangeDirectoryStep
-		fsysContents  map[string][]byte
-		expectedError bool
-		startingDir   string
+		name                   string
+		description            string
+		step                   *ChangeDirectoryStep
+		fsysContents           map[string][]byte
+		stepVars               map[string]string
+		expectTemplateError    bool
+		expectedExecutionError bool
+		startingDir            string
 	}{
 		{
 			name:        "Change directory to valid directory",
@@ -47,8 +49,10 @@ func TestChangeDirectoryExecute(t *testing.T) {
 				"/home/testuser/test": []byte("test"),
 				"/tmp/test":           []byte("test"),
 			},
-			expectedError: false,
-			startingDir:   "/home/testuser/",
+			stepVars:               map[string]string{},
+			expectTemplateError:    false,
+			expectedExecutionError: false,
+			startingDir:            "/home/testuser/",
 		},
 		{
 			name:        "Change directory to invalid directory",
@@ -56,12 +60,14 @@ func TestChangeDirectoryExecute(t *testing.T) {
 			step: &ChangeDirectoryStep{
 				Cd: "/doesntexist",
 			},
+			stepVars: map[string]string{},
 			fsysContents: map[string][]byte{
 				"/home/testuser/test": []byte("test"),
 				"/tmp/test":           []byte("test"),
 			},
-			expectedError: true,
-			startingDir:   "/home/testuser/",
+			expectTemplateError:    false,
+			expectedExecutionError: true,
+			startingDir:            "/home/testuser/",
 		},
 		{
 			name:        "Change directory with no given directory",
@@ -69,12 +75,46 @@ func TestChangeDirectoryExecute(t *testing.T) {
 			step: &ChangeDirectoryStep{
 				Cd: "",
 			},
+			stepVars: map[string]string{},
 			fsysContents: map[string][]byte{
 				"/home/testuser/test": []byte("test"),
 				"/tmp/test":           []byte("test"),
 			},
-			expectedError: true,
-			startingDir:   "/home/testuser/",
+			expectTemplateError:    false,
+			expectedExecutionError: true,
+			startingDir:            "/home/testuser/",
+		},
+		{
+			name:        "Change directory with templated directory",
+			description: "Try to change directory to templated directory and expect successful change of workdir",
+			step: &ChangeDirectoryStep{
+				Cd: "/tmp/{[{ .StepVars.foo }]}",
+			},
+			stepVars: map[string]string{
+				"foo": "bar",
+			},
+			fsysContents: map[string][]byte{
+				"/home/testuser/test": []byte("test"),
+				"/tmp/bar/test":       []byte("test"),
+			},
+			expectTemplateError:    false,
+			expectedExecutionError: false,
+			startingDir:            "/home/testuser/",
+		},
+		{
+			name:        "Change directory with templated directory errors on missing variable",
+			description: "Try to change directory to templated directory and expect error",
+			step: &ChangeDirectoryStep{
+				Cd: "/tmp/{[{ .StepVars.foo }]}",
+			},
+			stepVars: map[string]string{},
+			fsysContents: map[string][]byte{
+				"/home/testuser/test": []byte("test"),
+				"/tmp/bar/test":       []byte("test"),
+			},
+			expectTemplateError:    true,
+			expectedExecutionError: false,
+			startingDir:            "/home/testuser/",
 		},
 	}
 
@@ -85,12 +125,24 @@ func TestChangeDirectoryExecute(t *testing.T) {
 			require.NoError(t, err)
 			tc.step.FileSystem = fsys
 
-			// validate and check error
+			// Prep execution context
 			execCtx := NewTTPExecutionContext()
 			execCtx.Vars.WorkDir = tc.startingDir
+			execCtx.Vars.StepVars = tc.stepVars
+
+			// validate and check error
 			err = tc.step.Validate(execCtx)
 
-			if tc.expectedError && err != nil {
+			if tc.expectedExecutionError && err != nil {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// template and check error
+			err = tc.step.Template(execCtx)
+
+			if tc.expectTemplateError && err != nil {
 				require.Error(t, err)
 				return
 			}
@@ -99,7 +151,7 @@ func TestChangeDirectoryExecute(t *testing.T) {
 			// execute and check error
 			_, err = tc.step.Execute(execCtx)
 
-			if tc.expectedError && err != nil {
+			if tc.expectedExecutionError && err != nil {
 				require.Error(t, err)
 				return
 			}

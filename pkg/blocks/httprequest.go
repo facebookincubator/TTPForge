@@ -70,38 +70,27 @@ func (r *HTTPRequestStep) IsNil() bool {
 
 // Validate validates the HTTPRequestStep.
 func (r *HTTPRequestStep) Validate(execCtx TTPExecutionContext) error {
-
-	// Validate the target URL
-	if r.HTTPRequest != "" {
-		uri, err := url.Parse(r.HTTPRequest)
+	// Validate the target URL, skip if contains template
+	if r.HTTPRequest != "" && !execCtx.containsStepTemplating(r.HTTPRequest) {
+		err := r.validateURL()
 		if err != nil {
 			return err
-		} else if uri.Host == "" || uri.Scheme == "" {
-			return fmt.Errorf("invalid URL given for request URL: %s", r.HTTPRequest)
 		}
 	}
 
-	// Validate the proxy URL
-	if r.Proxy != "" {
-		uri, err := url.Parse(r.Proxy)
+	// Validate the proxy URL, skip if contains template
+	if r.Proxy != "" && !execCtx.containsStepTemplating(r.Proxy) {
+		err := r.validateProxy()
 		if err != nil {
 			return err
-		} else if uri.Host == "" || uri.Scheme == "" {
-			return fmt.Errorf("invalid URL given for Proxy: %s", r.Proxy)
 		}
 	}
 
-	// Validate the http request type is valid
-	if r.Type != "" {
-		isHTTPMethod := false
-		for _, method := range []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"} {
-			if strings.EqualFold(r.Type, method) {
-				isHTTPMethod = true
-				break
-			}
-		}
-		if !isHTTPMethod {
-			return fmt.Errorf("unsupported HTTP request type: %s", r.Type)
+	// Validate the http request type is valid, skip if contains template
+	if r.Type != "" && !execCtx.containsStepTemplating(r.Type) {
+		err := r.validateType()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -124,9 +113,86 @@ func (r *HTTPRequestStep) Validate(execCtx TTPExecutionContext) error {
 		regexTrim := strings.TrimSuffix(r.Regex, "\n")
 		_, err := regexp.Compile(regexTrim)
 		if err != nil {
-			return fmt.Errorf("invalid regular expression: %v", err)
+			return fmt.Errorf("invalid regular expression: %w", err)
 		}
 	}
+	return nil
+}
+
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (r *HTTPRequestStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+
+	// Template and revalidate httprequest
+	if execCtx.containsStepTemplating(r.HTTPRequest) {
+		r.HTTPRequest, err = execCtx.templateStep(r.HTTPRequest)
+		if err != nil {
+			return err
+		}
+		err = r.validateURL()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template and revalidate proxy
+	if execCtx.containsStepTemplating(r.Proxy) {
+		r.Proxy, err = execCtx.templateStep(r.Proxy)
+		if err != nil {
+			return err
+		}
+		err = r.validateProxy()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template and revalidate type
+	if execCtx.containsStepTemplating(r.Type) {
+		r.Type, err = execCtx.templateStep(r.Type)
+		if err != nil {
+			return err
+		}
+		err = r.validateType()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template headers
+	for i := range r.Headers {
+		r.Headers[i].Field, err = execCtx.templateStep(r.Headers[i].Field)
+		if err != nil {
+			return err
+		}
+		r.Headers[i].Value, err = execCtx.templateStep(r.Headers[i].Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template parameters
+	for i := range r.Parameters {
+		r.Parameters[i].Name, err = execCtx.templateStep(r.Parameters[i].Name)
+		if err != nil {
+			return err
+		}
+		r.Parameters[i].Value, err = execCtx.templateStep(r.Parameters[i].Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Template body
+	r.Body, err = execCtx.templateStep(r.Body)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -227,6 +293,50 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 	}
 
 	logging.L().Infof("Response: %s", finalResponse)
+
+	if r.OutputVar != "" {
+		execCtx.Vars.StepVars[r.OutputVar] = finalResponse
+	}
+
+	return nil
+}
+
+// validateURL validates that the URL is valid URI.  Returns an error if validation fails, otherwise returns nil
+func (r *HTTPRequestStep) validateURL() error {
+	uri, err := url.Parse(r.HTTPRequest)
+	if err != nil {
+		return err
+	} else if uri.Host == "" || uri.Scheme == "" {
+		return fmt.Errorf("invalid URL given for request URL: %s", r.HTTPRequest)
+	}
+
+	return nil
+}
+
+// validateProxy validates that the proxy is a valid URI.  Returns an error if validation fails, otherwise returns nil
+func (r *HTTPRequestStep) validateProxy() error {
+	uri, err := url.Parse(r.Proxy)
+	if err != nil {
+		return err
+	} else if uri.Host == "" || uri.Scheme == "" {
+		return fmt.Errorf("invalid URL given for Proxy: %s", r.Proxy)
+	}
+
+	return nil
+}
+
+// validateType validates that the request type is a valid HTTP request type.  Returns an error if validation fails, otherwise returns nil
+func (r *HTTPRequestStep) validateType() error {
+	isHTTPMethod := false
+	for _, method := range []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"} {
+		if strings.EqualFold(r.Type, method) {
+			isHTTPMethod = true
+			break
+		}
+	}
+	if !isHTTPMethod {
+		return fmt.Errorf("unsupported HTTP request type: %s", r.Type)
+	}
 
 	return nil
 }

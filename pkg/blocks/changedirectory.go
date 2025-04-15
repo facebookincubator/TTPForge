@@ -66,6 +66,20 @@ func (step *ChangeDirectoryStep) Validate(_ TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (step *ChangeDirectoryStep) Template(execCtx TTPExecutionContext) error {
+	var err error
+	step.Cd, err = execCtx.templateStep(step.Cd)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the ChangeDirectoryStep, changing the current working directory and returns an error if any occur.
 //
 // **Returns:**

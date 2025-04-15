@@ -97,8 +97,10 @@ func TestFetchURI(t *testing.T) {
 		name                string
 		content             string
 		expectValidateError bool
+		expectTemplateError bool
 		expectExecuteError  bool
 		fsysContents        map[string][]byte
+		stepVars            map[string]string
 	}{
 		{
 			name: "simple fetch",
@@ -173,6 +175,67 @@ proxy: ssh://localhost:8888
 				"/tmp/test.txt": []byte("Test file"),
 			},
 		},
+		{
+			name: "templates fields",
+			content: `
+name: proxy_fetch
+fetch_uri: http://{[{.StepVars.site}]}.com
+location: /tmp/{[{.StepVars.filename}]}.txt
+proxy: http://{[{.StepVars.proxy}]}:8080
+retries: "{[{.StepVars.retries}]}"
+`,
+			stepVars: map[string]string{
+				"site":     "someuri",
+				"filename": "output",
+				"proxy":    "localhost",
+				"retries":  "3",
+			},
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
+		},
+		{
+			name: "errors on missing fields",
+			content: `
+name: proxy_fetch
+fetch_uri: http://{[{.StepVars.site}]}.com
+location: ./{[{.StepVars.location}]}
+proxy: http://{[{.SiteVars.proxy}]}:8080
+retries: "{[{.StepVars.retries}]}"
+`,
+			expectTemplateError: true,
+		},
+		{
+			name: "fails validation after templating proxy",
+			content: `
+name: fetch
+fetch_uri: http://someuri.com
+proxy: ://{[{.StepVars.proxy}]}:8080
+location: /tmp/output.txt
+`,
+			stepVars: map[string]string{
+				"proxy": "someuri",
+			},
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
+			expectTemplateError: true,
+		},
+		{
+			name: "fails validation after templating location",
+			content: `
+name: fetch
+fetch_uri: http://someuri.com
+location: /tmp/{[{.StepVars.location}]}.txt
+`,
+			stepVars: map[string]string{
+				"location": "test",
+			},
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
+			expectTemplateError: true,
+		},
 	}
 
 	// prepare test server
@@ -191,6 +254,7 @@ proxy: ssh://localhost:8888
 
 			// prepare execution context
 			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
 
 			// prepare filesystem
 			if tc.fsysContents != nil {
@@ -204,6 +268,14 @@ proxy: ssh://localhost:8888
 			// validate
 			err = step.Validate(execCtx)
 			if tc.expectValidateError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+
+			// template
+			err = step.Template(execCtx)
+			if tc.expectTemplateError {
 				assert.Error(t, err)
 				return
 			}

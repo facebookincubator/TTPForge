@@ -181,7 +181,7 @@ func TestTTP(t *testing.T) {
 		args               map[string]interface{}
 		expectedByIndexOut map[int]string
 		expectedByNameOut  map[string]string
-		wantError          bool
+		expectExecuteError bool
 	}{
 		{
 			name: "Cleanup After Step Failure",
@@ -212,7 +212,7 @@ steps:
 				"step1": "step1\n",
 				"step2": "step2\n",
 			},
-			wantError: true,
+			expectExecuteError: true,
 		},
 		{
 			name: "Templating Args And Conditional Exec",
@@ -247,7 +247,7 @@ steps:
 				"mandatory_step":  "arg value is victory\n",
 				"optional_step_2": "optional step 2\n",
 			},
-			wantError: false,
+			expectExecuteError: false,
 		},
 		{
 			name: "Variable Expansion Args And Step Results",
@@ -279,7 +279,7 @@ steps:
 				"step2": "first output is baz\n",
 				"step3": "arg value is victory\n",
 			},
-			wantError: false,
+			expectExecuteError: false,
 		},
 		{
 			name: "Metacharacters in step contents",
@@ -297,7 +297,7 @@ steps:
 			expectedByNameOut: map[string]string{
 				"step1": "A\nB\n",
 			},
-			wantError: false,
+			expectExecuteError: false,
 		},
 		{
 			name: "Test usage of Sprig syntax",
@@ -314,7 +314,26 @@ steps:
 				"step1": "Take the space away HelloWorld!\n",
 			},
 
-			wantError: false,
+			expectExecuteError: false,
+		},
+		{
+			name: "Test step templating",
+			content: `name: test step templating
+steps:
+  - name: create_var
+    inline: echo -n "foo"
+    outputvar: foo
+  - name: use_var
+    inline: echo -n "the var is {[{.StepVars.foo}]}"
+`,
+			expectedByIndexOut: map[int]string{
+				0: "foo",
+				1: "the var is foo",
+			},
+			expectedByNameOut: map[string]string{
+				"create_var": "foo",
+				"use_var":    "the var is foo",
+			},
 		},
 	}
 
@@ -336,7 +355,7 @@ steps:
 
 			// run it
 			err = ttp.Execute(execCtx)
-			if tc.wantError {
+			if tc.expectExecuteError {
 				require.Error(t, err)
 				return
 			}

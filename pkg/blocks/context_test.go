@@ -147,3 +147,56 @@ func TestExpandVariablesStepResults(t *testing.T) {
 		})
 	}
 }
+
+func TestTemplateStep(t *testing.T) {
+	testCases := []struct {
+		name             string
+		stringToTemplate string
+		stepVars         map[string]string
+		expectedResult   string
+		wantError        bool
+	}{
+		{
+			name:             "Template basic string",
+			stringToTemplate: "this is {[{.StepVars.foo}]}",
+			stepVars: map[string]string{
+				"foo": "templated",
+			},
+			expectedResult: "this is templated",
+			wantError:      false,
+		},
+		{
+			name:             "Doesn't template original delimiters",
+			stringToTemplate: "this is {{.StepVars.foo}}",
+			stepVars: map[string]string{
+				"foo": "templated",
+			},
+			expectedResult: "this is {{.StepVars.foo}}",
+			wantError:      false,
+		},
+		{
+			name:             "Errors on missing variable",
+			stringToTemplate: "this is {[{.StepVars.foo}]}",
+			stepVars:         map[string]string{},
+			expectedResult:   "",
+			wantError:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Build execution context
+			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
+
+			// test templating
+			result, err := execCtx.templateStep(tc.stringToTemplate)
+			if tc.wantError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedResult, result, "returned string should match expected value")
+		})
+	}
+}

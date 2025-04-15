@@ -55,6 +55,20 @@ func (s *PrintStrAction) Validate(_ TTPExecutionContext) error {
 	return nil
 }
 
+// Template takes each applicable field in the step and replaces any template strings with their resolved values.
+//
+// **Returns:**
+//
+// error: error if template resolution fails, nil otherwise
+func (s *PrintStrAction) Template(execCtx TTPExecutionContext) error {
+	var err error
+	s.Message, err = execCtx.templateStep(s.Message)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Execute runs the step and returns an error if one occurs.
 func (s *PrintStrAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	// needs to be overwritable to capture output during testing

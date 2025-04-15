@@ -140,7 +140,11 @@ func TestHTTPequest(t *testing.T) {
 		name                string
 		content             string
 		expectValidateError bool
+		expectTemplateError bool
 		expectExecuteError  bool
+		stepVars            map[string]string
+		overwriteProxy      bool
+		expectedOutput      string
 	}{
 		{
 			name: "Simple http request",
@@ -256,6 +260,105 @@ regex: "(dfaefawefaew"
 `,
 			expectValidateError: true,
 		},
+		{
+			name: "Successful Template",
+			content: `
+name: template test
+http_request: http://someuri.com/{[{.StepVars.path}]}
+proxy: http://{[{.StepVars.proxy}]}:8080
+type: "{[{.StepVars.type}]}"
+headers:
+- field: "{[{.StepVars.name}]}"
+  value: "{[{.StepVars.value}]}"
+parameters:
+- name: "{[{.StepVars.name}]}"
+  value: "{[{.StepVars.value}]}"
+body: "{'body': '{[{.StepVars.body}]}'}"
+`,
+			stepVars: map[string]string{
+				"path":  "some/path",
+				"proxy": "localhost",
+				"type":  "POST",
+				"name":  "key",
+				"value": "value",
+				"body":  "this is some data",
+			},
+			overwriteProxy: true,
+		},
+		{
+			name: "Error on Template",
+			content: `
+name: template test
+http_request: http://someuri.com/{[{.StepVars.path}]}
+proxy: http://{[{.StepVars.proxy}]}:8080
+type: "{[{.StepVars.type}]}"
+headers:
+- field: "{[{.StepVars.name}]}"
+  value: "{[{.StepVars.value}]}"
+parameters:
+- name: "{[{.StepVars.name}]}"
+  value: "{[{.StepVars.value}]}"
+body: "{'body': '{[{.StepVars.body}]}'}"
+`,
+			expectTemplateError: true,
+		},
+		{
+			name: "Fails validation after templating uri",
+			content: `
+name: template test
+http_request: ://someuri.com/{[{.StepVars.path}]}
+`,
+			stepVars: map[string]string{
+				"path": "some/path",
+			},
+			expectTemplateError: true,
+		},
+		{
+			name: "Fails validation after templating proxy",
+			content: `
+name: template test
+http_request: http://someuri.com/
+proxy: ://{[{.StepVars.proxy}]}:8080
+`,
+			stepVars: map[string]string{
+				"proxy": "localhost",
+			},
+			expectTemplateError: true,
+		},
+		{
+			name: "Fails validation after templating type",
+			content: `
+name: template test
+http_request: http://someuri.com/
+type: "{[{.StepVars.type}]}"
+`,
+			stepVars: map[string]string{
+				"type": "WTF",
+			},
+			expectTemplateError: true,
+		},
+		{
+			name: "Outputs to var properly",
+			content: `
+name: template test
+http_request: http://someuri.com/
+outputvar: testvar
+`,
+			stepVars:       map[string]string{},
+			expectedOutput: "Here's some data!",
+		},
+		{
+			name: "Overwrites output to var properly",
+			content: `
+name: template test
+http_request: http://someuri.com/
+outputvar: testvar
+`,
+			stepVars: map[string]string{
+				"testvar": "some other data",
+			},
+			expectedOutput: "Here's some data!",
+		},
 	}
 
 	// prepare test server
@@ -274,10 +377,19 @@ regex: "(dfaefawefaew"
 
 			// prepare execution context
 			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
 
 			// validate
 			err = step.Validate(execCtx)
 			if tc.expectValidateError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+
+			// template
+			err = step.Template(execCtx)
+			if tc.expectTemplateError {
 				assert.Error(t, err)
 				return
 			}
@@ -294,6 +406,12 @@ regex: "(dfaefawefaew"
 			if tc.expectExecuteError {
 				assert.Error(t, err)
 				return
+			}
+			assert.NoError(t, err)
+
+			// check output
+			if tc.expectedOutput != "" {
+				assert.Equal(t, tc.expectedOutput, execCtx.Vars.StepVars[step.OutputVar])
 			}
 			assert.NoError(t, err)
 		})

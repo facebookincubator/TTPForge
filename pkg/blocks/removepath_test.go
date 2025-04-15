@@ -35,11 +35,14 @@ func TestRemovePathExecute(t *testing.T) {
 	require.NoError(t, err)
 
 	testCases := []struct {
-		name               string
-		description        string
-		step               *RemovePathAction
-		fsysContents       map[string][]byte
-		expectExecuteError bool
+		name                string
+		description         string
+		step                *RemovePathAction
+		stepVars            map[string]string
+		fsysContents        map[string][]byte
+		expectValidateError bool
+		expectTemplateError bool
+		expectExecuteError  bool
 	}{
 		{
 			name:        "Remove Valid File",
@@ -95,6 +98,30 @@ func TestRemovePathExecute(t *testing.T) {
 				homedir + "/this-should-work": []byte("hopefully this file gets deleted correctly"),
 			},
 		},
+		{
+			name:        "Remove Valid File with templating",
+			description: "Remove a single unremarkable file with templating",
+			step: &RemovePathAction{
+				Path: "{[{.StepVars.filename}]}.txt",
+			},
+			fsysContents: map[string][]byte{
+				"valid-file.txt": []byte("whoops"),
+			},
+			stepVars: map[string]string{
+				"filename": "valid-file",
+			},
+		},
+		{
+			name:        "Error on missing templating variable",
+			description: "Remove a single unremarkable file with templating",
+			step: &RemovePathAction{
+				Path: "{[{.StepVars.filename}]}.txt",
+			},
+			fsysContents: map[string][]byte{
+				"valid-file.txt": []byte("whoops"),
+			},
+			expectTemplateError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -108,9 +135,28 @@ func TestRemovePathExecute(t *testing.T) {
 				tc.step.FileSystem = afero.NewMemMapFs()
 			}
 
-			// execute and check error
-			var execCtx TTPExecutionContext
-			_, err := tc.step.Execute(execCtx)
+			// prep execution context
+			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
+
+			// validate
+			err := tc.step.Validate(execCtx)
+			if tc.expectValidateError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// template
+			err = tc.step.Template(execCtx)
+			if tc.expectTemplateError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// execute
+			_, err = tc.step.Execute(execCtx)
 			if tc.expectExecuteError {
 				require.Error(t, err)
 				return

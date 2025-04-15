@@ -20,16 +20,20 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/sprig/v3"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"io"
 	"regexp"
 	"strings"
-
-	"github.com/facebookincubator/ttpforge/pkg/repos"
+	"text/template"
 )
 
 const contextVariablePrefix = "$forge."
+const stepTemplateLeftDelim = "{[{"
+const stepTemplateRightDelim = "}]}"
 
 // TTPExecutionConfig - pass this into RunSteps to control TTP execution
 type TTPExecutionConfig struct {
@@ -43,7 +47,8 @@ type TTPExecutionConfig struct {
 
 // TTPExecutionVars - mutable store to carry variables between steps
 type TTPExecutionVars struct {
-	WorkDir string
+	WorkDir  string
+	StepVars map[string]string
 }
 
 // TTPExecutionContext - holds config and context for the currently executing TTP
@@ -59,7 +64,10 @@ type TTPExecutionContext struct {
 // NewTTPExecutionContext creates a new TTPExecutionContext with empty config and created channels
 func NewTTPExecutionContext() TTPExecutionContext {
 	return TTPExecutionContext{
-		Vars:              &TTPExecutionVars{WorkDir: "/"},
+		Vars: &TTPExecutionVars{
+			WorkDir:  "/",
+			StepVars: make(map[string]string),
+		},
 		StepResults:       NewStepResultsRecord(),
 		actionResultsChan: make(chan *ActResult, 1),
 		errorsChan:        make(chan error, 1),
@@ -102,6 +110,33 @@ func (c TTPExecutionContext) ExpandVariables(inStrs []string) ([]string, error) 
 		expandedStrs = append(expandedStrs, expandedStr)
 	}
 	return expandedStrs, nil
+}
+
+// templateStep takes a string and templates it with variables from the context at this point in the TTP
+//
+// **Parameters:**
+//
+// input: the string to template
+//
+// **Returns:**
+//
+// string: the templated string
+// error: an error if there is a problem
+func (c TTPExecutionContext) templateStep(input string) (string, error) {
+	tmpl, err := template.New("BasicStep").Funcs(sprig.TxtFuncMap()).Option("missingkey=error").Delims(stepTemplateLeftDelim, stepTemplateRightDelim).Parse(input)
+	if err != nil {
+		return "", err
+	}
+	var output bytes.Buffer
+	err = tmpl.Execute(&output, c.Vars)
+	if err != nil {
+		return "", err
+	}
+	return output.String(), nil
+}
+
+func (c TTPExecutionContext) containsStepTemplating(input string) bool {
+	return strings.Contains(input, stepTemplateLeftDelim)
 }
 
 func (c TTPExecutionContext) processStepsVariable(path string) (string, error) {

@@ -71,12 +71,15 @@ steps:
 func TestSubTTPExecution(t *testing.T) {
 
 	tests := []struct {
-		name           string
-		spec           repos.Spec
-		fsys           afero.Fs
-		stepYAML       string
-		expectError    bool
-		expectedOutput string
+		name                 string
+		spec                 repos.Spec
+		fsys                 afero.Fs
+		stepYAML             string
+		stepVars             map[string]string
+		expectValidationErr  bool
+		expectTemplateError  bool
+		expectExecutionError bool
+		expectedOutput       string
 	}{
 		{
 			name: "Simple Sub TTP Execution",
@@ -114,6 +117,37 @@ args:
 ttp: with/cleanup.yaml`,
 			expectedOutput: "sub_step_1_output\nsub_step_2_output\n",
 		},
+		{
+			name: "Sub TTP Execution with templated Args",
+			spec: repos.Spec{
+				Name: "default",
+				Path: "repos/a",
+			},
+			fsys: makeTestFsForSubTTPs(t),
+			stepYAML: `name: with-args
+ttp: another/args.yaml
+args:
+  arg_number_one: "{[{.StepVars.arg1}]}"
+  arg_number_two: world`,
+			expectedOutput: "hello world victory",
+			stepVars: map[string]string{
+				"arg1": "hello",
+			},
+		},
+		{
+			name: "Sub TTP Execution fails on missing args",
+			spec: repos.Spec{
+				Name: "default",
+				Path: "repos/a",
+			},
+			fsys: makeTestFsForSubTTPs(t),
+			stepYAML: `name: with-args
+ttp: another/args.yaml
+args:
+  arg_number_one: "{[{.StepVars.arg1}]}"
+  arg_number_two: world`,
+			expectTemplateError: true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -125,16 +159,37 @@ ttp: with/cleanup.yaml`,
 			repo, err := tc.spec.Load(tc.fsys, "")
 			require.NoError(t, err)
 
+			// prepare the execution context
 			execCtx := NewTTPExecutionContext()
 			execCtx.Cfg = TTPExecutionConfig{
 				Repo: repo,
 			}
+			execCtx.Vars.StepVars = tc.stepVars
 
+			// validate the step
 			err = step.Validate(execCtx)
-			require.NoError(t, err, "step failed to validate")
-
-			result, err := step.Execute(execCtx)
+			if tc.expectValidationErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
+
+			// template the step
+			err = step.Template(execCtx)
+			if tc.expectTemplateError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// execute the step
+			result, err := step.Execute(execCtx)
+			if tc.expectExecutionError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
 			assert.Equal(t, tc.expectedOutput, result.Stdout)
 		})
 	}

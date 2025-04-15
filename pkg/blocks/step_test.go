@@ -36,10 +36,13 @@ func TestStep(t *testing.T) {
 		name                  string
 		content               string
 		wantUnmarshalError    bool
+		wantValidateError     bool
+		wantTemplateError     bool
 		wantExecuteError      bool
 		expectedExecuteStdout string
 		wantCleanupError      bool
 		expectedCleanupStdout string
+		stepVars              map[string]string
 	}{
 		{
 			name: "Run inline command (no error)",
@@ -107,12 +110,48 @@ overwrite: true
 cleanup: default`,
 			wantExecuteError: false,
 		},
+		{
+			name: "Tempates both step and cleanup",
+			content: `
+name: template_step
+inline: echo {[{.StepVars.run_message}]}
+cleanup:
+  inline: echo {[{.StepVars.cleanup_message}]}
+`,
+			stepVars: map[string]string{
+				"run_message":     "this is a run",
+				"cleanup_message": "this is a cleanup",
+			},
+			expectedExecuteStdout: "this is a run\n",
+			expectedCleanupStdout: "this is a cleanup\n",
+		},
+		{
+			name: "Errors on missing variable in step templating",
+			content: `
+name: template_step
+inline: echo {[{.StepVars.run_message}]}
+cleanup:
+  inline: echo "this is a cleanup"
+`,
+			wantTemplateError: true,
+		},
+		{
+			name: "Errors on missing variable in cleanup templating",
+			content: `
+name: template_step
+inline: echo "this is a run"
+cleanup:
+  inline: echo {[{.StepVars.cleanup_message}]}
+`,
+			wantTemplateError: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var s Step
 			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.StepVars = tc.stepVars
 
 			// parse the step
 			err := yaml.Unmarshal([]byte(tc.content), &s)
@@ -124,6 +163,18 @@ cleanup: default`,
 
 			// validate the step
 			err = s.Validate(execCtx)
+			if tc.wantValidateError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// template the step
+			err = s.Template(execCtx)
+			if tc.wantTemplateError {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 
 			// execute the step and check output

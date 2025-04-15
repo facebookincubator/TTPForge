@@ -323,8 +323,10 @@ func TestExpectStep(t *testing.T) {
 		content            string
 		wantUnmarshalError bool
 		wantValidateError  bool
+		wantTemplateError  bool
 		wantExecuteError   bool
 		expectedErrTxt     string
+		stepVars           map[string]string
 	}{
 		{
 			name: "Test ExpectStep Execute With Output",
@@ -372,6 +374,52 @@ steps:
           response: "30"
 `,
 		},
+		{
+			name: "Test templating",
+			script: `
+print("Enter your name:")
+name = input()
+print(f"Hello, {name}!")
+print("Enter your age:")
+age = input()
+print(f"You are {age} years old.")
+`,
+			content: `
+steps:
+  - name: run_expect_script
+    description: "Run an expect script to interact with the command."
+    expect:
+      chdir: "{[{.StepVars.dir}]}"
+      inline: |
+        python3 {[{.StepVars.script}]}
+      responses:
+        - prompt: "{[{.StepVars.prompt}]}"
+          response: "{[{.StepVars.number}]}"
+`,
+			stepVars: map[string]string{
+				"dir":    "/tmp",
+				"script": "interactive.py",
+				"prompt": "Enter a number:",
+				"number": "30",
+			},
+		},
+		{
+			name: "Errors on missing template",
+			content: `
+steps:
+  - name: run_expect_script
+    description: "Run an expect script to interact with the command."
+    expect:
+      chdir: "{[{.StepVars.dir}]}"
+      inline: |
+        python3 {[{.StepVars.script}]}
+      responses:
+        - prompt: "{[{.StepVars.prompt}]}"
+          response: "{[{.StepVars.number}]}"
+`,
+			wantTemplateError: true,
+			expectedErrTxt:    "template: BasicStep:1:20: executing \"BasicStep\" at <.StepVars.script>: map has no entry for key \"script\"",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -382,6 +430,12 @@ steps:
 				Steps []ExpectStep `yaml:"steps"`
 			}
 
+			// prep execution context
+			execCtx := NewTTPExecutionContext()
+			execCtx.Vars.WorkDir = tempDir
+			execCtx.Vars.StepVars = tc.stepVars
+
+			// Unmarshal
 			err := yaml.Unmarshal([]byte(tc.content), &steps)
 			if err != nil {
 				assert.Fail(t, "Failed to unmarshal test case content: %v", err)
@@ -397,8 +451,17 @@ steps:
 			expectStep := &steps.Steps[0]
 			require.NotNil(t, expectStep, "expectStep is nil")
 
-			err = expectStep.Validate(NewTestTTPExecutionContext(tempDir))
+			// validate and check error
+			err = expectStep.Validate(execCtx)
 			if tc.wantValidateError {
+				assert.Equal(t, tc.expectedErrTxt, err.Error())
+				return
+			}
+			require.NoError(t, err)
+
+			// template and check error
+			err = expectStep.Template(execCtx)
+			if tc.wantTemplateError {
 				assert.Equal(t, tc.expectedErrTxt, err.Error())
 				return
 			}
@@ -448,6 +511,60 @@ steps:
 			}
 
 			if tc.name == "Test ExpectStep with Chdir" {
+				// Mock the command execution
+				execCtx := NewTestTTPExecutionContext(tempDir)
+				console, err := expect.NewConsole(expectNoError(t), sendNoError(t), expect.WithStdout(os.Stdout), expect.WithStdin(os.Stdin))
+				require.NoError(t, err)
+				defer console.Close()
+
+				cmd := exec.Command("sh", "-c", "python3 "+scriptPath)
+				cmd.Stdin = console.Tty()
+				cmd.Stdout = console.Tty()
+				cmd.Stderr = console.Tty()
+
+				if expectStep.Chdir != "" {
+					cmd.Dir = expectStep.Chdir
+				}
+
+				err = cmd.Start()
+				require.NoError(t, err)
+
+				done := make(chan struct{})
+
+				// simulate console input
+				go func() {
+					defer close(done)
+					time.Sleep(1 * time.Second)
+					console.SendLine("30")
+					time.Sleep(1 * time.Second)
+					console.Tty().Close() // Close the tcY to signal EOF
+				}()
+
+				_, err = expectStep.Execute(execCtx)
+				require.NoError(t, err)
+				<-done
+
+				output, err := console.ExpectEOF()
+				require.NoError(t, err)
+
+				// Check the output of the command execution
+				normalizedOutput := strings.ReplaceAll(output, "\r\n", "\n")
+				// Get the actual current directory from the output
+				lines := strings.Split(normalizedOutput, "\n")
+				var actualDir string
+				for _, line := range lines {
+					if strings.HasPrefix(line, "Current directory: ") {
+						actualDir = line
+						break
+					}
+				}
+				require.NotEmpty(t, actualDir, "Failed to get the actual current directory")
+				expectedSubstring2 := "You input 30.\n"
+				assert.Contains(t, normalizedOutput, actualDir)
+				assert.Contains(t, normalizedOutput, expectedSubstring2)
+			}
+
+			if tc.name == "Test Templating" {
 				// Mock the command execution
 				execCtx := NewTestTTPExecutionContext(tempDir)
 				console, err := expect.NewConsole(expectNoError(t), sendNoError(t), expect.WithStdout(os.Stdout), expect.WithStdin(os.Stdin))
