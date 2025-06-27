@@ -111,7 +111,7 @@ cleanup: default`,
 			wantExecuteError: false,
 		},
 		{
-			name: "Tempates both step and cleanup",
+			name: "Templates both step and cleanup",
 			content: `
 name: template_step
 inline: echo {[{.StepVars.run_message}]}

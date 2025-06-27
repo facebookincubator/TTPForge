@@ -12,6 +12,7 @@ TTPForge supports the following types of actions:
 - [http_request:](actions/http_request.md) Executes an HTTP Request and Saves
   Response as Variable.
 - [fetch_uri:](actions/fetch_uri.md) Downloads a File from URL to Disk
+- [kill_process:](actions/kill_process.md) Kill a process by name or ID
 - [print_str:](actions/print_str.md) Print Strings to the Screen
 - [file:](actions/file.md) Execute an External Program (No Shell)
 - [ttp:](chaining.md) Chain Multiple TTPForge TTPs together

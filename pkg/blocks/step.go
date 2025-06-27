@@ -274,6 +274,7 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 		NewPrintStrAction(),
 		NewExpectStep(),
 		NewHTTPRequestStep(),
+		NewKillProcessStep(),
 	}
 
 	var action Action
