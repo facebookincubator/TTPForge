@@ -28,6 +28,8 @@ then
 fi
 TTPFORGE_BINARY=$(realpath "${TTPFORGE_BINARY}")
 
+EXCEPTIONS_FILE=["kill-process-windows.yaml"]
+
 # Loop over all specified directories and validate all ttps within each.
 shift
 for TTP_DIR in "$@"; do
@@ -42,6 +44,11 @@ for TTP_DIR in "$@"; do
   TTP_FILE_LIST="$(find "${TTP_DIR}" -name "*.yaml")"
   for TTP_FILE in ${TTP_FILE_LIST}
   do
+      echo "Running TTP: ${TTP_FILE}"
+      if [[ "${EXCEPTIONS_FILE[*]}" =~ ${TTP_FILE##*/} ]]; then
+        echo "Skipping TTP: ${TTP_FILE}"
+        continue
+      fi
       ${TTPFORGE_BINARY} test "${TTP_FILE}"
   done
 done

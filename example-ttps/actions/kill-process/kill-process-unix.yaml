@@ -1,0 +1,26 @@
+---
+api_version: 2.0
+uuid: bc5bb5b9-d1a1-479c-93fd-843f415276e3
+name: "Kill Process Unix"
+description: |
+  "This is an example TTP that kills a ping process on a Unix system"
+requirements:
+  platforms:
+    - os: linux
+    - os: darwin
+steps:
+  - name: Process to kill started using python
+    inline: |
+      ps aux | grep ping
+      echo "================="
+      echo "Starting the detached ping process to be killed"
+      python3 -c "import subprocess,os; subprocess.Popen(['ping', '-c', '100', '127.0.0.1'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setpgrp)"
+      echo "================="
+      ps aux | grep ping | grep -v grep
+      echo "================="
+  - name: Killing the ping process
+    kill_process_id: ""
+    kill_process_name: "ping"
+  - name: Show processes
+    inline: |
+      ps aux | grep ping
