@@ -1,0 +1,13 @@
+---
+name: TTP for Darwin
+description: |
+  This is a test TTP for enum command testing.
+requirements:
+  platforms:
+    - os: darwin
+mitre:
+  tactics:
+    - TA0005 Defense Evasion
+steps:
+  - name: placeholder
+    print_str: For testing darwin platform enum
