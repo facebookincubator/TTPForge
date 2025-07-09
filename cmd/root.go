@@ -78,6 +78,7 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 	rootCmd.AddCommand(buildInitCommand())
 	rootCmd.AddCommand(buildCreateCommand())
 	rootCmd.AddCommand(buildListCommand(cfg))
+	rootCmd.AddCommand(buildEnumCommand(cfg))
 	rootCmd.AddCommand(buildShowCommand(cfg))
 	rootCmd.AddCommand(buildRunCommand(cfg))
 	rootCmd.AddCommand(buildTestCommand(cfg))

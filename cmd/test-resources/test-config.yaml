@@ -4,3 +4,5 @@ repos:
     path: repos/test-repo
   - name: another-repo
     path: repos/another-repo
+  - name: enum-repo
+    path: repos/enum-repo

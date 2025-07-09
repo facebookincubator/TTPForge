@@ -1,0 +1,10 @@
+---
+name: TTP for Linux
+description: |
+  This is a test TTP for enum command testing.
+requirements:
+  platforms:
+    - os: linux
+steps:
+  - name: placeholder
+    print_str: For testing linux platform enum
