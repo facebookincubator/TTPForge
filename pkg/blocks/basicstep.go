@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
@@ -120,7 +121,7 @@ func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	}
 	// Send stdout to the output variable
 	if b.OutputVar != "" {
-		execCtx.Vars.StepVars[b.OutputVar] = result.Stdout
+		execCtx.Vars.StepVars[b.OutputVar] = strings.TrimSuffix(result.Stdout, "\n")
 	}
 	return result, nil
 }
