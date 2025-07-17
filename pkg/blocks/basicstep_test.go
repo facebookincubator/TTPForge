@@ -99,7 +99,7 @@ outputs:
 
 func TestBasicStepExecuteWithTemplate(t *testing.T) {
 	content := `name: test_basic_step
-inline: echo -n "this is {[{.StepVars.foo}]}"`
+inline: echo "this is {[{.StepVars.foo}]}"`
 	var s BasicStep
 	execCtx := NewTTPExecutionContext()
 	execCtx.Vars.StepVars = map[string]string{
@@ -113,7 +113,7 @@ inline: echo -n "this is {[{.StepVars.foo}]}"`
 	require.NoError(t, err)
 	result, err := s.Execute(execCtx)
 	require.NoError(t, err)
-	assert.Equal(t, "this is successfully templated", result.Stdout, "stdout should be templated")
+	assert.Equal(t, "this is successfully templated\n", result.Stdout, "stdout should be templated")
 }
 
 func TestBasicStepRaisesErrorWithMissingTemplateVariable(t *testing.T) {
@@ -131,7 +131,7 @@ inline: echo "this is {[{.StepVars.foo}]}"`
 
 func TestBasicStepExecuteOutputsToOutputVar(t *testing.T) {
 	content := `name: test_basic_step
-inline: echo -n "bar"
+inline: echo "bar"
 outputvar: foo`
 	var s BasicStep
 	execCtx := NewTTPExecutionContext()
@@ -146,9 +146,26 @@ outputvar: foo`
 	assert.Equal(t, "bar", execCtx.Vars.StepVars["foo"], "outputvar should be set")
 }
 
+func TestBasicStepExecuteOutputsMultilineToOutputVar(t *testing.T) {
+	content := `name: test_basic_step
+inline: echo -e "line1\nline2\n\nline4\n"
+outputvar: foo`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+	err = s.Template(execCtx)
+	require.NoError(t, err)
+	_, err = s.Execute(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "line1\nline2\n\nline4\n", execCtx.Vars.StepVars["foo"], "outputvar should be set")
+}
+
 func TestBasicStepExecuteOutputsToAndOverwritesOutputVar(t *testing.T) {
 	content := `name: test_basic_step
-inline: echo -n "bar"
+inline: echo "bar"
 outputvar: foo`
 	var s BasicStep
 	execCtx := NewTTPExecutionContext()
