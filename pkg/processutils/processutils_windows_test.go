@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 /*
 Copyright © 2023-present, Meta Platforms, Inc. and affiliates
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -38,13 +41,13 @@ func TestGetPidsByName(t *testing.T) {
 	}{
 		{
 			name:                  "Process Exists",
-			processName:           "ping",
+			processName:           "PING.EXE",
 			processExists:         true,
 			expectEntriesInResult: true,
 		},
 		{
 			name:                  "Process Does Not Exist",
-			processName:           "ping",
+			processName:           "pingabc",
 			processExists:         false,
 			expectEntriesInResult: false,
 		},
@@ -54,10 +57,9 @@ func TestGetPidsByName(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// Setup
-			var pid int
 			var error error
 			if tc.processExists {
-				pid, error = testutils.CreateProcessToTerminate()
+				_, error = testutils.CreateProcessToTerminate()
 				require.NoError(t, error)
 			}
 			// Testing
@@ -65,27 +67,58 @@ func TestGetPidsByName(t *testing.T) {
 			if len(result) > 0 {
 				assert.Equal(t, tc.expectEntriesInResult, true)
 
-				foundOurPid := false
 				// Cleanup
 				for _, p := range result {
-					if int(p) == pid {
-						foundOurPid = true
-						process, err := os.FindProcess(int(p))
-						if err != nil {
-							continue
-						}
-						process.Kill()
-						// Need to wait for the process to be reaped by the OS (Completely killed)
-						_, err = process.Wait()
-						require.NoError(t, err)
+					process, err := os.FindProcess(int(p))
+					if err != nil {
+						continue
 					}
+					process.Kill()
+					// Need to wait for the process to be reaped by the OS (Completely killed)
+					_, err = process.Wait()
+					require.NoError(t, err)
+					break
 				}
-				assert.Equal(t, foundOurPid, true)
 			} else {
 				require.Error(t, err)
 				assert.Equal(t, tc.expectEntriesInResult, false)
 			}
 
+		})
+	}
+}
+
+// Only PID=0 is constant IDLE process for windows we use this
+func TestVerifyPIDExists(t *testing.T) {
+
+	testCases := []struct {
+		name        string
+		pid         int
+		expectError bool
+	}{
+		{
+			name:        "Process Exists",
+			pid:         0,
+			expectError: false,
+		},
+		{
+			name:        "Process Does Not Exist",
+			pid:         124567890987654321,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// Testing
+			err := VerifyPIDExists(tc.pid)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

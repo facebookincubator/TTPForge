@@ -1,0 +1,27 @@
+---
+api_version: 2.0
+uuid: eb38a84b-837b-47d9-9373-3d35a824b003
+name: "Kill Process Windows Failure"
+description: |
+  "This is an example TTP that kills a ping process on a Windows system that does not exist"
+requirements:
+  platforms:
+    - os: windows
+steps:
+  - name: Process to kill started using python
+    executor: cmd
+    inline: |
+      tasklist | findstr PING.EXE
+      echo "Starting the detached ping process to be killed"
+      python3 -c "import subprocess,os; subprocess.Popen(['ping', '-n', '10', '127.0.0.1'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=8)"
+      echo "================="
+      tasklist | findstr PING.EXE
+      echo "================="
+  - name: Killing the ping process
+    kill_process_id: ""
+    kill_process_name: "PING123"
+    error_on_find_process_failure: false
+  - name: Show processes
+    executor: cmd
+    inline: |
+      tasklist | findstr PING.EXE

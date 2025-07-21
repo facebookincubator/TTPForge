@@ -20,7 +20,6 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -42,33 +41,59 @@ func TestKillProcessExecute(t *testing.T) {
 		expectValidateError bool
 	}{
 		{
-			name:        "Kill non-existent process with process id",
+			name:        "Kill non-existent process with process id - throw error",
 			description: "Trying to kill a process with process id that doesn't exist",
 			step: &KillProcessStep{
-				ProcessID:   "123456789",
-				ProcessName: "ping",
+				ProcessID:                 "123",
+				ProcessName:               "ping",
+				ErrorOnFindProcessFailure: true,
 			},
 			createProcess:      false,
 			expectExecuteError: true,
 		},
 		{
-			name:        "Kill non-existent process with process name",
+			name:        "Kill non-existent process with process id - continue on error",
+			description: "Trying to kill a process with process id that doesn't exist",
+			step: &KillProcessStep{
+				ProcessID:                 "123456789",
+				ProcessName:               "ping",
+				ErrorOnFindProcessFailure: false,
+				ErrorOnKillFailure:        false,
+			},
+			createProcess:      false,
+			expectExecuteError: false,
+		},
+		{
+			// Test might throw an error on stress run
+			name:        "Kill non-existent process with process name - throw error",
+			description: "Trying to kill a process with process name that doesn't exist",
+			step: &KillProcessStep{
+				ProcessID:                 "",
+				ProcessName:               "ping",
+				ErrorOnFindProcessFailure: true,
+			},
+			createProcess:      false,
+			expectExecuteError: true,
+		},
+		{
+			name:        "Kill non-existent process with process name - continue on error",
 			description: "Trying to kill a process with process name that doesn't exist",
 			step: &KillProcessStep{
 				ProcessID:   "",
 				ProcessName: "ping",
 			},
 			createProcess:      false,
-			expectExecuteError: true,
+			expectExecuteError: false,
 		},
 		{
-			name:        "Kill existent process with process id",
+			name:        "Kill non-existent process with process id",
 			description: "Trying to kill a process with process id that exists",
 			step: &KillProcessStep{
 				ProcessID:   "123456789",
 				ProcessName: "ping",
 			},
-			createProcess: true,
+			createProcess:      true,
+			expectExecuteError: false,
 		},
 		{
 			name:        "Kill existent process with process name",
@@ -77,7 +102,8 @@ func TestKillProcessExecute(t *testing.T) {
 				ProcessID:   "",
 				ProcessName: "ping",
 			},
-			createProcess: true,
+			createProcess:      true,
+			expectExecuteError: false,
 		},
 		{
 			name:        "Kill process invalid process id",
@@ -110,8 +136,9 @@ func TestKillProcessExecute(t *testing.T) {
 			name:        "Kill process ID with templating",
 			description: "Trying to kill a process with templating",
 			step: &KillProcessStep{
-				ProcessID:   "{[{.StepVars.pid}]}",
-				ProcessName: "ping",
+				ProcessID:                 "{[{.StepVars.pid}]}",
+				ProcessName:               "ping",
+				ErrorOnFindProcessFailure: true,
 			},
 			stepVars: map[string]string{
 				"pid": "123456789",
@@ -124,8 +151,9 @@ func TestKillProcessExecute(t *testing.T) {
 			name:        "Kill process name with templating",
 			description: "Trying to kill a process with process name and templating",
 			step: &KillProcessStep{
-				ProcessID:   "",
-				ProcessName: "{[{.StepVars.processName}]}",
+				ProcessID:                 "",
+				ProcessName:               "{[{.StepVars.processName}]}",
+				ErrorOnFindProcessFailure: true,
 			},
 			stepVars: map[string]string{
 				"processName": "touch",
@@ -175,7 +203,6 @@ func TestKillProcessExecute(t *testing.T) {
 				require.Error(t, err2)
 				return
 			}
-			fmt.Printf(tc.step.ProcessID)
 			require.NoError(t, err2)
 
 			if tc.createProcess {

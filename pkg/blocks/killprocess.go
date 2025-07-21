@@ -32,9 +32,11 @@ import (
 // Its intended use is simulating malicious programs stopping
 // critical applications/processes
 type KillProcessStep struct {
-	actionDefaults `yaml:",inline"`
-	ProcessID      string `yaml:"kill_process_id,omitempty"`
-	ProcessName    string `yaml:"kill_process_name,omitempty"`
+	actionDefaults            `yaml:",inline"`
+	ProcessID                 string `yaml:"kill_process_id,omitempty"`
+	ProcessName               string `yaml:"kill_process_name,omitempty"`
+	ErrorOnFindProcessFailure bool   `yaml:"error_on_find_process_failure,omitempty"`
+	ErrorOnKillFailure        bool   `yaml:"error_on_kill_failure,omitempty"`
 }
 
 // NewKillProcessStep creates a new KillProcessStep instance and returns a pointer to it.
@@ -100,13 +102,26 @@ func (s *KillProcessStep) extractPIDs() ([]int, error) {
 
 	if processID > 0 {
 		logging.L().Infof("Using Process ID: %v", processID)
+
+		err := processutils.VerifyPIDExists(processID)
+		if err != nil {
+			logging.L().Errorf("Error while trying to verify PID exists: %+v", err)
+			if s.ErrorOnFindProcessFailure {
+				return nil, err
+			}
+			return []int{}, nil
+		}
 		return []int{processID}, nil
 	} else if s.ProcessName != "" {
 		logging.L().Infof("Finding processes with name: %v", s.ProcessName)
+
 		processes, err := processutils.GetPIDsByName(s.ProcessName)
 		if err != nil {
 			logging.L().Errorf("Error while trying to get PIDs from name: %+v", err)
-			return nil, err
+			if s.ErrorOnFindProcessFailure {
+				return nil, err
+			}
+			return []int{}, nil
 		}
 
 		pids := make([]int, len(processes))
@@ -126,23 +141,20 @@ func (s *KillProcessStep) extractPIDs() ([]int, error) {
 func (s *KillProcessStep) killProcesses(pids []int) error {
 	logging.L().Infof("Killing the following processes: %v", pids)
 
-	throwError := len(pids) == 1
-
-	// Throwing error if only 1 PID and we fail to kill
 	for _, pid := range pids {
 		proc, err := os.FindProcess(pid)
 		if err != nil {
 			logging.L().Errorf("Error while trying to find process with ID: %v; %+v", pid, err)
-			if throwError {
+			if s.ErrorOnFindProcessFailure {
 				return err
 			}
 			continue
 		}
 
-		logging.L().Infof("Got process handle for PID %d: %+v", pid, proc)
+		logging.L().Infof("Got process handle with PID: %d", pid)
 		if err := proc.Kill(); err != nil {
 			logging.L().Errorf("Failed to kill process with ID: %v; %+v", pid, err)
-			if throwError {
+			if s.ErrorOnKillFailure {
 				return err
 			}
 			continue
@@ -161,6 +173,10 @@ func (s *KillProcessStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 		return nil, err
 	}
 
+	if len(pids) == 0 {
+		logging.L().Infof("No processes found to kill")
+		return &ActResult{}, nil
+	}
 	if err := s.killProcesses(pids); err != nil {
 		return nil, err
 	}
