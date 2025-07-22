@@ -1,4 +1,5 @@
 ---
+version: 2
 builds:
   - id: "ttpforge"
     binary: ttpforge
@@ -22,3 +23,7 @@ builds:
     goamd64:
       - v2
       - v3
+    # Ignore Windows arm is not compatable with gopsutil.
+    ignore:
+      - goos: windows
+        goarch: arm
