@@ -42,3 +42,17 @@ func GetPIDsByName(processName string) ([]int32, error) {
 	}
 	return pids, nil
 }
+
+// VerifyPIDExists returns a boolean basis if a process with the input PID exists
+func VerifyPIDExists(pid int) error {
+	processes, err := process.Processes()
+	if err != nil {
+		return err
+	}
+	for _, proc := range processes {
+		if int(proc.Pid) == pid {
+			return nil
+		}
+	}
+	return fmt.Errorf("No process found with PID: %d", pid)
+}

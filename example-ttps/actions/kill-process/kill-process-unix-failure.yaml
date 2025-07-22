@@ -1,9 +1,9 @@
 ---
 api_version: 2.0
-uuid: bc5bb5b9-d1a1-479c-93fd-843f415276e3
-name: "Kill Process Unix"
+uuid: fbf458fb-c351-4633-97b6-67332f94b7c1
+name: "Kill Process Unix Failure"
 description: |
-  "This is an example TTP that kills a ping process on a Unix system"
+  "This is an example TTP that kills a ping process on a Unix system that does not exist"
 requirements:
   platforms:
     - os: linux
@@ -20,8 +20,9 @@ steps:
       echo "================="
   - name: Killing the ping process
     kill_process_id: ""
-    kill_process_name: "ping"
-    error_on_find_process_failure: true
+    kill_process_name: "ping123"
+    error_on_find_process_failure: false
+    error_on_kill_process_failure: false
   - name: Show processes
     inline: |
       ps aux | grep ping
