@@ -1,5 +1,4 @@
 ---
-version: 2
 builds:
   - id: "ttpforge"
     binary: ttpforge
