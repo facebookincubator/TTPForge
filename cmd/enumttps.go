@@ -21,10 +21,10 @@ package cmd
 
 import (
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/parseutils"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -67,33 +67,59 @@ func gatherTTPsFromRepo(cfg *Config, repo string) ([]string, error) {
 	return ttpRefs, nil
 }
 
-func filterTTPs(cfg *Config, platforms []string, tactic string, technique string, subTech string, ttpRefs []string, tally map[string]int, totalCount int) (int, []string) {
-	ttpPatterns := []string{}
-	updatedTTPRefs := []string{}
-
-	filterPlatform := !slices.Contains(platforms, "any")
-
-	// Building regex patterns for attack ID
+func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech string) bool {
+	// Searching for the MITRE attack ID patterns in the parsed file content
+	dataMatching := false
 	if tactic != "" {
-		fmt.Printf("Filtering by tactic: %s\n", tactic)
-		ttpPatterns = append(ttpPatterns, fmt.Sprintf(`\s*-\s*%s\b`, regexp.QuoteMeta(tactic)))
+		for _, ttpTactic := range ttp.Mitre.Tactics {
+			if strings.Contains(ttpTactic, tactic) {
+				dataMatching = true
+				break
+			}
+		}
+		if !dataMatching {
+			return false
+		}
+		dataMatching = false
 	}
 	if technique != "" {
-		fmt.Printf("Filtering by technique: %s\n", technique)
-		ttpPatterns = append(ttpPatterns, fmt.Sprintf(`\s*-\s*%s\b`, regexp.QuoteMeta(technique)))
+		for _, ttpTechnique := range ttp.Mitre.Techniques {
+			if strings.Contains(ttpTechnique, technique) {
+				dataMatching = true
+				break
+			}
+		}
+		if !dataMatching {
+			return false
+		}
+		dataMatching = false
 	}
 	if subTech != "" {
-		fmt.Printf("Filtering by sub-technique: %s\n", subTech)
-		ttpPatterns = append(ttpPatterns, fmt.Sprintf(`\s*-\s*%s\b`, regexp.QuoteMeta(subTech)))
+		for _, ttpSubTech := range ttp.Mitre.Subtechniques {
+			if strings.Contains(ttpSubTech, subTech) {
+				dataMatching = true
+				break
+			}
+		}
+		if !dataMatching {
+			return false
+		}
 	}
+	return true
+}
 
-	// Platform regex pattern
-	platformRegex := regexp.MustCompile(fmt.Sprintf(`- os:\s*(%s)\s+`, strings.Join(platforms, "|")))
+func filterTTPs(cfg *Config, platforms []string, tactic string, technique string, subTech string, ttpRefs []string, tally map[string]int, totalCount int, verbose bool) (int, []string) {
+	updatedTTPRefs := []string{}
+	filterPlatform := !slices.Contains(platforms, "any")
 	fmt.Printf("Filtering by platforms: %s\n", platforms)
 
-	if !filterPlatform && len(ttpPatterns) == 0 {
+	if !filterPlatform && tactic == "" && technique == "" && subTech == "" {
 		fmt.Println("No filters specified, returning all TTPs")
 		return len(ttpRefs), ttpRefs
+	}
+	platformSet := make(map[string]bool)
+	for _, inputPlatform := range platforms {
+		platformSet[inputPlatform] = true
 	}
 
 	fs := afero.NewOsFs()
@@ -102,36 +128,44 @@ func filterTTPs(cfg *Config, platforms []string, tactic string, technique string
 	for _, ttpRef := range ttpRefs {
 		_, path, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 		if err != nil {
-			fmt.Printf("Error resolving TTP ref: %v with error %v\n", ttpRef, err)
+			if verbose {
+				fmt.Printf("Error resolving TTP ref: %v with error: %v\n", ttpRef, err)
+			}
 			continue
 		}
 		content, err := afero.ReadFile(fs, path)
 		if err != nil {
-			fmt.Printf("Error reading TTP ref: %v on path %v with error %v", ttpRef, path, err)
+			if verbose {
+				fmt.Printf("Error reading TTP ref: %v on path %v with error: %v", ttpRef, path, err)
+			}
 			continue
 		}
 
-		// Searching for the MITRE attack ID patterns in the file content
-		allFound := true
-		for _, pat := range ttpPatterns {
-			if !regexp.MustCompile(pat).Match(content) {
-				allFound = false
-				break
+		ttp, err := parseutils.ParseTTP(content, path)
+		if err != nil {
+			if verbose {
+				fmt.Printf("Error parsing TTP ref: %v with error: %v\n", ttpRef, err)
 			}
+			continue
 		}
-		if !allFound {
+
+		if !matchMitreData(ttp, tactic, technique, subTech) {
 			continue
 		}
 
 		// Platform filtering and updating tally
 		if filterPlatform {
-			if platformRegex.Match(content) {
+			ttpPlatforms := ttp.Requirements.Platforms
+			platformMatch := false
+			for _, p := range ttpPlatforms {
+				if platformSet[p.OS] {
+					platformMatch = true
+					tally[p.OS]++
+				}
+			}
+			if platformMatch {
 				totalCount++
 				updatedTTPRefs = append(updatedTTPRefs, ttpRef)
-				matches := platformRegex.FindAllSubmatch(content, -1)
-				for _, m := range matches {
-					tally[string(m[1])]++
-				}
 			}
 		} else {
 			totalCount++
@@ -185,7 +219,7 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 			fmt.Printf("Total %d TTPs found in repo: %s\n", len(ttpRefs), repo)
 
 			// Filtering by platform and Attack ID
-			totalCount, ttpRefs = filterTTPs(cfg, platforms, tactic, technique, subTech, ttpRefs, tally, totalCount)
+			totalCount, ttpRefs = filterTTPs(cfg, platforms, tactic, technique, subTech, ttpRefs, tally, totalCount, verbose)
 
 			// Printing data as per platform
 			if !slices.Contains(platforms, "any") {
