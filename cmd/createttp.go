@@ -46,6 +46,10 @@ mitre:
     - {{.Placeholder}}
   subtechniques:
     - {{.Placeholder}}
+args:
+  - name: {{.Placeholder}}
+    description: {{.Placeholder}}
+    default: {{.Placeholder}}
 steps:
   - name: hello_world
     inline: |
