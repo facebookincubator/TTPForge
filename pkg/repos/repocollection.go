@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/fileutils"
 	"github.com/spf13/afero"
 )
 
@@ -34,6 +35,9 @@ type RepoCollection interface {
 	GetRepo(repoName string) (Repo, error)
 	ResolveTTPRef(ttpRef string) (Repo, string, error)
 	ListTTPs() ([]string, error)
+	FindParentRepo(absPath string) (Repo, error)
+	ParseTTPRef(ttpRef string) (Repo, string, error)
+	ConvertAbsPathToAbsRef(repo Repo, absPath string) (string, error)
 }
 
 type repoCollection struct {
@@ -98,23 +102,53 @@ func (rc *repoCollection) GetRepo(repoName string) (Repo, error) {
 	return r, nil
 }
 
-// ResolveTTPRef turns a provided TTP reference into
-// a Repo and absolute TTP file path
+// ConvertAbsPathToAbsRef converts an absolute file path to a TTP reference
+// by finding the relative path from the repository's search paths
 //
 // **Parameters:**
 //
-// ttpRef: one of two things:
-//
-// 1. a reference of the form repo//path/to/ttp
-// 2. an absolute or relative file path
+// repo: the repository that contains the file
+// absPath: the absolute path to the TTP file
 //
 // **Returns:**
 //
-// Repo: the located repo
-// string: the absolute path to the specified TTP
-// error: an error if there is a problem
-func (rc *repoCollection) ResolveTTPRef(ttpRef string) (Repo, string, error) {
+// string: the TTP reference in the format "repo_name//path/to/ttp"
+// error: an error if the path is not under any valid search path
+func (rc *repoCollection) ConvertAbsPathToAbsRef(repo Repo, absPath string) (string, error) {
+	searchPaths := repo.GetTTPSearchPaths()
 
+	for _, searchPath := range searchPaths {
+		absSearchPath, err := rc.resolveAbsPath(searchPath)
+		if err != nil {
+			return "", err
+		}
+
+		// absPath could be a relative path repo/b/even/more/ttps during testing
+		rel, err := filepath.Rel(absSearchPath, absPath)
+		if err == nil {
+			return (repo.GetName() + RepoPrefixSep + rel), nil
+		}
+	}
+
+	return "", fmt.Errorf("filepath %s is not under a valid search path", absPath)
+}
+
+// ParseTTPRef parses a TTP reference and returns the repository and normalized reference
+// Supports both repository references (repo//path) and absolute/relative file paths
+//
+// **Parameters:**
+//
+// ttpRef: the TTP reference to parse, which can be:
+//   - "repo//path/to/ttp" (repository reference)
+//   - "/absolute/path/to/ttp" (absolute path)
+//   - "relative/path/to/ttp" (relative path)
+//
+// **Returns:**
+//
+// Repo: the repository containing the TTP (found by name or by searching parent directories)
+// string: an **unverified** TTP reference
+// error: an error if the reference is invalid or repository is not found
+func (rc *repoCollection) ParseTTPRef(ttpRef string) (Repo, string, error) {
 	tokens := strings.Split(ttpRef, RepoPrefixSep)
 	sepCount := len(tokens) - 1
 	if sepCount > 1 {
@@ -131,24 +165,70 @@ func (rc *repoCollection) ResolveTTPRef(ttpRef string) (Repo, string, error) {
 
 		// we still need that TTP to be part of a valid repo
 		// otherwise stuff like subttps won't work
-		repo, err := rc.findParentRepo(absPath)
+		repo, err := rc.FindParentRepo(absPath)
 		if err != nil {
 			return nil, "", err
 		}
-		return repo, absPath, nil
+
+		ref, err := rc.ConvertAbsPathToAbsRef(repo, absPath)
+		if err != nil {
+			return nil, "", err
+		}
+
+		return repo, ref, nil
 	}
 
 	// sepCount == 1
-	repoName, scopedRef := tokens[0], tokens[1]
-	if _, found := rc.reposByName[repoName]; !found {
+	repoName := tokens[0]
+
+	repo, found := rc.reposByName[repoName]
+
+	if !found && repoName != "" {
 		return nil, "", fmt.Errorf("repository '%v' not found - add it with 'ttpforge install'?", repoName)
 	}
-	r := rc.reposByName[repoName]
-	absPath, err := r.FindTTP(scopedRef)
+
+	return repo, ttpRef, nil
+}
+
+// ResolveTTPRef turns a provided TTP reference into
+// a Repo and a verified absolute TTP file path
+//
+// **Parameters:**
+//
+// ttpRef: one of two things:
+//
+// 1. a reference of the form repo//path/to/ttp
+// 2. an absolute or relative file path
+//
+// **Returns:**
+//
+// Repo: the located repo
+// string: the absolute path to the specified TTP
+// error: an error if there is a problem
+func (rc *repoCollection) ResolveTTPRef(ttpRef string) (Repo, string, error) {
+	repo, ref, err := rc.ParseTTPRef(ttpRef)
+
 	if err != nil {
 		return nil, "", err
 	}
-	return r, absPath, nil
+
+	if repo.GetName() == "" {
+		return nil, "", fmt.Errorf("no repository found for TTP reference '%v'", ttpRef)
+	}
+
+	_, scopedRef, _ := strings.Cut(ref, "//")
+
+	absPath, err := repo.FindTTP(scopedRef)
+	if err != nil {
+		return nil, "", err
+	}
+
+	absPath, err = rc.resolveAbsPath(absPath)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return repo, absPath, nil
 }
 
 // ListTTPs lists all TTPs in the RepoCollection
@@ -169,15 +249,57 @@ func (rc *repoCollection) ListTTPs() ([]string, error) {
 	return refsForAllTTPs, nil
 }
 
-func (rc *repoCollection) findParentRepo(absPath string) (Repo, error) {
+func isSubpath(parent string, child string) bool {
+	// Clean both paths to handle . and .. elements
+	parent = filepath.Clean(parent)
+	child = filepath.Clean(child)
+
+	// Use filepath.Rel to determine relationship
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+
+	// If the relative path starts with "..", child is not under parent
+	// If rel is ".", they are the same path (not a subpath)
+	return rel != "." && !strings.HasPrefix(rel, "..")
+}
+
+// FindParentRepo searches for a repository that contains the specified path
+// First checks loaded repositories, then walks up the directory tree looking for repo config files
+//
+// **Parameters:**
+//
+// absPath: the absolute path to search from
+//
+// **Returns:**
+//
+// Repo: the repository that contains the given path
+// error: an error if no parent repository is found or if there are loading issues
+func (rc *repoCollection) FindParentRepo(absPath string) (Repo, error) {
+	// first check if the path is already in a loaded repo
+	for _, r := range rc.reposByName {
+		repoPath, err := fileutils.AbsPath(r.GetFullPath())
+		if err != nil {
+			return nil, err
+		}
+
+		// no need to check if the config file exists because it was loaded successfully
+		if isSubpath(repoPath, absPath) {
+			return r, nil
+		}
+	}
+
+	// if not, walk up the directory tree until we find a repo
 	var repoName, repoPath string
 	remainingPath := absPath
 	sep := string(os.PathSeparator)
 	lastSepIdx := strings.LastIndex(remainingPath, sep)
-	// walk up the directory tree to look for our repo
+
 	for lastSepIdx > 0 {
 		dirToSearch := remainingPath[:lastSepIdx]
 		repoConfigPath := filepath.Join(dirToSearch, RepoConfigFileName)
+
 		exists, err := afero.Exists(rc.fsys, repoConfigPath)
 		if err != nil {
 			return nil, err
@@ -187,9 +309,10 @@ func (rc *repoCollection) findParentRepo(absPath string) (Repo, error) {
 			_, repoName = filepath.Split(dirToSearch)
 			break
 		}
-		remainingPath := dirToSearch
+		remainingPath = dirToSearch
 		lastSepIdx = strings.LastIndex(remainingPath, sep)
 	}
+
 	if repoName == "" {
 		return nil, fmt.Errorf("no parent repository found for path %v - you must create a %v file in the repo root", absPath, RepoConfigFileName)
 	}
@@ -207,13 +330,6 @@ func (rc *repoCollection) findParentRepo(absPath string) (Repo, error) {
 }
 
 func (rc *repoCollection) resolveAbsPath(path string) (string, error) {
-	exists, err := afero.Exists(rc.fsys, path)
-	if err != nil {
-		return "", err
-	}
-	if !exists {
-		return "", fmt.Errorf("path '%v' does not exist", path)
-	}
 
 	// afero in-memory filesystems that we use for tests
 	// don't have a concept of a working directory.
@@ -221,7 +337,7 @@ func (rc *repoCollection) resolveAbsPath(path string) (string, error) {
 	// this creates incompability that we resolve manually like this
 	switch rc.fsys.(type) {
 	case *afero.OsFs:
-		fullPath, err := filepath.Abs(path)
+		fullPath, err := fileutils.AbsPath(path)
 		if err != nil {
 			return "", err
 		}

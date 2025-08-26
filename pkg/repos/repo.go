@@ -68,6 +68,8 @@ type Repo interface {
 	GetFs() afero.Fs
 	GetName() string
 	GetFullPath() string
+	GetTTPSearchPaths() []string
+	GetTemplateSearchPaths() []string
 }
 
 // Config contains all the fields
@@ -81,6 +83,24 @@ type repo struct {
 	spec                Spec
 	TTPSearchPaths      []string `yaml:"ttp_search_paths"`
 	TemplateSearchPaths []string `yaml:"template_search_paths"`
+}
+
+// GetTTPSearchPaths returns the absolute paths of all configured TTP search directories
+func (r *repo) GetTTPSearchPaths() []string {
+	absPaths := make([]string, len(r.TTPSearchPaths))
+	for i, path := range r.TTPSearchPaths {
+		absPaths[i] = filepath.Join(r.fullPath, path)
+	}
+	return absPaths
+}
+
+// GetTemplateSearchPaths returns the absolute paths of all configured template search directories
+func (r *repo) GetTemplateSearchPaths() []string {
+	absPaths := make([]string, len(r.TemplateSearchPaths))
+	for i, path := range r.TemplateSearchPaths {
+		absPaths[i] = filepath.Join(r.fullPath, path)
+	}
+	return absPaths
 }
 
 // ListsTTPs lists the TTPs in this repo
