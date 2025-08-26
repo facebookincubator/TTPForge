@@ -25,6 +25,42 @@ import (
 	"strings"
 )
 
+// ResolveSymlinksInPath resolves symlinks in the existing portion of a path
+// without requiring the entire path to exist
+func ResolveSymlinksInPath(absPath string) (string, error) {
+	// Find the deepest existing directory by walking up the path
+	currentPath := absPath
+	var nonExistingParts []string
+
+	for {
+		// Check if current path exists
+		if _, err := os.Stat(currentPath); err == nil {
+			// Path exists, try to resolve symlinks
+			resolved, err := filepath.EvalSymlinks(currentPath)
+			if err != nil {
+				// If symlink resolution fails, use the original path
+				resolved = currentPath
+			}
+
+			// Rebuild the full path with resolved base and non-existing parts
+			for i := len(nonExistingParts) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, nonExistingParts[i])
+			}
+			return resolved, nil
+		}
+
+		// Path doesn't exist, move up one level
+		parent := filepath.Dir(currentPath)
+		if parent == currentPath {
+			// We've reached the root, can't go further up
+			return absPath, nil
+		}
+
+		nonExistingParts = append(nonExistingParts, filepath.Base(currentPath))
+		currentPath = parent
+	}
+}
+
 // ExpandTilde expands a tilde to the user's home directory
 func ExpandTilde(path string) (string, error) {
 	homedir, err := os.UserHomeDir()
@@ -40,11 +76,18 @@ func ExpandTilde(path string) (string, error) {
 // AbsPath is a thin wrapper around filepath.Abs
 // that we use because it also calls ExpandTilde
 func AbsPath(path string) (string, error) {
-	tmp, err := ExpandTilde(path)
+	expanded, err := ExpandTilde(path)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Abs(tmp)
+
+	// Convert to absolute path first
+	absPath, err := filepath.Abs(expanded)
+	if err != nil {
+		return "", err
+	}
+
+	return ResolveSymlinksInPath(absPath)
 }
 
 // IsAbs is a thin wrapper around filepath.IsAbs
