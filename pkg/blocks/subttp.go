@@ -93,10 +93,12 @@ func (s *SubTTPStep) Template(execCtx TTPExecutionContext) error {
 // and manages the outputs and cleanup steps.
 func (s *SubTTPStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpRef)
+	logging.IncreaseIndentLevel()
 	runErr := s.ttp.RunSteps(*s.subExecCtx)
 	if runErr != nil {
 		return &ActResult{}, runErr
 	}
+	logging.DecreaseIndentLevel()
 	logging.L().Info("[*] Completed SubTTP - No Errors :)")
 
 	// just a little annoying plumbing due to subtle type differences
