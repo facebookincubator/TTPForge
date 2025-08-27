@@ -19,6 +19,8 @@ THE SOFTWARE.
 
 package blocks
 
+import "github.com/facebookincubator/ttpforge/pkg/logging"
+
 // subTTPCleanupAction ensures that individual
 // steps of the subTTP are appropriately cleaned up
 type subTTPCleanupAction struct {
@@ -43,7 +45,9 @@ func (a *subTTPCleanupAction) Template(_ TTPExecutionContext) error {
 
 // Execute will cleanup the subTTP starting from the last successful step
 func (a *subTTPCleanupAction) Execute(_ TTPExecutionContext) (*ActResult, error) {
+	logging.IncreaseIndentLevel()
 	cleanupResults, err := a.step.ttp.startCleanupForCompletedSteps(*a.step.subExecCtx)
+	logging.DecreaseIndentLevel()
 	if err != nil {
 		return nil, err
 	}

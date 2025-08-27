@@ -21,9 +21,11 @@ package logging
 
 import (
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -36,8 +38,10 @@ type Config struct {
 }
 
 var (
-	logger   *zap.SugaredLogger
-	initOnce sync.Once
+	logger              *zap.SugaredLogger
+	initOnce            sync.Once
+	encoderRegisterOnce sync.Once
+	indentLevel         int
 )
 
 func init() {
@@ -67,8 +71,66 @@ func DividerThin() {
 	L().Infow("----------------------------------------")
 }
 
+func IncreaseIndentLevel() {
+	indentLevel++
+}
+
+func DecreaseIndentLevel() {
+	if indentLevel > 0 {
+		indentLevel--
+	}
+}
+
+type indentedEncoder struct {
+	zapcore.Encoder
+	pool buffer.Pool
+	cfg  zapcore.EncoderConfig
+}
+
+func (e *indentedEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
+	buf := e.pool.Get()
+
+	// Add indentations for subTTPs
+	buf.AppendString(strings.Repeat("\t", indentLevel))
+
+	consolebuf, err := e.Encoder.EncodeEntry(entry, fields)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = buf.Write(consolebuf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (e *indentedEncoder) Clone() zapcore.Encoder {
+	// Needed to handle indents in structured logging
+	return &indentedEncoder{
+		Encoder: zapcore.NewConsoleEncoder(e.cfg),
+		pool:    buffer.NewPool(),
+		cfg:     e.cfg,
+	}
+}
+
 // InitLog initializes TTPForge global logger
 func InitLog(config Config) (err error) {
+	// Register the indented encoder only once globally
+	encoderRegisterOnce.Do(func() {
+		err := zap.RegisterEncoder("indented", func(cfg zapcore.EncoderConfig) (zapcore.Encoder, error) {
+			enc := &indentedEncoder{
+				Encoder: zapcore.NewConsoleEncoder(cfg),
+				pool:    buffer.NewPool(),
+				cfg:     cfg,
+			}
+			return enc, nil
+		})
+		if err != nil {
+			panic(err) // Use panic here since sync.Once does not allow error return
+		}
+	})
+
 	initOnce.Do(func() {
 		zcfg := zap.NewDevelopmentConfig()
 		if config.NoColor {
@@ -76,6 +138,7 @@ func InitLog(config Config) (err error) {
 		} else {
 			zcfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		}
+		zcfg.Encoding = "indented"
 
 		if config.LogFile != "" {
 			fullpath, err := filepath.Abs(config.LogFile)
