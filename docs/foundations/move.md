@@ -19,6 +19,24 @@ To move a TTP, use the command shown below:
 ttpforge move [source] [destination]
 ```
 
+## Cross-Repository Moves
+
+You can move TTPs between repositories by specifying the source and destination.
+For example, to move a TTP from the `examples` repository to the `forgearmory`
+repository, you can use the following command:
+
+```bash
+ttpforge move examples//basic.yaml forgearmory//imported/basic.yaml
+```
+
+Any TTP files that reference a moved TTP will be updated to point to its new
+location using relative references they are within the same repository, or
+absolute references if they are in different repositories.
+
+**Note:** These repository names are defined in your TTPForge configuration
+file, so take caution when performing cross-repository moves as your config file
+may not match the config files of other users.
+
 ## Argument Formats
 
 The `move` command accepts source and destination arguments in several formats.

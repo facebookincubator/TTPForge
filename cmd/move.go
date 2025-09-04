@@ -30,14 +30,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRepo repos.Repo, sourceRef string, replacement string) error {
+func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRepo repos.Repo, sourceRef string, destRef string) error {
 	// Parse source reference
 	index := strings.Index(sourceRef, repos.RepoPrefixSep)
 	if index == -1 {
 		return fmt.Errorf("invalid source reference format: %s", sourceRef)
 	}
 
-	scopedRef := sourceRef[index+2:]
+	sourceScopedRef := sourceRef[index:]
+	sourceBareRef := sourceRef[index+2:]
+
+	fmt.Println(sourceScopedRef, sourceBareRef)
+
+	// Parse destination reference
+	index = strings.Index(destRef, repos.RepoPrefixSep)
+	if index == -1 {
+		return fmt.Errorf("invalid destination reference format: %s", destRef)
+	}
+
+	destRepo := destRef[:index]
+	destScopedRef := destRef[index:]
 
 	// Build patterns for finding references in ttp: YAML fields:
 	// 1. Full reference: ttp: examples//actions/inline/basic.yaml
@@ -45,8 +57,8 @@ func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRep
 	// 3. Bare reference: ttp: actions/inline/basic.yaml (legacy compatibility)
 	// These patterns match the entire ttp: field value including any surrounding whitespace
 	fullRefPattern := regexp.MustCompile(`(\s*ttp:\s*)` + regexp.QuoteMeta(sourceRef) + `(\s*)`)
-	scopedRefPattern := regexp.MustCompile(`(\s*ttp:\s*)` + regexp.QuoteMeta(repos.RepoPrefixSep+scopedRef) + `(\s*)`)
-	bareRefPattern := regexp.MustCompile(`(\s*ttp:\s*)` + regexp.QuoteMeta(scopedRef) + `(\s*)`)
+	scopedRefPattern := regexp.MustCompile(`(\s*ttp:\s*)` + regexp.QuoteMeta(sourceScopedRef) + `(\s*)`)
+	bareRefPattern := regexp.MustCompile(`(\s*ttp:\s*)` + regexp.QuoteMeta(sourceBareRef) + `(\s*)`)
 
 	ttpRefs, err := rc.ListTTPs()
 	if err != nil {
@@ -66,6 +78,15 @@ func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRep
 
 		var updated bool
 		var newContent []byte
+		var replacement string
+
+		// If the destination repo is in the same repo as the ttp, we can use the scoped ref
+		// Otherwise, we need to use the full ref
+		if repo.GetName() == destRepo {
+			replacement = destScopedRef
+		} else {
+			replacement = destRef
+		}
 
 		// Priority 1: Full reference match (examples//actions/inline/basic.yaml)
 		if fullRefPattern.Match(content) {

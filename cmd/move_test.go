@@ -21,19 +21,19 @@ package cmd
 
 import (
 	"bytes"
-	"path/filepath"
-	"strings"
-	"testing"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"path/filepath"
+	"strings"
+	"testing"
 )
 
 const (
-	workingDir = "ttpforge-move-test"
-	repoName   = "test-repo"
-	searchPath = "ttps"
+	workingDir        = "ttpforge-move-test"
+	primaryRepoName   = "test-repo"
+	secondaryRepoName = "new-repo"
+	searchPath        = "ttps"
 )
 
 type moveCmdTestCase struct {
@@ -89,7 +89,8 @@ func checkMoveTestCase(t *testing.T, tc moveCmdTestCase) {
 	defer fsys.RemoveAll(tempDir)
 
 	// Create test repository structure
-	repoDir := filepath.Join(tempDir, repoName)
+	primaryRepoDir := filepath.Join(tempDir, primaryRepoName)
+	secondaryRepoDir := filepath.Join(tempDir, secondaryRepoName)
 	configPath := filepath.Join(tempDir, "test-config.yaml")
 
 	// Create repo config
@@ -97,16 +98,23 @@ func checkMoveTestCase(t *testing.T, tc moveCmdTestCase) {
 ttp_search_paths:
   - ` + searchPath + `
 `
-	err = fsys.MkdirAll(repoDir, 0755)
+	err = fsys.MkdirAll(filepath.Join(primaryRepoDir, "ttps"), 0755)
 	require.NoError(t, err)
-	err = afero.WriteFile(fsys, filepath.Join(repoDir, "ttpforge-repo-config.yaml"), []byte(repoConfigContent), 0644)
+	err = afero.WriteFile(fsys, filepath.Join(primaryRepoDir, "ttpforge-repo-config.yaml"), []byte(repoConfigContent), 0644)
+	require.NoError(t, err)
+
+	err = fsys.MkdirAll(filepath.Join(secondaryRepoDir, "ttps"), 0755)
+	require.NoError(t, err)
+	err = afero.WriteFile(fsys, filepath.Join(secondaryRepoDir, "ttpforge-repo-config.yaml"), []byte(repoConfigContent), 0644)
 	require.NoError(t, err)
 
 	// Create main config
 	mainConfigContent := `---
 repos:
-  - name: test-repo
-    path: ` + repoDir + `
+  - name: ` + primaryRepoName + `
+    path: ` + primaryRepoDir + `
+  - name: ` + secondaryRepoName + `
+    path: ` + secondaryRepoDir + `
 `
 	err = afero.WriteFile(fsys, configPath, []byte(mainConfigContent), 0644)
 	require.NoError(t, err)
@@ -126,7 +134,7 @@ repos:
 	destArg := tc.destArg
 
 	// Handle test cases that use actual file paths instead of repo references
-	// This converts paths like repoName + searchPath + "basic.yaml" to absolute paths in our test repo
+	// This converts paths like primaryRepoName + searchPath + "basic.yaml" to absolute paths in our test repo
 	if !strings.Contains(tc.sourceArg, "//") && !filepath.IsAbs(tc.sourceArg) && tc.sourceArg != "" {
 		sourceArg = filepath.Join(tempDir, tc.sourceArg)
 	}
@@ -187,105 +195,105 @@ func TestMoveCommand(t *testing.T) {
 		{
 			name:        "reference-to-reference",
 			description: "Move TTP from reference path to reference path",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//moved.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "reference-to-absolute",
 			description: "Move TTP from reference path to absolute path",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     filepath.Join(repoName, searchPath, "moved.yaml"),
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "absolute-to-reference",
 			description: "Move TTP from absolute path to reference path",
-			sourceArg:   filepath.Join(repoName, searchPath, "basic.yaml"),
-			destArg:     repoName + "//moved.yaml",
+			sourceArg:   filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+			destArg:     primaryRepoName + "//moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "absolute-to-absolute",
 			description: "Move TTP from absolute path to absolute path",
-			sourceArg:   filepath.Join(repoName, searchPath, "basic.yaml"),
-			destArg:     filepath.Join(repoName, searchPath, "moved.yaml"),
+			sourceArg:   filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+			destArg:     filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "nested-directory-move",
 			description: "Move TTP to nested directory structure",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//subdir/nested/moved.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//subdir/nested/moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "subdir/nested/moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "subdir/nested/moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "move-with-references",
 			description: "Move TTP and update references in other TTPs",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//moved.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
-				filepath.Join(repoName, searchPath, "referencing.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"),
 			},
 			referencingFiles: map[string]string{
-				filepath.Join(repoName, searchPath, "referencing.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"): `---
 name: Referencing TTP
 description: A TTP that references another TTP
 steps:
   - name: run_basic
-    ttp: ` + repoName + `//basic.yaml
+    ttp: ` + primaryRepoName + `//basic.yaml
 `,
 			},
 			expectUpdatedRefs: map[string]string{
-				filepath.Join(repoName, searchPath, "referencing.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"): `---
 name: Referencing TTP
 description: A TTP that references another TTP
 steps:
   - name: run_basic
-    ttp: ` + repoName + `//moved.yaml
+    ttp: //moved.yaml
 `,
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "move-with-scoped-references",
 			description: "Move TTP and update scoped references (without repo prefix)",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//moved.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
-				filepath.Join(repoName, searchPath, "referencing.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"),
 			},
 			referencingFiles: map[string]string{
-				filepath.Join(repoName, searchPath, "referencing.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"): `---
 name: Referencing TTP
 description: A TTP that references another TTP with scoped reference
 steps:
@@ -294,63 +302,94 @@ steps:
 `,
 			},
 			expectUpdatedRefs: map[string]string{
-				filepath.Join(repoName, searchPath, "referencing.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"): `---
 name: Referencing TTP
 description: A TTP that references another TTP with scoped reference
 steps:
   - name: run_basic
-    ttp: ` + repoName + `//moved.yaml
+    ttp: //moved.yaml
 `,
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 		{
 			name:        "move-with-multiple-references",
 			description: "Move TTP and update multiple references across different files",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//moved.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
-				filepath.Join(repoName, searchPath, "ref1.yaml"),
-				filepath.Join(repoName, searchPath, "ref2.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "ref1.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "ref2.yaml"),
 			},
 			referencingFiles: map[string]string{
-				filepath.Join(repoName, searchPath, "ref1.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "ref1.yaml"): `---
 name: First Reference
 steps:
   - name: call_basic
-    ttp: ` + repoName + `//basic.yaml
+    ttp: ` + primaryRepoName + `//basic.yaml
 `,
-				filepath.Join(repoName, searchPath, "ref2.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "ref2.yaml"): `---
 name: Second Reference
 steps:
   - name: also_call_basic
     ttp: //basic.yaml
   - name: call_something_else
-    ttp: ` + repoName + `//other.yaml
+    ttp: ` + primaryRepoName + `//other.yaml
 `,
 			},
 			expectUpdatedRefs: map[string]string{
-				filepath.Join(repoName, searchPath, "ref1.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "ref1.yaml"): `---
 name: First Reference
 steps:
   - name: call_basic
-    ttp: ` + repoName + `//moved.yaml
+    ttp: //moved.yaml
 `,
-				filepath.Join(repoName, searchPath, "ref2.yaml"): `---
+				filepath.Join(primaryRepoName, searchPath, "ref2.yaml"): `---
 name: Second Reference
 steps:
   - name: also_call_basic
-    ttp: ` + repoName + `//moved.yaml
+    ttp: //moved.yaml
   - name: call_something_else
-    ttp: ` + repoName + `//other.yaml
+    ttp: ` + primaryRepoName + `//other.yaml
 `,
 			},
 			wantError:       false,
-			expectedNewPath: filepath.Join(repoName, searchPath, "moved.yaml"),
-			expectedOldPath: filepath.Join(repoName, searchPath, "basic.yaml"),
+			expectedNewPath: filepath.Join(primaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+		},
+		{
+			name:        "cross-repository-move",
+			description: "Move TTP into a different repository and update references",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     secondaryRepoName + "//moved.yaml",
+			setupFiles: []string{
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"),
+			},
+			referencingFiles: map[string]string{
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"): `---
+name: Referencing TTP
+description: A TTP that references another TTP with scoped reference
+steps:
+  - name: run_basic
+    ttp: //basic.yaml
+`,
+			},
+			expectUpdatedRefs: map[string]string{
+				filepath.Join(primaryRepoName, searchPath, "referencing.yaml"): `---
+name: Referencing TTP
+description: A TTP that references another TTP with scoped reference
+steps:
+  - name: run_basic
+    ttp: ` + secondaryRepoName + `//moved.yaml
+`,
+			},
+			wantError:       false,
+			expectedNewPath: filepath.Join(secondaryRepoName, searchPath, "moved.yaml"),
+			expectedOldPath: filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 		},
 	}
 
@@ -374,10 +413,10 @@ func TestMoveCommandEdgeCases(t *testing.T) {
 		{
 			name:        "same-source-and-destination",
 			description: "Moving a file to itself should fail",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//basic.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//basic.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:     true,
 			errorContains: "already exists",
@@ -386,17 +425,17 @@ func TestMoveCommandEdgeCases(t *testing.T) {
 			name:          "invalid-source-format",
 			description:   "Invalid source reference format should fail",
 			sourceArg:     "invalid//format//too//many//separators.yaml",
-			destArg:       repoName + "//moved.yaml",
+			destArg:       primaryRepoName + "//moved.yaml",
 			wantError:     true,
 			errorContains: "too many occurrences",
 		},
 		{
 			name:        "invalid-dest-format",
 			description: "Invalid destination reference format should fail",
-			sourceArg:   repoName + "//basic.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
 			destArg:     "invalid//format//too//many//separators.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:     true,
 			errorContains: "too many occurrences",
@@ -404,10 +443,10 @@ func TestMoveCommandEdgeCases(t *testing.T) {
 		{
 			name:        "invalid-destination-repo",
 			description: "Moving to a non-existent repository should fail",
-			sourceArg:   repoName + "//basic.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
 			destArg:     "nonexistent-repo//moved.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
 			},
 			wantError:     true,
 			errorContains: "repository 'nonexistent-repo' not found",
@@ -415,8 +454,8 @@ func TestMoveCommandEdgeCases(t *testing.T) {
 		{
 			name:          "nonexistent-source",
 			description:   "Attempting to move a nonexistent TTP should fail",
-			sourceArg:     repoName + "//nonexistent.yaml",
-			destArg:       repoName + "//moved.yaml",
+			sourceArg:     primaryRepoName + "//nonexistent.yaml",
+			destArg:       primaryRepoName + "//moved.yaml",
 			setupFiles:    []string{}, // Don't create the source file
 			wantError:     true,
 			errorContains: "failed to resolve source TTP reference",
@@ -424,11 +463,11 @@ func TestMoveCommandEdgeCases(t *testing.T) {
 		{
 			name:        "destination-exists",
 			description: "Attempting to move to an existing destination should fail",
-			sourceArg:   repoName + "//basic.yaml",
-			destArg:     repoName + "//existing.yaml",
+			sourceArg:   primaryRepoName + "//basic.yaml",
+			destArg:     primaryRepoName + "//existing.yaml",
 			setupFiles: []string{
-				filepath.Join(repoName, searchPath, "basic.yaml"),
-				filepath.Join(repoName, searchPath, "existing.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "basic.yaml"),
+				filepath.Join(primaryRepoName, searchPath, "existing.yaml"),
 			},
 			wantError:     true,
 			errorContains: "already exists",
