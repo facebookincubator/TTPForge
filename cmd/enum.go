@@ -31,5 +31,6 @@ func buildEnumCommand(cfg *Config) *cobra.Command {
 		TraverseChildren: true,
 	}
 	enumCmd.AddCommand(buildEnumTTPsCommand(cfg))
+	enumCmd.AddCommand(buildEnumDependenciesCommand(cfg))
 	return enumCmd
 }
