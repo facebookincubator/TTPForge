@@ -1,6 +1,6 @@
 # Enumeration
 
-## Enumerating TTPs of platforms in a repo
+## Enumerating TTPs Based on Provided Filters
 
 To enumerate the TTPs in a repo, use the command shown below:
 
@@ -18,3 +18,13 @@ TTPForge will be able to find and enumerate all TTPs in the config file.
 
 The output is a platform-wise count of TTPs in the repo along with other
 information like total count and total match count after applying filters.
+
+## Enumerating TTP Dependencies
+
+To enumerate the dependencies of a TTP, use the command shown below:
+
+```bash
+ttpforge enum dependencies [repo_name//path/to/ttp] --verbose
+```
+
+The output lists all dependencies that rely on the TTP as well as a total count.
