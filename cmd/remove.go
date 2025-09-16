@@ -26,10 +26,11 @@ import (
 func buildRemoveCommand(cfg *Config) *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:              "remove",
-		Short:            "remove (uninstall) various types of resources used by TTPForge",
-		Long:             "For now, you just want to use the 'ttpforge remove repo' subcommand",
+		Short:            "remove (uninstall/delete) various types of resources used by TTPForge",
+		Long:             "Use this command to remove repos, TTPs, etc.",
 		TraverseChildren: true,
 	}
 	removeCmd.AddCommand(buildRemoveRepoCommand(cfg))
+	removeCmd.AddCommand(buildRemoveTTPCommand(cfg))
 	return removeCmd
 }
