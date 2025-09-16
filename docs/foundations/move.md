@@ -35,7 +35,20 @@ absolute references if they are in different repositories.
 
 **Note:** These repository names are defined in your TTPForge configuration
 file, so take caution when performing cross-repository moves as your config file
-may not match the config files of other users.
+may not match the config files of other users which can create inconsistencies
+in repository naming. Performing moves without a config file may also create
+naming inconsistencies across repositories.
+
+### Unsafe Moves
+
+Use the `--unsafe` flag to skip dependency updates and force a move operation:
+
+```bash
+ttpforge move ttp examples//basic.yaml examples//basic-new.yaml --unsafe
+```
+
+**Warning:** Using `--unsafe` can break other TTPs that depend on the moved TTP.
+Only use this flag when you're certain no other TTPs depend on the target file.
 
 ## Argument Formats
 
@@ -58,7 +71,11 @@ Format: `repo_name//path/to/ttp.yaml`
 - `//` - The repository separator
 - `path/to/ttp.yaml` - The path to the TTP within the repository's search paths
 
-If moving within the same repository, you can omit the `repo_name` portion.
+If moving within the same repository, you can omit the destination `repo_name`.
+
+```bash
+ttpforge move examples//actions/inline/basic.yaml //actions/inline/basic-new.yaml
+```
 
 ### 2. Absolute Path Format
 

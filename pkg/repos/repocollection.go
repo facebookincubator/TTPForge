@@ -32,6 +32,7 @@ import (
 // RepoCollection provides useful methods for resolving and
 // navigating TTPs stored in various different repositories
 type RepoCollection interface {
+	AddRepo(r Repo) error
 	GetRepo(repoName string) (Repo, error)
 	ResolveTTPRef(ttpRef string) (Repo, string, error)
 	ListTTPs() ([]string, error)
@@ -44,6 +45,19 @@ type repoCollection struct {
 	repos       []Repo
 	reposByName map[string]Repo
 	fsys        afero.Fs
+}
+
+func (rc *repoCollection) AddRepo(r Repo) error {
+	repoName := r.GetName()
+	if _, found := rc.reposByName[repoName]; !found {
+		rc.reposByName[repoName] = r
+	} else {
+		return fmt.Errorf("duplicate repo name: %v", repoName)
+	}
+
+	rc.repos = append(rc.repos, r)
+
+	return nil
 }
 
 // NewRepoCollection validates the provided repo specs
@@ -70,13 +84,9 @@ func NewRepoCollection(fsys afero.Fs, specs []Spec, basePath string) (RepoCollec
 		if err != nil {
 			return nil, err
 		}
-		repoName := r.GetName()
-		if _, found := rc.reposByName[repoName]; !found {
-			rc.reposByName[repoName] = r
-		} else {
-			return nil, fmt.Errorf("duplicate repo name: %v", repoName)
+		if err := rc.AddRepo(r); err != nil {
+			return nil, err
 		}
-		rc.repos = append(rc.repos, r)
 	}
 	return &rc, nil
 }
@@ -145,7 +155,7 @@ func (rc *repoCollection) ConvertAbsPathToAbsRef(repo Repo, absPath string) (str
 //
 // **Returns:**
 //
-// Repo: the repository containing the TTP (found by name or by searching parent directories)
+// Repo: the repository containing the TTP, nil if no repository is found (found by name or by searching parent directories)
 // string: an **unverified** TTP reference
 // error: an error if the reference is invalid or repository is not found
 func (rc *repoCollection) ParseTTPRef(ttpRef string) (Repo, string, error) {
@@ -181,9 +191,13 @@ func (rc *repoCollection) ParseTTPRef(ttpRef string) (Repo, string, error) {
 	// sepCount == 1
 	repoName := tokens[0]
 
+	if repoName == "" {
+		return nil, ttpRef, nil
+	}
+
 	repo, found := rc.reposByName[repoName]
 
-	if !found && repoName != "" {
+	if !found {
 		return nil, "", fmt.Errorf("repository '%v' not found - add it with 'ttpforge install'?", repoName)
 	}
 
@@ -212,11 +226,11 @@ func (rc *repoCollection) ResolveTTPRef(ttpRef string) (Repo, string, error) {
 		return nil, "", err
 	}
 
-	if repo.GetName() == "" {
+	if repo == nil {
 		return nil, "", fmt.Errorf("no repository found for TTP reference '%v'", ttpRef)
 	}
 
-	_, scopedRef, _ := strings.Cut(ref, "//")
+	_, scopedRef, _ := strings.Cut(ref, RepoPrefixSep)
 
 	absPath, err := repo.FindTTP(scopedRef)
 	if err != nil {

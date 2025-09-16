@@ -30,17 +30,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRepo repos.Repo, sourceRef string, destRef string) error {
+// is it possible to replace listttps with another call that returns all matched ttp dependencies
+func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRef string, destRef string) error {
 	// Parse source reference
 	index := strings.Index(sourceRef, repos.RepoPrefixSep)
 	if index == -1 {
 		return fmt.Errorf("invalid source reference format: %s", sourceRef)
 	}
 
+	sourceRepo := sourceRef[:index]
 	sourceScopedRef := sourceRef[index:]
 	sourceBareRef := sourceRef[index+2:]
-
-	fmt.Println(sourceScopedRef, sourceBareRef)
 
 	// Parse destination reference
 	index = strings.Index(destRef, repos.RepoPrefixSep)
@@ -92,7 +92,7 @@ func findAndReplaceTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRep
 		if fullRefPattern.Match(content) {
 			newContent = fullRefPattern.ReplaceAll(content, []byte("${1}"+replacement+"${2}"))
 			updated = true
-		} else if repo.GetName() == sourceRepo.GetName() {
+		} else if repo.GetName() == sourceRepo {
 			// Priority 2: Scoped reference match (//actions/inline/basic.yaml)
 			if scopedRefPattern.Match(content) {
 				newContent = scopedRefPattern.ReplaceAll(content, []byte("${1}"+replacement+"${2}"))
@@ -129,6 +129,8 @@ func moveFile(fs afero.Fs, sourceAbsPath, destAbsPath string) error {
 }
 
 func buildMoveCommand(cfg *Config) *cobra.Command {
+	var unsafe bool
+
 	moveCmd := &cobra.Command{
 		Use:     "move [repo_name//path/to/ttp] [repo_name//path/to/destination]",
 		Short:   "Move or rename a TTPForge TTP",
@@ -136,6 +138,7 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 		Example: "ttpforge move examples//actions/inline/basic.yaml examples//actions/inline/basic-new.yaml",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true
 
 			sourceTTPRef := args[0]
@@ -145,6 +148,13 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			sourceRepo, sourceAbsPath, err := cfg.repoCollection.ResolveTTPRef(sourceTTPRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve source TTP reference %v: %w", sourceTTPRef, err)
+			}
+
+			// If the repo is not defined in the config file, add it to the collection to resolve references
+			if _, err := cfg.repoCollection.GetRepo(sourceRepo.GetName()); err != nil {
+				if err := cfg.repoCollection.AddRepo(sourceRepo); err != nil {
+					return err
+				}
 			}
 
 			sourceRef, err := cfg.repoCollection.ConvertAbsPathToAbsRef(sourceRepo, sourceAbsPath)
@@ -161,17 +171,16 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			}
 
 			// If no repo specified in destination, use source repo
-			if destRepo == nil || destRepo.GetName() == "" {
+			if destRepo == nil {
 				destRepo = sourceRepo
-				// Reconstruct the destination reference with proper repo prefix
-				if !strings.Contains(destTTPRef, repos.RepoPrefixSep) {
-					destRef = sourceRepo.GetName() + repos.RepoPrefixSep + destTTPRef
-				}
-			}
 
-			// Validate destination repo exists
-			if _, err := cfg.repoCollection.GetRepo(destRepo.GetName()); err != nil {
-				return fmt.Errorf("destination repository %s not found: %w", destRepo.GetName(), err)
+				// Returned ref will be in format //path/to/ttp.yaml since provided repo was empty
+				destRef = destRepo.GetName() + destRef
+			} else if _, err := cfg.repoCollection.GetRepo(destRepo.GetName()); err != nil {
+				// If the repo is not defined in the config file, add it to the collection to resolve references
+				if err := cfg.repoCollection.AddRepo(sourceRepo); err != nil {
+					return err
+				}
 			}
 
 			// Check if destination already exists
@@ -183,8 +192,8 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			// Extract just the path part from destRef (after //)
 			destPath := destRef
 
-			if idx := strings.Index(destRef, repos.RepoPrefixSep); idx != -1 {
-				destPath = destRef[idx+2:]
+			if index := strings.Index(destRef, repos.RepoPrefixSep); index != -1 {
+				destPath = destRef[index+2:]
 			}
 
 			for _, searchPath := range searchPaths {
@@ -200,8 +209,10 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			destAbsPath := filepath.Join(searchPaths[0], destPath)
 
 			// Update all TTP references before moving the file
-			if err := findAndReplaceTTPReferences(cfg.repoCollection, fs, sourceRepo, sourceRef, destRef); err != nil {
-				return fmt.Errorf("failed to update TTP references: %w", err)
+			if !unsafe {
+				if err := findAndReplaceTTPReferences(cfg.repoCollection, fs, sourceRef, destRef); err != nil {
+					return fmt.Errorf("failed to update TTP references: %w", err)
+				}
 			}
 
 			// Move the actual file
@@ -214,6 +225,8 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			return nil
 		},
 	}
+
+	moveCmd.PersistentFlags().BoolVar(&unsafe, "unsafe", false, "Skip dependency updates and perform unsafe move")
 
 	return moveCmd
 }
