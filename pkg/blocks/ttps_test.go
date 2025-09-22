@@ -343,10 +343,7 @@ steps:
 			ttp, err := RenderTemplatedTTP(tc.content, RenderParameters{
 				Args: tc.args,
 			})
-			if err != nil {
-				t.Fatalf("failed to render and unmarshal templated TTP: %v", err)
-				return
-			}
+			require.NoError(t, err, "failed to render and unmarshal templated TTP")
 
 			execCtx := NewTTPExecutionContext()
 			// validate the TTP
