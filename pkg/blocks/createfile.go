@@ -129,6 +129,7 @@ func (s *CreateFileStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	_, err = f.Write([]byte(s.Contents))
 	if err != nil {
 		return nil, err
