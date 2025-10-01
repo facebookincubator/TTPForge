@@ -166,15 +166,10 @@ func (s *Step) Validate(execCtx TTPExecutionContext) error {
 	return nil
 }
 
-// Template replaces variables in the step action and cleanup
+// Template replaces variables in the step action
 func (s *Step) Template(execCtx TTPExecutionContext) error {
 	if err := s.action.Template(execCtx); err != nil {
 		return err
-	}
-	if s.cleanup != nil {
-		if err := s.cleanup.Template(execCtx); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -203,6 +198,9 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 		desc := s.cleanup.GetDescription()
 		if desc != "" {
 			logging.L().Infof("Description: %v", desc)
+		}
+		if err := s.cleanup.Template(execCtx); err != nil {
+			return nil, err
 		}
 		return s.cleanup.Execute(execCtx)
 	}
