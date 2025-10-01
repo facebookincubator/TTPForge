@@ -136,14 +136,15 @@ cleanup:
 			wantTemplateError: true,
 		},
 		{
-			name: "Errors on missing variable in cleanup templating",
+			name: "Errors on missing variable in cleanup templating at cleanup time",
 			content: `
 name: template_step
 inline: echo "this is a run"
 cleanup:
   inline: echo {[{.StepVars.cleanup_message}]}
 `,
-			wantTemplateError: true,
+			expectedExecuteStdout: "this is a run\n",
+			wantCleanupError:      true,
 		},
 	}
 
