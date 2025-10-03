@@ -217,7 +217,10 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 		params.Add(parameter.Name, parameter.Value)
 	}
 	// Construct the full URL with parameters
-	fullURL := fmt.Sprintf("%s?%s", r.HTTPRequest, params.Encode())
+	fullURL := r.HTTPRequest
+	if len(params) > 0 {
+		fullURL = fmt.Sprintf("%s?%s", fullURL, params.Encode())
+	}
 
 	// Trim the body of any trailing new lines
 	trimBody := strings.TrimSuffix(r.Body, "\n")
