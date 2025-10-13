@@ -44,18 +44,17 @@ var (
 	indentLevel         int
 )
 
-func init() {
-	// default logger - will be used in tests
-	err := InitLog(Config{})
-	if err != nil {
-		// this should never fail - if it does
-		// something weird happened so we panic
-		panic(err)
-	}
-}
-
 // L returns the global logger for ttpforge
 func L() *zap.SugaredLogger {
+	// If the logger is not initialized at this point, initialize it with default settings.  Usually this should only happen in tests.
+	if logger == nil {
+		err := InitLog(Config{})
+		if err != nil {
+			// this should never fail - if it does
+			// something weird happened so we panic
+			panic(err)
+		}
+	}
 	return logger
 }
 
