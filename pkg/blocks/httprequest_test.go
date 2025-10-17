@@ -47,6 +47,18 @@ steps:
 			wantError: false,
 		},
 		{
+			name: "Simple http request with headers returned too",
+			content: `
+name: test basic with headers
+description: this is a test basic test with headers returned
+steps:
+  - name: get url
+    http_request: http://someuri.com
+    return_headers: true
+`,
+			wantError: false,
+		},
+		{
 			name: "Request with specified type GET",
 			content: `
 name: test get
@@ -151,6 +163,17 @@ func TestHTTPequest(t *testing.T) {
 			content: `
 name: get url
 http_request: http://someuri.com
+`,
+		},
+		{
+			name: "Simple http request with headers returned too",
+			content: `
+name: test basic with headers
+description: this is a test basic test with headers returned
+steps:
+  - name: get url
+    http_request: http://someuri.com
+    return_headers: true
 `,
 		},
 		{
