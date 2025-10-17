@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,18 +45,25 @@ type HTTPParameter struct {
 	Value string `yaml:"value,omitempty"`
 }
 
+// ResponseData represents the response data from an HTTP request.
+type ResponseData struct {
+	Head map[string][]string `json:"head"`
+	Body string              `json:"body"`
+}
+
 // HTTPRequestStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type HTTPRequestStep struct {
-	actionDefaults `yaml:",inline"`
-	HTTPRequest    string           `yaml:"http_request,omitempty"`
-	Type           string           `yaml:"type,omitempty"`
-	Headers        []*HTTPHeader    `yaml:"headers,omitempty"`
-	Parameters     []*HTTPParameter `yaml:"parameters,omitempty"`
-	Body           string           `yaml:"body,omitempty"`
-	Regex          string           `yaml:"regex,omitempty"`
-	Proxy          string           `yaml:"proxy,omitempty"`
-	Response       string           `yaml:"response,omitempty"`
+	actionDefaults  `yaml:",inline"`
+	HTTPRequest     string           `yaml:"http_request,omitempty"`
+	Type            string           `yaml:"type,omitempty"`
+	Headers         []*HTTPHeader    `yaml:"headers,omitempty"`
+	Parameters      []*HTTPParameter `yaml:"parameters,omitempty"`
+	Body            string           `yaml:"body,omitempty"`
+	Regex           string           `yaml:"regex,omitempty"`
+	Proxy           string           `yaml:"proxy,omitempty"`
+	ResponseHeaders bool             `yaml:"response_headers,omitempty"`
+	Response        string           `yaml:"response,omitempty"`
 }
 
 // NewHTTPRequestStep creates a new HTTPRequestStep instance and returns a pointer to it.
@@ -228,7 +236,7 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 	// Create a new request with the specified method, URL, and body.
 	req, err := http.NewRequest(r.Type, fullURL, strings.NewReader(trimBody))
 	if err != nil {
-		return fmt.Errorf("Error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	// Loop through and set each header
@@ -254,21 +262,48 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 		client = &http.Client{Transport: tr}
 	}
 
+	// Sanity Check Expectations
+	if r.Type == "HEAD" && !r.ResponseHeaders {
+		logging.L().Warn("You're making a HEAD request with response_headers set to false! YOU WILL NOT SEE ANYTHING!")
+	}
+
 	// Send the request
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("Error sending request: %v", err)
+		return fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("Error reading response body: %v", err)
+		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	// Build final response
+	// Default response to just include the body
 	finalResponse := string(body)
+
+	// If using response_headers, include the full response.
+	if r.ResponseHeaders {
+		// Map headers
+		headersMap := make(map[string][]string)
+		for k, v := range resp.Header {
+			headersMap[k] = v
+		}
+
+		// ResponseData struct
+		data := ResponseData{
+			Head: headersMap,
+			Body: string(body),
+		}
+
+		fullResponse, err := json.Marshal(data)
+		if err != nil {
+			return fmt.Errorf("error marshalling response: %w", err)
+		}
+		// Convert the byte slice to a string and send back as the response.
+		finalResponse = string(fullResponse)
+	}
 
 	// If using regex to extract, part of the response.
 	if r.Regex != "" {
@@ -278,7 +313,7 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 		re := regexp.MustCompile(regexTrim)
 
 		// Find all matches in the response body
-		matches := re.FindAllString(string(body), -1)
+		matches := re.FindAllString(finalResponse, -1)
 		if matches != nil {
 			// If there are matches, use the first one as the final response.
 			finalResponse = matches[0]
@@ -291,10 +326,9 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 	if r.Response != "" {
 		err = os.Setenv(r.Response, finalResponse)
 		if err != nil {
-			return fmt.Errorf("Error setting environment variable: %v", err)
+			return fmt.Errorf("error setting environment variable: %w", err)
 		}
 	}
-
 	logging.L().Infof("Response: %s", finalResponse)
 
 	if r.OutputVar != "" {

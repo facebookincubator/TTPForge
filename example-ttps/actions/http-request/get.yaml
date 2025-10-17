@@ -11,6 +11,13 @@ steps:
     cleanup:
       inline: |
         echo "No cleanup required."
+  - name: Basic GET Request with Headers in Response
+    http_request: https://facebook.com
+    type: GET
+    response_headers: true
+    cleanup:
+      inline: |
+        echo "No cleanup required."
   - name: Proxied GET Request
     http_request: https://facebook.com
     type: GET
