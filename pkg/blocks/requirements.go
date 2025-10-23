@@ -20,9 +20,7 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"runtime"
 
 	"github.com/facebookincubator/ttpforge/pkg/checks"
@@ -93,13 +91,12 @@ func (rc *RequirementsConfig) Verify(ctx checks.VerificationContext) error {
 
 	// check superuser requirement
 	if rc.ExpectSuperuser {
+		if !isSuperuser() {
+			return fmt.Errorf("must be running with elevated privileges to run this TTP")
+		}
 		if runtime.GOOS == "windows" {
-			logging.L().Warnf("not enforcing superuser requirement because it is not supported on windows yet")
+			logging.L().Debug("[+] Running as administrator")
 		} else {
-			if os.Geteuid() != 0 {
-				err := errors.New("must be root (UID 0) to run this TTP")
-				return err
-			}
 			logging.L().Debug("[+] Running as root")
 		}
 	}
