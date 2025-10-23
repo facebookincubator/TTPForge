@@ -73,7 +73,7 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 			}
 
 			if runErr != nil {
-				return fmt.Errorf("failed to run TTP at %v: %v", ttpAbsPath, err)
+				return fmt.Errorf("failed to run TTP at %v: %w", ttpAbsPath, runErr)
 			}
 			return nil
 		},
