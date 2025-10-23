@@ -108,7 +108,7 @@ func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech
 	return true
 }
 
-func filterTTPs(cfg *Config, platforms []string, tactic string, technique string, subTech string, ttpRefs []string, tally map[string]int, totalCount int, verbose bool) (int, []string) {
+func filterTTPs(cfg *Config, platforms []string, tactic string, technique string, subTech string, ttpRefs []string, tally map[string]int, totalCount int) (int, []string) {
 	updatedTTPRefs := []string{}
 	filterPlatform := !slices.Contains(platforms, "any")
 	fmt.Printf("Filtering by platforms: %s\n", platforms)
@@ -128,14 +128,14 @@ func filterTTPs(cfg *Config, platforms []string, tactic string, technique string
 	for _, ttpRef := range ttpRefs {
 		_, path, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 		if err != nil {
-			if verbose {
+			if logConfig.Verbose {
 				fmt.Printf("Error resolving TTP ref: %v with error: %v\n", ttpRef, err)
 			}
 			continue
 		}
 		content, err := afero.ReadFile(fs, path)
 		if err != nil {
-			if verbose {
+			if logConfig.Verbose {
 				fmt.Printf("Error reading TTP ref: %v on path %v with error: %v", ttpRef, path, err)
 			}
 			continue
@@ -143,7 +143,7 @@ func filterTTPs(cfg *Config, platforms []string, tactic string, technique string
 
 		ttp, err := parseutils.ParseTTP(content, path)
 		if err != nil {
-			if verbose {
+			if logConfig.Verbose {
 				fmt.Printf("Error parsing TTP ref: %v with error: %v\n", ttpRef, err)
 			}
 			continue
@@ -181,7 +181,6 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 	var tactic string
 	var technique string
 	var subTech string
-	var verbose bool
 	var tally = map[string]int{
 		"linux":   0,
 		"windows": 0,
@@ -219,7 +218,7 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 			fmt.Printf("Total %d TTPs found in repo: %s\n", len(ttpRefs), repo)
 
 			// Filtering by platform and Attack ID
-			totalCount, ttpRefs = filterTTPs(cfg, platforms, tactic, technique, subTech, ttpRefs, tally, totalCount, verbose)
+			totalCount, ttpRefs = filterTTPs(cfg, platforms, tactic, technique, subTech, ttpRefs, tally, totalCount)
 
 			// Printing data as per platform
 			if !slices.Contains(platforms, "any") {
@@ -231,7 +230,7 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 				fmt.Println("Total TTPs found: ", totalCount)
 			}
 
-			if verbose {
+			if logConfig.Verbose {
 				fmt.Println("Verbose output - TTPs found: ")
 				// Printing filtered out TTPs
 				for _, ttpRef := range ttpRefs {
@@ -246,6 +245,5 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 	enumTTPsCmd.PersistentFlags().StringVar(&tactic, "tactic", "", "Tactic to search for")
 	enumTTPsCmd.PersistentFlags().StringVar(&technique, "technique", "", "Technique to search for")
 	enumTTPsCmd.PersistentFlags().StringVar(&subTech, "sub-tech", "", "Sub technique to search for")
-	enumTTPsCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Verbose output that displays all matching TTPs")
 	return enumTTPsCmd
 }
