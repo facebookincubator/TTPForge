@@ -60,13 +60,13 @@ func (s *KillProcessStep) Validate(_ TTPExecutionContext) error {
 		return fmt.Errorf("Both Process ID and Process Name cannot be empty")
 	}
 	if s.ProcessID == "" {
-		fmt.Printf("Processing using process name: %v\n", s.ProcessName)
+		logging.L().Infof("Processing using process name: %v", s.ProcessName)
 		return nil
 	}
 	// Not handling for overflow
 	processID, err := strconv.Atoi(s.ProcessID)
 	if err != nil {
-		fmt.Printf("Failed to convert %v to int: %v\n", s.ProcessID, err)
+		logging.L().Errorf("Failed to convert %v to int: %w", s.ProcessID, err)
 		return fmt.Errorf("Invalid Process ID: %v", s.ProcessID)
 	}
 
