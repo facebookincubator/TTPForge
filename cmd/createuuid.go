@@ -20,17 +20,22 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-func buildCreateCommand() *cobra.Command {
-	createCmd := &cobra.Command{
-		Use:              "create",
-		Short:            "Create various resources used by TTPForge",
-		Long:             "Use this command to create new TTPs, repos, etc.",
-		TraverseChildren: true,
+func buildCreateUUIDCommand() *cobra.Command {
+	createUUIDCmd := &cobra.Command{
+		Use:   "uuid",
+		Short: "Generate and print a new UUID",
+		Long:  "Generate a new UUID and print it to the console",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			newUUID := uuid.New()
+			fmt.Println(newUUID.String())
+			return nil
+		},
 	}
-	createCmd.AddCommand(buildCreateTTPCommand())
-	createCmd.AddCommand(buildCreateUUIDCommand())
-	return createCmd
+	return createUUIDCmd
 }

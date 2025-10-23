@@ -15,6 +15,20 @@ execute your new TTP.
 TTPForge will create the specified file and populate it with a skeleton TTP YAML
 configuration containing important metadata.
 
+## Generating UUIDs
+
+TTPs created with `create ttp` already include an automatically generated UUID.
+However, if you need to manually generate a UUID (for example, when manually
+creating or editing TTP files), TTPForge exposes the same UUID generation
+mechanism for convenience:
+
+```bash
+ttpforge create uuid
+```
+
+This will generate and print a new UUID to the console that you can copy and use
+in your TTP configuration files.
+
 ## Next Steps
 
 Open your new YAML file in your favorite code editor and then check out our
