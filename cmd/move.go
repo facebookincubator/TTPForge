@@ -128,6 +128,14 @@ func moveFile(fs afero.Fs, sourceAbsPath, destAbsPath string) error {
 	return nil
 }
 
+func isDirectory(fs afero.Fs, path string) (bool, error) {
+	fileInfo, err := fs.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return fileInfo.IsDir(), nil
+}
+
 func buildMoveCommand(cfg *Config) *cobra.Command {
 	var unsafe bool
 
@@ -144,10 +152,16 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			sourceTTPRef := args[0]
 			destTTPRef := args[1]
 
+			fs := afero.NewOsFs()
+
 			// Resolve source TTP
 			sourceRepo, sourceAbsPath, err := cfg.repoCollection.ResolveTTPRef(sourceTTPRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve source TTP reference %v: %w", sourceTTPRef, err)
+			}
+
+			if isDir, _ := isDirectory(fs, sourceAbsPath); isDir {
+				return fmt.Errorf("source TTP %s is a directory, not a file", sourceTTPRef)
 			}
 
 			// If the repo is not defined in the config file, add it to the collection to resolve references
@@ -161,8 +175,6 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to convert source path to reference: %w", err)
 			}
-
-			fs := afero.NewOsFs()
 
 			// Parse destination TTP reference
 			destRepo, destRef, err := cfg.repoCollection.ParseTTPRef(destTTPRef)
