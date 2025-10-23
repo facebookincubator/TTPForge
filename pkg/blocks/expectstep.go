@@ -184,7 +184,7 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	}
 	defer func() {
 		if err := os.Chdir(originalDir); err != nil {
-			fmt.Printf("failed to change back to original directory: %v\n", err)
+			logging.L().Errorf("failed to change back to original directory: %w", err)
 		}
 	}()
 
