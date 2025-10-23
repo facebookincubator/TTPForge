@@ -5,6 +5,7 @@
 The `ttpforge move` command allows you to move or rename TTP files within
 TTPForge repositories while automatically updating all references to a moved TTP.
 This ensures any files referencing a TTP work correctly after a move operation.
+Currently, this command only supports moving TTP yamls and not entire directories.
 
 **Note:** The `move` command does not support updating references that use
 variable substitution (e.g., `ttp: //{{.Arg.here}}/ttp.yaml`). Only static
