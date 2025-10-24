@@ -120,9 +120,24 @@ func LoadTTP(ttpFilePath string, fsys afero.Fs, execCfg *TTPExecutionConfig, ste
 		return nil, nil, fmt.Errorf("failed to unmarshal YAML preamble section: %w", err)
 	}
 
-	argValues, err := args.ParseAndValidate(tmpContainer.ArgSpecs, argsKvStrs)
+	// Get directories for resolving path-type arguments
+	// - CLI path args resolve relative to where ttpforge was executed (current directory)
+	// - Default path values resolve relative to where the YAML file is located
+	cliDir, err := os.Getwd()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse and validate arguments: %v", err)
+		return nil, nil, err
+	}
+
+	absPath, err := filepath.Abs(ttpFilePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	ttpDir := filepath.Dir(absPath)
+
+	// Parse and validate arguments
+	argValues, err := args.ParseAndValidate(tmpContainer.ArgSpecs, argsKvStrs, cliDir, ttpDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse and validate arguments: %w", err)
 	}
 
 	rp := RenderParameters{

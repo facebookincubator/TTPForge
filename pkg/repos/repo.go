@@ -208,9 +208,9 @@ func (spec *Spec) Load(fsys afero.Fs, basePath string) (Repo, error) {
 		return nil, fmt.Errorf("error checking whether %q is an absolute path", spec.Path)
 	}
 	if isAbs {
-		repoPath, err = fileutils.ExpandTilde(spec.Path)
+		repoPath, err = fileutils.ExpandPath(spec.Path)
 		if err != nil {
-			return nil, fmt.Errorf("could not expand tildes in path %q", spec.Path)
+			return nil, fmt.Errorf("could not expand path %q", spec.Path)
 		}
 	} else {
 		repoPath = filepath.Join(basePath, spec.Path)

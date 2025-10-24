@@ -21,16 +21,21 @@ package fileutils
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestExpandTilde(t *testing.T) {
+func TestExpandPath(t *testing.T) {
 
 	homedir, err := os.UserHomeDir()
 	require.NoError(t, err)
+
+	// Set a test environment variable
+	os.Setenv("TEST_VAR", "testvalue")
+	defer os.Unsetenv("TEST_VAR")
 
 	testCases := []struct {
 		name           string
@@ -38,25 +43,40 @@ func TestExpandTilde(t *testing.T) {
 		expectedResult string
 	}{
 		{
-			name:           "No Tilde (Should Return Same Path)",
-			path:           "/foo/bar",
-			expectedResult: "/foo/bar",
+			name:           "Path with tilde",
+			path:           "~/foo",
+			expectedResult: filepath.Join(homedir, "foo"),
 		},
 		{
-			name:           "Leading Tilde (Should Be Expanded)",
-			path:           "~/victory",
-			expectedResult: homedir + "/victory",
+			name:           "Path without tilde",
+			path:           "/foo",
+			expectedResult: "/foo",
 		},
 		{
-			name:           "Trailing Tilde (Should Not Be Expanded)",
-			path:           "do-not-expand/~",
-			expectedResult: "do-not-expand/~",
+			name:           "Path without tilde 2",
+			path:           "foo",
+			expectedResult: "foo",
+		},
+		{
+			name:           "Path with environment variable",
+			path:           "$TEST_VAR/foo",
+			expectedResult: "testvalue/foo",
+		},
+		{
+			name:           "Path with ${VAR} syntax",
+			path:           "${TEST_VAR}/foo",
+			expectedResult: "testvalue/foo",
+		},
+		{
+			name:           "Path with tilde and env var",
+			path:           "~/foo/$TEST_VAR",
+			expectedResult: filepath.Join(homedir, "foo/testvalue"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ExpandTilde(tc.path)
+			result, err := ExpandPath(tc.path)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedResult, result)
 		})

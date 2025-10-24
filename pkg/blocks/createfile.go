@@ -94,7 +94,7 @@ func (s *CreateFileStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 
 	// check whether path already exists and
 	// whether that is ok given the overwrite flag status
-	pathToCreate, err := fileutils.ExpandTilde(s.Path)
+	pathToCreate, err := fileutils.ExpandPath(s.Path)
 	if err != nil {
 		return nil, err
 	}
