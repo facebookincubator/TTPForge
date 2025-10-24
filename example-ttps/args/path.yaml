@@ -1,0 +1,46 @@
+---
+api_version: 2.0
+uuid: 8f3c9d2a-1b5e-4c7a-9f8e-2d3a4b5c6d7e
+name: Path Argument Demo
+description: |
+  This TTP demonstrates how path arguments with default values work.
+  The default path is relative to the YAML file's directory, NOT the
+  directory where ttpforge was executed.
+
+  Example Usage:
+    # Create a test file in the same directory as this YAML
+    echo "Hello from YAML directory" > example-ttps/args/test-file.txt
+
+    # Run with default (will read the file relative to YAML location)
+    ttpforge run example-ttps/args/path-default-relative.yaml
+
+    # Or override with your own file (relative to where you run ttpforge)
+    echo "Hello from execution directory" > my-file.txt
+    ttpforge run example-ttps/args/path-default-relative.yaml --arg file_path=my-file.txt
+
+args:
+  - name: new_dir
+    type: path
+    description: Path to change directory to
+    default: $HOME
+  - name: file_path
+    type: path
+    description: Path to a file to read
+    default: ./test-file.txt
+
+steps:
+  - name: show_current_directory
+    description: |
+      Show the current directory
+    inline: |
+      echo "Current Directory: $(pwd)"
+  - name: change_directory
+    description: |
+      Change directory to demonstrate how path arguments are resolved
+    cd: {{ .Args.new_dir }}
+  - name: print_file_contents
+    description: |
+      Reads the contents of the file provided as an argument
+    inline: |
+      echo Reading file: {{ .Args.file_path }}
+      cat {{.Args.file_path}}

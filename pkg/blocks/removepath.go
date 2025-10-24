@@ -84,7 +84,7 @@ func (s *RemovePathAction) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	}
 
 	// cannot remove a non-existent path
-	pathToRemove, err := fileutils.ExpandTilde(s.Path)
+	pathToRemove, err := fileutils.ExpandPath(s.Path)
 	if err != nil {
 		return nil, err
 	}

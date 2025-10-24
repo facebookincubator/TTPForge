@@ -55,20 +55,27 @@ TTPForge supports the following argument types (which you can specify with the
 
 ## The `path` Argument Type
 
-If your TTP will accept arguments that refer to file paths on disk, you should
-**almost always** use `type: path` when declaring those arguments, as shown in
-the example below (just focus on the `args:` section for now, though you can
-check out the [edit_file documentation](actions/edit_file.md) if you are
-curious):
+Use `type: path` for file path arguments. Path arguments are automatically:
 
-https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/actions/edit-file/append-delete.yaml#L1-L35
+- **Resolved to absolute paths** with symlinks resolved
+- **Expanded for variables** like `$HOME`, `${USER}`, `~`, etc.
 
-You must use `type: path` because when you execute `ttpforge run [ttp]`,
-**TTPForge changes its working directory to the folder containing the TTP.**
-This means that relative paths such as `foo/bar` won't retain their original
-meaning by default - however, when you declare your argument using `type: path`,
-TTPForge knows to expand its value to an absolute path prior to changing
-directories, ensuring that everything will work as intended.
+Relative paths resolve differently depending on where they're defined:
+
+- **Default values** (in YAML): Resolved relative to the TTP's directory
+- **CLI arguments**: Resolved relative to where you run `ttpforge`
+
+**Example:**
+
+```yaml
+args:
+  - name: config_file
+    type: path
+    default: ./config.yaml        # Relative to TTP directory
+  - name: output_dir
+    type: path
+    default: $HOME/output         # Variable expansion
+```
 
 ## Predefined Choices for Argument Values
 

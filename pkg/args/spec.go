@@ -22,6 +22,7 @@ package args
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -47,13 +48,14 @@ type Spec struct {
 //
 // specs: slice of argument Spec values loaded from the TTP yaml
 // argKvStrs: slice of arguments in "ARG_NAME=ARG_VALUE" format
+// cliBaseDir: the directory to resolve CLI path arguments relative to
+// defaultBaseDir: the directory to resolve default path values relative to
 //
 // **Returns:**
 //
-// map[string]string: the parsed and validated argument key-value pairs
+// map[string]any: the parsed and validated argument key-value pairs
 // error: an error if there is a problem
-func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error) {
-
+func ParseAndValidate(specs []Spec, argsKvStrs []string, cliBaseDir string, defaultBaseDir string) (map[string]any, error) {
 	// validate the specs
 	processedArgs := make(map[string]any)
 	specsByName := make(map[string]Spec)
@@ -68,12 +70,20 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 		}
 
 		// set the default value, will be overwritten by passed value
+		// Path defaults are resolved relative to defaultBaseDir (typically the YAML directory)
 		if spec.Default != "" {
 			if !spec.isValidChoice(spec.Default) {
 				return nil, fmt.Errorf("invalid default value: %v, allowed values: %v ", spec.Default, strings.Join(spec.Choices, ", "))
 			}
 
-			defaultVal, err := spec.convertArgToType(spec.Default)
+			// For path types, resolve relative paths relative to defaultBaseDir
+			// Absolute paths and paths with shell variables are left as-is
+			defaultValue := spec.Default
+			if spec.Type == "path" && !filepath.IsAbs(spec.Default) && !fileutils.ContainsShellVariable(spec.Default) {
+				defaultValue = filepath.Join(defaultBaseDir, spec.Default)
+			}
+
+			defaultVal, err := spec.convertArgToType(defaultValue)
 			if err != nil {
 				return nil, fmt.Errorf("default value type does not match spec: %w", err)
 			}
@@ -123,7 +133,14 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string) (map[string]any, error)
 			return nil, fmt.Errorf("invalid value format: %v, expected regex format: %v ", argVal, spec.Format)
 		}
 
-		typedVal, err := spec.convertArgToType(argVal)
+		// For path types, resolve relative paths relative to cliBaseDir
+		// Absolute paths and paths with shell variables are left as-is
+		argValue := argVal
+		if spec.Type == "path" && !filepath.IsAbs(argVal) && !fileutils.ContainsShellVariable(argVal) {
+			argValue = filepath.Join(cliBaseDir, argVal)
+		}
+
+		typedVal, err := spec.convertArgToType(argValue)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed to process value '%v' specified for argument '%v': %v",
@@ -164,6 +181,8 @@ func (spec Spec) convertArgToType(val string) (any, error) {
 		}
 		return asBool, nil
 	case "path":
+		// Path has already been resolved relative to appropriate baseDir
+		// Just convert to absolute and resolve symlinks
 		absPath, err := fileutils.AbsPath(val)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process argument of type `path`: %w", err)

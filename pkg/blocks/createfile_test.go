@@ -160,7 +160,7 @@ func TestCreateFileExecute(t *testing.T) {
 			require.NoError(t, err)
 
 			// check contents
-			pathToCheck, err := fileutils.ExpandTilde(tc.step.Path)
+			pathToCheck, err := fileutils.ExpandPath(tc.step.Path)
 			require.NoError(t, err)
 			contentBytes, err := afero.ReadFile(tc.step.FileSystem, pathToCheck)
 			require.NoError(t, err)

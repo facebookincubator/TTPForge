@@ -1,0 +1,3 @@
+Hello from the YAML directory!
+This file is in the same directory as path-default-relative.yaml.
+When you run the TTP with the default argument, this file will be read.

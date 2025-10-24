@@ -61,39 +61,55 @@ func ResolveSymlinksInPath(absPath string) (string, error) {
 	}
 }
 
-// ExpandTilde expands a tilde to the user's home directory
-func ExpandTilde(path string) (string, error) {
+// ExpandPath expands tilde and environment variables in a path
+func ExpandPath(path string) (string, error) {
+	// First expand tilde
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 	if strings.HasPrefix(path, "~/") {
-		return filepath.Join(homedir, path[2:]), nil
+		path = filepath.Join(homedir, path[2:])
 	}
-	return path, nil
+
+	// Then expand environment variables
+	return os.ExpandEnv(path), nil
 }
 
-// AbsPath is a thin wrapper around filepath.Abs
-// that we use because it also calls ExpandTilde
+// containsShellVariable checks if a path contains shell variable syntax
+func ContainsShellVariable(path string) bool {
+	// Check for bash/powershell style: $VAR or ${VAR}
+	if strings.Contains(path, "$") {
+		return true
+	}
+	// Check for Windows cmd style: %VAR%
+	if strings.Contains(path, "%") {
+		return true
+	}
+	return false
+}
+
+// AbsPath converts a path to an absolute path and resolves symlinks.
+// Expands tilde and environment variables before conversion.
 func AbsPath(path string) (string, error) {
-	expanded, err := ExpandTilde(path)
+	expanded, err := ExpandPath(path)
 	if err != nil {
 		return "", err
 	}
 
-	// Convert to absolute path first
 	absPath, err := filepath.Abs(expanded)
 	if err != nil {
 		return "", err
 	}
 
+	// Then resolve symlinks
 	return ResolveSymlinksInPath(absPath)
 }
 
 // IsAbs is a thin wrapper around filepath.IsAbs
-// that we use because it also calls ExpandTilde
+// that we use because it also calls ExpandPath
 func IsAbs(path string) (bool, error) {
-	tmp, err := ExpandTilde(path)
+	tmp, err := ExpandPath(path)
 	if err != nil {
 		return false, err
 	}
