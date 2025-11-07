@@ -109,6 +109,16 @@ func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error
 	cmd.Stderr = io.MultiWriter(stderr, &stderrBuf)
 
 	err := cmd.Run()
+
+	// Flush any remaining stdout output that doesn't end with newline
+	if bw, ok := stdout.(*bufferedWriter); ok {
+		bw.Close()
+	}
+	// Flush any remaining stderr output that doesn't end with newline
+	if bw, ok := stderr.(*bufferedWriter); ok {
+		bw.Close()
+	}
+
 	if err != nil {
 		return nil, err
 	}
