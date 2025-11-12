@@ -33,6 +33,22 @@ type Spec struct {
 	Arch string
 }
 
+// GetValidOS returns all valid operating system values supported by TTPForge
+func GetValidOS() []string {
+	return []string{
+		"android",
+		"darwin",
+		"dragonfly",
+		"freebsd",
+		"linux",
+		"netbsd",
+		"openbsd",
+		"plan9",
+		"solaris",
+		"windows",
+	}
+}
+
 // IsCompatibleWith returns true if the current spec is compatible with the
 // spec specified as its argument.
 // TTPs will often not care about the architecture and will
@@ -84,29 +100,18 @@ func (s *Spec) Validate() error {
 		return fmt.Errorf("os and arch cannot both be empty")
 	}
 
-	// this really ought to to be a list I can
-	// import from some package, but doesn't look
-	// like that is possible right now
-	// https://stackoverflow.com/a/20728862
-	validOS := map[string]bool{
-		"android":   true,
-		"darwin":    true,
-		"dragonfly": true,
-		"freebsd":   true,
-		"linux":     true,
-		"netbsd":    true,
-		"openbsd":   true,
-		// if you run this on plan9 I will buy you a beer
-		"plan9":   true,
-		"solaris": true,
-		"windows": true,
+	validOSList := GetValidOS()
+	validOSMap := make(map[string]bool)
+	for _, os := range validOSList {
+		validOSMap[os] = true
 	}
-	if s.OS != "" && !validOS[s.OS] {
+
+	if s.OS != "" && !validOSMap[s.OS] {
 		errorMsg := fmt.Sprintf("invalid `os` value %q specified", s.OS)
 		logging.L().Errorf(errorMsg)
 		logging.L().Errorf("valid values are:")
-		for k := range validOS {
-			logging.L().Errorf("\t%s", k)
+		for _, os := range validOSList {
+			logging.L().Errorf("\t%s", os)
 		}
 		return errors.New(errorMsg)
 	}
