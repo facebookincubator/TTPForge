@@ -109,6 +109,14 @@ func (cfg *Config) save() error {
 }
 
 func (cfg *Config) init() error {
+	var err error
+
+	// setup logging
+	err = logging.InitLog(logConfig)
+	if err != nil {
+		return err
+	}
+
 	// if no config file was specified, look for the default
 	// unless we are running as part of a unit test
 	if cfg.cfgFile == "" && cfg.testCfg == nil {
@@ -139,11 +147,7 @@ func (cfg *Config) init() error {
 			return err
 		}
 	}
-	var err error
-	if cfg.repoCollection, err = cfg.loadRepoCollection(); err != nil {
-		return err
-	}
 
-	// setup logging
-	return logging.InitLog(logConfig)
+	cfg.repoCollection, err = cfg.loadRepoCollection()
+	return err
 }
