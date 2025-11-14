@@ -1,0 +1,76 @@
+---
+api_version: 2.0
+uuid: a1b2c3d4-e5f6-4a5b-9c8d-7e6f5a4b3c2d
+name: Demo of Command Check Functionality
+description: |
+  This TTP demonstrates all the command check capabilities:
+  1. Checking exit codes (success or specific codes)
+  2. Verifying command output contains expected strings
+  3. Verifying command output does NOT contain specific strings
+  4. Using regex to match command output
+  5. Combining multiple checks together
+
+requirements:
+  platforms:
+    - os: linux
+    - os: darwin
+
+tests:
+  - name: default
+
+steps:
+  - name: verify_basic_command
+    description: Check if a command succeeds by verifying it exits with code 0
+    inline: |
+      echo "Testing command checks"
+    checks:
+      - msg: "Echo command should succeed"
+        command: "echo hello"
+
+  - name: verify_user_exists
+    description: Verify that command output contains an expected string
+    inline: |
+      # Create a test file with specific content
+      echo "Current user: $(whoami)" > /tmp/command-check-output.txt
+    cleanup:
+      inline: rm -f /tmp/command-check-output.txt
+    checks:
+      - msg: "Output should contain 'Current user:'"
+        command: "cat /tmp/command-check-output.txt"
+        output_contains: "Current user:"
+
+  - name: verify_no_errors_in_log
+    description: Verify that command output does NOT contain unwanted strings
+    inline: |
+      echo "Operation completed successfully" > /tmp/operation-log.txt
+      echo "All systems nominal" >> /tmp/operation-log.txt
+    cleanup:
+      inline: rm -f /tmp/operation-log.txt
+    checks:
+      - msg: "Log should not contain ERROR or FAIL"
+        command: "cat /tmp/operation-log.txt"
+        output_not_contains: "ERROR"
+
+  - name: verify_output_format
+    description: Use regex to verify output matches expected patterns
+    inline: |
+      echo "Version: 1.2.3" > /tmp/version-info.txt
+    cleanup:
+      inline: rm -f /tmp/version-info.txt
+    checks:
+      - msg: "Version should match semantic versioning pattern"
+        command: "cat /tmp/version-info.txt"
+        output_regex: "Version: [0-9]+\\.[0-9]+\\.[0-9]+"
+
+  - name: verify_complex_output
+    description: Combine multiple conditions at once
+    inline: |
+      echo "SUCCESS: Deployment completed at 2024-01-15 14:30:00" > /tmp/deploy-status.txt
+    cleanup:
+      inline: rm -f /tmp/deploy-status.txt
+    checks:
+      - msg: "Deployment should succeed with proper timestamp"
+        command: "cat /tmp/deploy-status.txt && echo"
+        expect_exit_code: 0
+        output_not_contains: "FAILURE"
+        output_regex: "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
