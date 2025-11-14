@@ -23,4 +23,5 @@ package checks
 // implemented by all condition types
 type Condition interface {
 	Verify(ctx VerificationContext) error
+	IsNil() bool
 }

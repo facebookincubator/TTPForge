@@ -76,6 +76,84 @@ checksum:
 			fsysContents:      map[string][]byte{"incorrect-hash.txt": []byte("foo")},
 			expectVerifyError: true,
 		},
+		{
+			name: "Content Contains (Success)",
+			contentStr: `msg: File should contain expected string
+path_exists: config.txt
+content_contains: "enabled=true"`,
+			fsysContents: map[string][]byte{"config.txt": []byte("setting1=value1\nenabled=true\nsetting2=value2")},
+		},
+		{
+			name: "Content Contains (Failure)",
+			contentStr: `msg: File should contain expected string
+path_exists: config.txt
+content_contains: "enabled=false"`,
+			fsysContents:      map[string][]byte{"config.txt": []byte("setting1=value1\nenabled=true\nsetting2=value2")},
+			expectVerifyError: true,
+		},
+		{
+			name: "Content Not Contains (Success)",
+			contentStr: `msg: File should not contain debug flags
+path_exists: config.txt
+content_not_contains: "DEBUG=1"`,
+			fsysContents: map[string][]byte{"config.txt": []byte("setting1=value1\nenabled=true\nsetting2=value2")},
+		},
+		{
+			name: "Content Not Contains (Failure)",
+			contentStr: `msg: File should not contain debug flags
+path_exists: config.txt
+content_not_contains: "enabled"`,
+			fsysContents:      map[string][]byte{"config.txt": []byte("setting1=value1\nenabled=true\nsetting2=value2")},
+			expectVerifyError: true,
+		},
+		{
+			name: "Content Regex (Success)",
+			contentStr: `msg: File should match version pattern
+path_exists: version.txt
+content_regex: "v[0-9]+\\.[0-9]+\\.[0-9]+"`,
+			fsysContents: map[string][]byte{"version.txt": []byte("version: v1.2.3")},
+		},
+		{
+			name: "Content Regex (Failure)",
+			contentStr: `msg: File should match version pattern
+path_exists: version.txt
+content_regex: "v[0-9]+\\.[0-9]+\\.[0-9]+"`,
+			fsysContents:      map[string][]byte{"version.txt": []byte("version: v1.2.x")},
+			expectVerifyError: true,
+		},
+		{
+			name: "Content Regex Invalid Pattern",
+			contentStr: `msg: Invalid regex should fail
+path_exists: test.txt
+content_regex: "[invalid"`,
+			fsysContents:      map[string][]byte{"test.txt": []byte("test")},
+			expectVerifyError: true,
+		},
+		{
+			name: "Permissions Check (Success)",
+			contentStr: `msg: File should have correct permissions
+path_exists: script.sh
+permissions: "0644"`,
+			fsysContents: map[string][]byte{"script.sh": []byte("#!/bin/bash\necho 'hello'")},
+		},
+		{
+			name: "Multiple Content Checks (Success)",
+			contentStr: `msg: File should pass all content checks
+path_exists: app.conf
+content_contains: "enabled=true"
+content_not_contains: "DEBUG"
+content_regex: "enabled=[a-z]+"`,
+			fsysContents: map[string][]byte{"app.conf": []byte("enabled=true\nport=8080")},
+		},
+		{
+			name: "Checksum + Content Contains (Success)",
+			contentStr: `msg: File should have correct hash and content
+path_exists: payload.txt
+checksum:
+  sha256: 2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae
+content_contains: "foo"`,
+			fsysContents: map[string][]byte{"payload.txt": []byte("foo")},
+		},
 	}
 
 	for _, tc := range testCases {

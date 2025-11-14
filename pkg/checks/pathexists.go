@@ -21,15 +21,30 @@ package checks
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
 
 	"github.com/spf13/afero"
 )
 
 // PathExists is a condition that verifies that a file exists at a given path
-// It can also verify the contents of the file against a checksum
+// It can also verify:
+// - File contents against a checksum
+// - File contains/doesn't contain specific text
+// - File permissions match expected values
 type PathExists struct {
-	Path     string    `yaml:"path_exists"`
-	Checksum *Checksum `yaml:"checksum"`
+	Path               string    `yaml:"path_exists"`
+	Checksum           *Checksum `yaml:"checksum,omitempty"`
+	ContentContains    string    `yaml:"content_contains,omitempty"`
+	ContentNotContains string    `yaml:"content_not_contains,omitempty"`
+	ContentRegex       string    `yaml:"content_regex,omitempty"`
+	Permissions        string    `yaml:"permissions,omitempty"`
+}
+
+// IsNil checks if the condition is empty or uninitialized
+func (c *PathExists) IsNil() bool {
+	return c.Path == ""
 }
 
 // Verify checks the condition and returns an error if it fails
@@ -45,13 +60,77 @@ func (c *PathExists) Verify(ctx VerificationContext) error {
 		return fmt.Errorf("file %q does not exist", c.Path)
 	}
 
-	// verify the checksum if provided
-	if c.Checksum != nil {
+	// read file content once if needed for multiple checks
+	var contentStr string
+	needsContent := c.Checksum != nil || c.ContentContains != "" ||
+		c.ContentNotContains != "" || c.ContentRegex != ""
+
+	if needsContent {
 		contentBytes, err := afero.ReadFile(fsys, c.Path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read file %q: %w", c.Path, err)
 		}
-		return c.Checksum.Verify(contentBytes)
+		contentStr = string(contentBytes)
+
+		// verify the checksum if provided
+		if c.Checksum != nil {
+			if err := c.Checksum.Verify(contentBytes); err != nil {
+				return err
+			}
+		}
+
+		// check if content contains expected string
+		if c.ContentContains != "" {
+			if !strings.Contains(contentStr, c.ContentContains) {
+				return fmt.Errorf("file %q does not contain %q",
+					c.Path, c.ContentContains)
+			}
+		}
+
+		// check if content does not contain specified string
+		if c.ContentNotContains != "" {
+			if strings.Contains(contentStr, c.ContentNotContains) {
+				return fmt.Errorf("file %q contains %q but should not",
+					c.Path, c.ContentNotContains)
+			}
+		}
+
+		// check if content matches regex pattern
+		if c.ContentRegex != "" {
+			matched, err := regexp.MatchString(c.ContentRegex, contentStr)
+			if err != nil {
+				return fmt.Errorf("invalid regex pattern %q: %w",
+					c.ContentRegex, err)
+			}
+			if !matched {
+				return fmt.Errorf("file %q content does not match regex %q",
+					c.Path, c.ContentRegex)
+			}
+		}
 	}
+
+	// check file permissions if specified
+	if c.Permissions != "" {
+		info, err := fsys.Stat(c.Path)
+		if err != nil {
+			return fmt.Errorf("failed to stat file %q: %w", c.Path, err)
+		}
+
+		actualPerm := info.Mode().Perm()
+		var expectedPerm os.FileMode
+
+		// Parse permissions string (e.g., "0755", "0644")
+		_, err = fmt.Sscanf(c.Permissions, "%o", &expectedPerm)
+		if err != nil {
+			return fmt.Errorf("invalid permissions format %q: %w",
+				c.Permissions, err)
+		}
+
+		if actualPerm != expectedPerm {
+			return fmt.Errorf("file %q has permissions %04o, expected %04o",
+				c.Path, actualPerm, expectedPerm)
+		}
+	}
+
 	return nil
 }
