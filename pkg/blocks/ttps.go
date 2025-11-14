@@ -211,7 +211,9 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 		}
 
 		// if the user specified custom success checks, run them now
-		verifyError = step.VerifyChecks()
+		if !execCtx.Cfg.NoChecks {
+			verifyError = step.VerifyChecks()
+		}
 
 		if stepError != nil || verifyError != nil || shutdownFlag {
 			logging.L().Debug("[*] Stopping TTP Early")
