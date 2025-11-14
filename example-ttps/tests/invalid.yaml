@@ -1,0 +1,67 @@
+---
+uuid: not-a-valid-uuid
+api_version: 99.0
+description: bad
+mitre:
+  invalid_key: value
+requirements:
+  platforms:
+    - os: invalidOS
+      arch: fake_arch
+  superuser: "not_a_boolean"
+args:
+  - name: InvalidArgName
+    type: invalid_type
+  - name: duplicate_arg
+  - name: duplicate_arg
+    description: This is a duplicate
+  - name: unused_arg
+    default: value
+  - name: undefined_ref
+  - name: another_unused_arg
+    description: This argument is defined but never referenced anywhere
+steps:
+  - name:
+    inline: ""
+  - name: duplicate_step
+    inline: echo "first"
+  - name: duplicate_step
+    inline: echo "duplicate"
+    executor: invalid_executor
+    outputvar: InvalidOutputVar
+  - name: ambiguous_action
+    inline: echo "has multiple actions"
+    file: /some/file.sh
+    create_file: /another/file
+  - name: no_action_step
+    description: This step has no action
+  - name: empty_inline
+    inline: ""
+  - name: invalid_http_method
+    http_request: https://192.168.1.1/hardcoded-ip
+    type: INVALID_METHOD
+  - name: missing_create_file_contents
+    create_file: /tmp/file.txt
+  - name: missing_copy_to
+    copy_path: /source
+  - name: missing_fetch_location
+    fetch_uri: http://example.com/file
+  - name: missing_kill_process_param
+    kill_process: true
+  - name: missing_edit_file_edits
+    edit_file: /some/file
+  - name: invalid_expect
+    expect:
+      missing_inline: true
+  - name: bad_cleanup
+    create_file: /tmp/test.txt
+    contents: "test"
+    cleanup: not_default_or_dict
+  - name: undefined_template_var
+    inline: "{{.Args.nonexistent_arg}}"
+  - name: undefined_stepvar
+    inline: echo "trying to use {[{.StepVars.nonexistent_outputvar}]}"
+  - name: cd_empty
+    cd: ""
+  - name: ttp_empty
+    ttp: ""

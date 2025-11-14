@@ -362,10 +362,13 @@ func (r *HTTPRequestStep) validateProxy() error {
 	return nil
 }
 
+// ValidHTTPMethods contains all supported HTTP methods
+var ValidHTTPMethods = []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"}
+
 // validateType validates that the request type is a valid HTTP request type.  Returns an error if validation fails, otherwise returns nil
 func (r *HTTPRequestStep) validateType() error {
 	isHTTPMethod := false
-	for _, method := range []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"} {
+	for _, method := range ValidHTTPMethods {
 		if strings.EqualFold(r.Type, method) {
 			isHTTPMethod = true
 			break
