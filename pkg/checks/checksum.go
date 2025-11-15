@@ -26,21 +26,26 @@ import (
 
 // Checksum is a struct that contains different types
 // of checksums against which a file can be verified.
-// Right now we just support SHA256 checksums, but in the future
-// others such as MD5 can be added if needed.
+// Supports SHA256 checksums.
 type Checksum struct {
-	SHA256 string `yaml:"sha256"`
+	SHA256 string `yaml:"sha256,omitempty"`
 }
 
 // Verify computes the checksum of the contents
-// and compares it to the expected value
+// and compares it to the expected value.
+// Supports SHA256 checksums.
 func (c *Checksum) Verify(contents []byte) error {
 	if c.SHA256 == "" {
-		return fmt.Errorf("Checksum is empty")
+		return fmt.Errorf("checksum is empty - must provide sha256")
 	}
+
+	// Verify SHA256
 	rawResult := sha256.Sum256(contents)
-	if fmt.Sprintf("%x", rawResult) != c.SHA256 {
-		return fmt.Errorf("contents do not match checksum")
+	actualSHA256 := fmt.Sprintf("%x", rawResult)
+	if actualSHA256 != c.SHA256 {
+		return fmt.Errorf("sha256 checksum mismatch: expected %s, got %s",
+			c.SHA256, actualSHA256)
 	}
+
 	return nil
 }

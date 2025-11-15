@@ -1,26 +1,87 @@
 ---
 api_version: 2.0
 uuid: 7ba3a119-dde3-4900-97cb-9e105ca6e357
-name: Demo of the path_exists Post-Execution Check
+name: path_exists Check Examples
 description: |
-  The `path_exists` check can be used to verify that a given
-  file exists and has the correct hash. This helps
-  TTP authors ensure that their TTP executed correctly and wasn't
-  blocked by EDR/AV.
+  Demonstrates path_exists check features:
+  - Basic file existence verification
+  - SHA256 checksum validation
+  - Content validation (contains, not contains, regex)
+  - File permission verification
+  - Combining multiple checks
+
+  These features help ensure files were created with correct
+  content and permissions, and weren't blocked or modified
+  by security tools.
 requirements:
   platforms:
     - os: darwin
     - os: linux
 tests:
   - name: default
+
 steps:
-  - name: create_demo_file
+  - name: basic_file_existence
+    description: Verify a file exists
     create_file: |-
-      {{$target_path := (printf "/tmp/ttpforge-path-exists-demo-%v" (randAlphaNum 10))}}{{$target_path}}
+      {{$target_path := (printf "/tmp/ttpforge-basic-%v" (randAlphaNum 10))}}{{$target_path}}
+    contents: "test content"
+    cleanup: default
+    checks:
+      - msg: "File should exist"
+        path_exists: "{{$target_path}}"
+
+  - name: file_with_checksum
+    description: Verify file exists with correct SHA256 hash
+    create_file: |-
+      {{$target_path := (printf "/tmp/ttpforge-checksum-%v" (randAlphaNum 10))}}{{$target_path}}
     contents: foo
     cleanup: default
     checks:
-      - msg: "Expected path does not exist or does not have correct contents!"
+      - msg: "File should exist with correct checksum"
         path_exists: "{{$target_path}}"
         checksum:
           sha256: 2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae
+
+  - name: content_validation
+    description: Verify file contains/doesn't contain specific text
+    inline: |
+      cat > /tmp/ttpforge-config.conf <<EOF
+      production=true
+      log_level=info
+      debug_mode=false
+      EOF
+    cleanup:
+      inline: rm -f /tmp/ttpforge-config.conf
+    checks:
+      - msg: "Config should have production enabled"
+        path_exists: /tmp/ttpforge-config.conf
+        content_contains: "production=true"
+
+      - msg: "Config should not have debug enabled"
+        path_exists: /tmp/ttpforge-config.conf
+        content_not_contains: "debug_mode=true"
+
+  - name: content_regex
+    description: Verify content matches expected patterns
+    inline: |
+      echo "Version: v1.2.3" > /tmp/ttpforge-version.txt
+    cleanup:
+      inline: rm -f /tmp/ttpforge-version.txt
+    checks:
+      - msg: "Version should follow semantic versioning"
+        path_exists: /tmp/ttpforge-version.txt
+        content_regex: "v[0-9]+\\.[0-9]+\\.[0-9]+"
+
+  - name: permissions_check
+    description: Verify file has correct permissions
+    inline: |
+      echo '#!/bin/bash' > /tmp/ttpforge-script.sh
+      echo 'echo "payload executed"' >> /tmp/ttpforge-script.sh
+      chmod 755 /tmp/ttpforge-script.sh
+    cleanup:
+      inline: rm -f /tmp/ttpforge-script.sh
+    checks:
+      - msg: "Script should be executable (755)"
+        path_exists: /tmp/ttpforge-script.sh
+        permissions: "0755"

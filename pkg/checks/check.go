@@ -71,10 +71,11 @@ func (c *Check) UnmarshalYAML(node *yaml.Node) error {
 
 	candidateTypeInstances := []Condition{
 		&PathExists{},
+		&CommandCheck{},
 	}
 	for _, candidateTypeInstance := range candidateTypeInstances {
 		err := node.Decode(candidateTypeInstance)
-		if err == nil {
+		if err == nil && !candidateTypeInstance.IsNil() {
 			if c.condition != nil {
 				// Must catch conditions with ambiguous types, such as:
 				// - path_exists: foo
