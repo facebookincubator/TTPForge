@@ -30,10 +30,11 @@ import (
 
 func buildRemoveRepoCommand(cfg *Config) *cobra.Command {
 	removeRepoCommand := &cobra.Command{
-		Use:              "repo [repo_name]",
-		Short:            "remove (uninstall) a repository of TTPs used by TTPForge",
-		TraverseChildren: true,
-		Args:             cobra.ExactArgs(1),
+		Use:               "repo [repo_name]",
+		Short:             "remove (uninstall) a repository of TTPs used by TTPForge",
+		TraverseChildren:  true,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeRepoName(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repoToRemove := args[0]
 			logging.L().Infof("will attempt to delete repo: %v", repoToRemove)

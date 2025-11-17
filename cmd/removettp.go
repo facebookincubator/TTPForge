@@ -29,10 +29,11 @@ func buildRemoveTTPCommand(cfg *Config) *cobra.Command {
 	var unsafe bool
 
 	removeTTPCommand := &cobra.Command{
-		Use:              "ttp [repo_name//path/to/ttp]",
-		Short:            "remove a TTP used by TTPForge",
-		TraverseChildren: true,
-		Args:             cobra.ExactArgs(1),
+		Use:               "ttp [repo_name//path/to/ttp]",
+		Short:             "remove a TTP used by TTPForge",
+		TraverseChildren:  true,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true

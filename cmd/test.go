@@ -57,9 +57,10 @@ type ttpNonStepFields struct {
 func buildTestCommand(cfg *Config) *cobra.Command {
 	var timeoutSeconds int
 	runCmd := &cobra.Command{
-		Use:   "test [repo_name//path/to/ttp]",
-		Short: "Test the TTP found in the specified YAML file.",
-		Args:  cobra.MinimumNArgs(1),
+		Use:               "test [repo_name//path/to/ttp]",
+		Short:             "Test the TTP found in the specified YAML file.",
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true
