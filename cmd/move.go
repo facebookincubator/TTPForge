@@ -140,11 +140,12 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 	var unsafe bool
 
 	moveCmd := &cobra.Command{
-		Use:     "move [repo_name//path/to/ttp] [repo_name//path/to/destination]",
-		Short:   "Move or rename a TTPForge TTP",
-		Long:    "Use this command to move a TTP to a new location, updating all references.",
-		Example: "ttpforge move examples//actions/inline/basic.yaml examples//actions/inline/basic-new.yaml",
-		Args:    cobra.ExactArgs(2),
+		Use:               "move [repo_name//path/to/ttp] [repo_name//path/to/destination]",
+		Short:             "Move or rename a TTPForge TTP",
+		Long:              "Use this command to move a TTP to a new location, updating all references.",
+		Example:           "ttpforge move examples//actions/inline/basic.yaml examples//actions/inline/basic-new.yaml",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completeTTPRef(cfg, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true

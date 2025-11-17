@@ -86,11 +86,12 @@ func findTTPReferences(rc repos.RepoCollection, fs afero.Fs, sourceRef string) (
 
 func buildEnumDependenciesCommand(cfg *Config) *cobra.Command {
 	enumDependenciesCmd := &cobra.Command{
-		Use:     "dependencies [repo_name//path/to/ttp]",
-		Short:   "Enumerate TTPs that depend on a given TTP",
-		Long:    "Use this command to enumerate TTPs that depend on a given TTP",
-		Example: "ttpforge enum dependencies examples//actions/inline/basic.yaml ",
-		Args:    cobra.ExactArgs(1),
+		Use:               "dependencies [repo_name//path/to/ttp]",
+		Short:             "Enumerate TTPs that depend on a given TTP",
+		Long:              "Use this command to enumerate TTPs that depend on a given TTP",
+		Example:           "ttpforge enum dependencies examples//actions/inline/basic.yaml ",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Don't want confusing usage display for errors past this point
 			cmd.SilenceUsage = true

@@ -27,12 +27,11 @@ import (
 )
 
 func buildShowTTPCommand(cfg *Config) *cobra.Command {
-
-	return &cobra.Command{
-		Use:              "ttp",
-		Short:            "displays the contents of the TTP specified by the provided reference",
-		TraverseChildren: true,
-		Args:             cobra.ExactArgs(1),
+	showTTPCmd := &cobra.Command{
+		Use:               "ttp",
+		Short:             "display info for a particular TTP",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ttpRef := args[0]
 			_, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
@@ -47,4 +46,5 @@ func buildShowTTPCommand(cfg *Config) *cobra.Command {
 			return nil
 		},
 	}
+	return showTTPCmd
 }

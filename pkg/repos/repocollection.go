@@ -36,6 +36,7 @@ type RepoCollection interface {
 	GetRepo(repoName string) (Repo, error)
 	ResolveTTPRef(ttpRef string) (Repo, string, error)
 	ListTTPs() ([]string, error)
+	ListRepos() []string
 	FindParentRepo(absPath string) (Repo, error)
 	ParseTTPRef(ttpRef string) (Repo, string, error)
 	ConvertAbsPathToAbsRef(repo Repo, absPath string) (string, error)
@@ -261,6 +262,19 @@ func (rc *repoCollection) ListTTPs() ([]string, error) {
 		refsForAllTTPs = append(refsForAllTTPs, ttpRefs...)
 	}
 	return refsForAllTTPs, nil
+}
+
+// ListRepos lists all repository names in the RepoCollection
+//
+// **Returns:**
+//
+// []string: the list of repository names
+func (rc *repoCollection) ListRepos() []string {
+	var repoNames []string
+	for _, repo := range rc.repos {
+		repoNames = append(repoNames, repo.GetName())
+	}
+	return repoNames
 }
 
 func isSubpath(parent string, child string) bool {

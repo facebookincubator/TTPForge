@@ -47,5 +47,6 @@ func buildListTTPsCommand(cfg *Config) *cobra.Command {
 		},
 	}
 	listTTPsCommand.PersistentFlags().StringVar(&repoFilter, "repo", "", "Show TTPs from only the specified repository")
+	listTTPsCommand.RegisterFlagCompletionFunc("repo", completeRepoName(cfg, 0))
 	return listTTPsCommand
 }

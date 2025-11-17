@@ -245,5 +245,6 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 	enumTTPsCmd.PersistentFlags().StringVar(&tactic, "tactic", "", "Tactic to search for")
 	enumTTPsCmd.PersistentFlags().StringVar(&technique, "technique", "", "Technique to search for")
 	enumTTPsCmd.PersistentFlags().StringVar(&subTech, "sub-tech", "", "Sub technique to search for")
+	enumTTPsCmd.RegisterFlagCompletionFunc("repo", completeRepoName(cfg, 0))
 	return enumTTPsCmd
 }
