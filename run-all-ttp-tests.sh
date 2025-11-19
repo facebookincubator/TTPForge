@@ -28,7 +28,7 @@ then
 fi
 TTPFORGE_BINARY=$(realpath "${TTPFORGE_BINARY}")
 
-EXCEPTIONS_FILE=("kill-process-windows.yaml" "kill-process-windows-failure.yaml")
+EXCEPTIONS_FILE=("kill-process-windows.yaml" "kill-process-windows-failure.yaml" "invalid.yaml")
 
 # Loop over all specified directories and validate all ttps within each.
 shift
