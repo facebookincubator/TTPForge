@@ -1,0 +1,175 @@
+---
+api_version: 2.0
+uuid: c3b8822c-e128-4cea-93fc-f802ce3f0c30
+name: "Async Worker SSH Production Access Test"
+description: |
+  This TTP validates whether async workers can establish unauthorized SSH access
+  to other compute resources. It tests lateral movement capabilities by attempting
+  SSH connections from async_tier workers to various targets:
+
+  - Async worker to itself (localhost)
+  - Async worker to Sandcastle workers
+  - Async worker to other Async workers
+  - Async worker to Chronos workers
+  - Async worker to DevVMs
+  - Async worker to production hosts
+
+  EXPECTED BEHAVIOR:
+  ==================
+  -  PASS (Secure): Async worker CANNOT SSH to target → Access Blocked
+  -  FAIL (Risk): Async worker CAN SSH to target → Access Granted (Security Issue)
+
+  The test performs the following actions:
+  1. Attempts SSH connection using default SSH configuration
+  2. Creates a test marker file to verify successful access
+  3. Gathers basic system information (hostname, user, current directory)
+  4. Cleans up all artifacts after verification
+
+  This validation helps identify:
+  - Overprivileged async worker service accounts
+  - Misconfigured SSH access controls on production hosts
+  - Potential lateral movement paths from code execution surfaces
+
+requirements:
+  platforms:
+    - os: linux
+  superuser: false
+
+mitre:
+  tactics:
+    - "TA0001: Initial Access"
+    - "TA0008: Lateral Movement"
+  techniques:
+    - "T1078: Valid Accounts"
+    - "T1021.004: SSH"
+  subtechniques:
+    - "T1021.004: SSH"
+
+args:
+  - name: target_host
+    type: string
+    description: The target host to SSH into (e.g., localhost, sandcastle worker, chronos worker, devvm, prod host)
+    default: "localhost"
+
+  - name: username
+    type: string
+    description: The username to use for SSH connection
+    default: "twsvcscm"
+
+  - name: test_file_path
+    type: string
+    description: Path where the test marker file will be created on the target host
+    default: "/tmp/async_ssh_test_marker_$$_$RANDOM.txt"
+
+  - name: sleep_time
+    type: int
+    description: Time to sleep before cleaning up all artifacts (in seconds)
+    default: 5
+
+  - name: connection_timeout
+    type: int
+    description: SSH connection timeout in seconds
+    default: 10
+
+steps:
+  - name: test_async_worker_ssh_access
+    description: |
+      Attempt to SSH into the production resource using async worker credentials.
+      Create a test marker file to confirm successful access.
+      This step verifies if an async worker has unauthorized SSH access to production resources.
+    inline: |
+      #!/bin/bash
+      # Note: NOT using 'set -e' because we want to handle both success and failure cases
+      set -o pipefail
+
+      # Configuration
+      TARGET_HOST="{{.Args.target_host}}"
+      USERNAME="{{.Args.username}}"
+      CONNECTION_TIMEOUT={{.Args.connection_timeout}}
+      TEST_FILE="{{.Args.test_file_path}}"
+
+      echo "=========================================="
+      echo "SSH Access Test Configuration"
+      echo "=========================================="
+      echo "Target Host: $TARGET_HOST"
+      echo "Username: $USERNAME"
+      echo "Timeout: ${CONNECTION_TIMEOUT}s"
+      echo "=========================================="
+      echo ""
+
+      # Test SSH access using default SSH configuration
+      echo "[TEST] Attempting SSH connection..."
+      echo "[CMD] ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${CONNECTION_TIMEOUT} -o BatchMode=yes ${USERNAME}@${TARGET_HOST}"
+      echo ""
+
+      # Attempt SSH connection and execute test commands
+      if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${CONNECTION_TIMEOUT} -o BatchMode=yes ${USERNAME}@${TARGET_HOST} \
+        "echo '[SUCCESS] SSH connection established to $TARGET_HOST' && \
+         echo 'Async worker SSH test - $(date)' > $TEST_FILE && \
+         echo '[TEST] Created marker file: $TEST_FILE' && \
+         cat $TEST_FILE && \
+         echo '[INFO] Current user: '$(whoami) && \
+         echo '[INFO] Hostname: '$(hostname) && \
+         echo '[INFO] Current directory: '$(pwd)"; then
+
+        # SSH succeeded - this is a security issue!
+        echo ""
+        echo "=========================================="
+        echo "  SECURITY ALERT: ACCESS GRANTED"
+        echo "=========================================="
+        echo "Async worker successfully accessed target resource!"
+        echo "Target Host: $TARGET_HOST"
+        echo "Username: $USERNAME"
+        echo "Timestamp: $(date)"
+        echo "=========================================="
+        echo ""
+        echo "  ACTION REQUIRED:"
+        echo "This indicates a potential security misconfiguration."
+        echo "Async workers should NOT have SSH access to other resources."
+        echo "=========================================="
+        exit 4
+      else
+        # SSH failed - this is the expected secure behavior
+        SSH_RESULT=$?
+        echo ""
+        echo "=========================================="
+        echo " SECURITY VERIFIED: ACCESS BLOCKED"
+        echo "=========================================="
+        echo "Async worker correctly denied access to target resource."
+        echo "Target Host: $TARGET_HOST"
+        echo "Username: $USERNAME"
+        echo "Exit Code: $SSH_RESULT"
+        echo "Timestamp: $(date)"
+        echo "=========================================="
+        echo ""
+        echo " This is the expected and secure behavior."
+        echo "Async workers should not have SSH access to other resources."
+        echo "=========================================="
+        exit 0
+      fi
+    cleanup:
+      inline: |
+        #!/bin/bash
+
+        TARGET_HOST="{{.Args.target_host}}"
+        USERNAME="{{.Args.username}}"
+        CONNECTION_TIMEOUT={{.Args.connection_timeout}}
+        TEST_FILE="{{.Args.test_file_path}}"
+
+        echo "[CLEANUP] Attempting to remove test marker file..."
+
+        # Attempt cleanup using same SSH method as test
+        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=${CONNECTION_TIMEOUT} -o BatchMode=yes ${USERNAME}@${TARGET_HOST} \
+          "rm -f $TEST_FILE && echo '[CLEANUP] Removed: $TEST_FILE' || echo '[CLEANUP] File may not exist or already removed'" 2>/dev/null; then
+          echo "[CLEANUP] Cleanup completed successfully for $TARGET_HOST"
+        else
+          echo "[CLEANUP] Could not connect for cleanup - marker file may remain on host"
+        fi
+
+        exit 0
+
+  - name: sleep_before_cleanup
+    description: Sleep for configured time before final cleanup
+    inline: |
+      echo "Waiting {{.Args.sleep_time}} seconds before final cleanup..."
+      sleep {{.Args.sleep_time}}
