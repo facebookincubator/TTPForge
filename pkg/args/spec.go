@@ -163,6 +163,16 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string, cliBaseDir string, defa
 	return processedArgs, nil
 }
 
+// GetValidArgTypes returns all valid argument types supported by TTPForge
+func GetValidArgTypes() []string {
+	return []string{
+		"string",
+		"int",
+		"bool",
+		"path",
+	}
+}
+
 func (spec Spec) convertArgToType(val string) (any, error) {
 	switch spec.Type {
 	case "", "string":
