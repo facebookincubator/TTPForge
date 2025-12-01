@@ -21,12 +21,10 @@ package blocks
 
 import (
 	"context"
-	"errors"
-	"os/exec"
+	"fmt"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
-	"go.uber.org/zap"
 )
 
 // FileStep represents a step in a process that consists of a main action,
@@ -63,45 +61,17 @@ func (f *FileStep) IsNil() bool {
 // its absolute path.
 //
 // If Executor is not set, it infers the executor based on the file extension.
-// It then checks that the executor is in the system path, and if CleanupStep
+// Validate validates the step, checking for the necessary attributes and dependencies. If cleanup
 // is not nil, it validates the cleanup step as well.
-// It logs any errors and returns them.
 func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 	if f.FilePath == "" {
-		err := errors.New("a TTP must include inline logic or path to a file with the logic")
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("a TTP must include inline logic or path to a file with the logic")
 	}
 
-	// If FilePath is set, ensure that the file exists.
-	fullpath, err := FindFilePath(f.FilePath, execCtx.Vars.WorkDir, nil)
-	if err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
-	// Retrieve the absolute path to the file.
-	f.FilePath, err = FetchAbs(fullpath, execCtx.Vars.WorkDir)
-	if err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
-	// Infer executor if it's not set.
+	// Infer executor if it's not set, based on file extension.
 	if f.Executor == "" {
 		f.Executor = InferExecutor(f.FilePath)
-		logging.L().Debugw("executor set via extension", "exec", f.Executor)
 	}
-
-	if f.Executor == ExecutorBinary {
-		return nil
-	}
-
-	if _, err := exec.LookPath(f.Executor); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-	logging.L().Debugw("command found in path", "executor", f.Executor)
 
 	return nil
 }
@@ -135,7 +105,21 @@ func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
 	defer cancel()
 
-	executor := NewExecutor(f.Executor, "", f.FilePath, f.Args, f.Environment)
+	// Resolve file path at execution time
+	fullpath, err := FindFilePath(f.FilePath, execCtx.Vars.WorkDir, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find file: %w", err)
+	}
+
+	// Get absolute path
+	absPath, err := FetchAbs(fullpath, execCtx.Vars.WorkDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	logging.L().Debugw("Resolved file path", "original", f.FilePath, "absolute", absPath)
+
+	executor := NewExecutor(f.Executor, "", absPath, f.Args, f.Environment)
 	result, err := executor.Execute(ctx, execCtx)
 	if err != nil {
 		return nil, err

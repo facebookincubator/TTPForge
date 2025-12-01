@@ -20,7 +20,6 @@ THE SOFTWARE.
 package blocks
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -69,16 +68,12 @@ func (f *FetchURIStep) IsNil() bool {
 func (f *FetchURIStep) Validate(execCtx TTPExecutionContext) error {
 	// Validate URI exists
 	if f.FetchURI == "" {
-		err := errors.New("require FetchURI to be set with fetchURI")
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("require FetchURI to be set with fetchURI")
 	}
 
 	// Validate location exists
 	if f.Location == "" {
-		err := errors.New("require Location to be set with fetchURI")
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("require Location to be set with fetchURI")
 	}
 
 	// Validate Proxy is valid URI
@@ -256,17 +251,14 @@ func (f *FetchURIStep) validateLocation(execCtx TTPExecutionContext) error {
 
 	absLocal, err := FetchAbs(f.Location, execCtx.Vars.WorkDir)
 	if err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("failed to get absolute path for location: %w", err)
 	}
 	exists, err := afero.Exists(fsys, absLocal)
 	if err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("error checking if location exists (location: %q): %w", absLocal, err)
 	}
 	if exists && !f.Overwrite {
-		logging.L().Errorw("FileStep location exists, remove and retry", "location", absLocal)
-		return errors.New("file exists at location specified, remove and retry")
+		return fmt.Errorf("file exists at location %q and overwrite is not enabled", absLocal)
 	}
 	return nil
 }
