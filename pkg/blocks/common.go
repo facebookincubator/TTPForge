@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"go.uber.org/zap"
 )
 
 // FetchAbs returns the absolute path of a file given its path and the
@@ -50,9 +49,7 @@ import (
 // error: An error if the path cannot be resolved to an absolute path.
 func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	if path == "" {
-		err = errors.New("empty path provided")
-		logging.L().Errorw("failed to get fullpath", zap.Error(err))
-		return path, err
+		return path, fmt.Errorf("empty path provided")
 	}
 
 	var basePath string
@@ -60,8 +57,7 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 	case strings.HasPrefix(path, "~/"):
 		basePath, err = os.UserHomeDir()
 		if err != nil {
-			logging.L().Errorw("failed to get home dir", zap.Error(err))
-			return path, err
+			return path, fmt.Errorf("failed to get home directory: %w", err)
 		}
 		path = path[2:]
 	case filepath.IsAbs(path):
@@ -78,8 +74,7 @@ func FetchAbs(path string, workdir string) (fullpath string, err error) {
 
 	fullpath, err = filepath.Abs(filepath.Join(basePath, path))
 	if err != nil {
-		logging.L().Errorw("failed to get fullpath", zap.Error(err))
-		return path, err
+		return path, fmt.Errorf("failed to get absolute path for %q (workdir: %q): %w", path, workdir, err)
 	}
 
 	logging.L().Debugw("Full path: ", "fullpath", fullpath)
@@ -113,11 +108,9 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 		fsPath := filepath.Join(workdir, path)
 		if _, err := system.Stat(fsPath); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				logging.L().Errorw("file not found using provided fs.StatFS", "path", path, zap.Error(err))
-				return "", err
+				return "", fmt.Errorf("file not found using provided fs.StatFS (path: %q): %w", path, err)
 			}
-			logging.L().Errorw("error checking provided fs.StatFS for file existence", "path", path, zap.Error(err))
-			return "", err
+			return "", fmt.Errorf("error checking provided fs.StatFS for file existence (path: %q): %w", path, err)
 		}
 		logging.L().Debugw("File found using provided fs.StatFS", "path", path)
 		return fsPath, nil
@@ -140,8 +133,7 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 	// Resolve the input path to an absolute path
 	absPath, err := FetchAbs(path, workdir)
 	if err != nil {
-		logging.L().Errorw("failed to fetch absolute path", "path", path, "workdir", workdir, zap.Error(err))
-		return "", err
+		return "", fmt.Errorf("failed to fetch absolute path (path: %q, workdir: %q): %w", path, workdir, err)
 	}
 
 	// Check if the absolute path exists
@@ -151,9 +143,7 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 	}
 
 	// If the file is not found in any of the locations, return an error
-	err = fmt.Errorf("invalid path %s provided", path)
-	logging.L().Errorw("file not found in any location", "path", path, zap.Error(err))
-	return "", err
+	return "", fmt.Errorf("file not found in any location (path: %q)", path)
 }
 
 // FetchEnv converts an environment variable map into a slice of strings that

@@ -66,7 +66,6 @@ func (s *KillProcessStep) Validate(_ TTPExecutionContext) error {
 	// Not handling for overflow
 	processID, err := strconv.Atoi(s.ProcessID)
 	if err != nil {
-		logging.L().Errorf("Failed to convert %v to int: %w", s.ProcessID, err)
 		return fmt.Errorf("Invalid Process ID: %v", s.ProcessID)
 	}
 

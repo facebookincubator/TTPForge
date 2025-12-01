@@ -87,6 +87,14 @@ func (e *ScriptExecutor) buildCommand(ctx context.Context) *exec.Cmd {
 
 // Execute runs the command
 func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
+	// Validate executor exists at runtime (unless it's binary)
+	if e.Name != ExecutorBinary {
+		if _, err := exec.LookPath(e.Name); err != nil {
+			return nil, fmt.Errorf("executor %q not found in PATH: %w", e.Name, err)
+		}
+		logging.L().Debugw("executor found in path", "executor", e.Name)
+	}
+
 	// expand variables in command
 	expandedInlines, err := execCtx.ExpandVariables([]string{e.Inline})
 	if err != nil {
@@ -116,6 +124,14 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 
 // Execute runs the binary with arguments
 func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
+	// Validate executor exists at runtime (unless it's binary)
+	if e.Name != ExecutorBinary {
+		if _, err := exec.LookPath(e.Name); err != nil {
+			return nil, fmt.Errorf("executor %q not found in PATH: %w", e.Name, err)
+		}
+		logging.L().Debugw("executor found in path", "executor", e.Name)
+	}
+
 	// expand variables in command line arguments
 	expandedArgs, err := execCtx.ExpandVariables(e.Args)
 	if err != nil {

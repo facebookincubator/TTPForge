@@ -21,15 +21,12 @@ package blocks
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
-	"go.uber.org/zap"
 )
 
 // DefaultExecutionTimeout is the default timeout for step execution.
@@ -63,30 +60,14 @@ func (b *BasicStep) IsNil() bool {
 func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 	// Check if Inline is provided
 	if b.Inline == "" {
-		err := errors.New("inline must be provided")
-		logging.L().Error(zap.Error(err))
-		return err
+		return fmt.Errorf("inline must be provided")
 	}
 
 	// Set ExecutorName to "bash" if it is not provided
 	if b.ExecutorName == "" {
 		logging.L().Debug("defaulting to bash since executor was not provided")
 		b.ExecutorName = ExecutorBash
-		return nil
 	}
-
-	// Return if ExecutorName is ExecutorBinary
-	if b.ExecutorName == ExecutorBinary {
-		return nil
-	}
-
-	// Check if the executor is in the system path
-	if _, err := exec.LookPath(b.ExecutorName); err != nil {
-		logging.L().Error(zap.Error(err))
-		return err
-	}
-
-	logging.L().Debugw("command found in path", "executor", b.ExecutorName)
 
 	return nil
 }
