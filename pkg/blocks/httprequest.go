@@ -54,16 +54,17 @@ type ResponseData struct {
 // HTTPRequestStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type HTTPRequestStep struct {
-	actionDefaults  `yaml:",inline"`
-	HTTPRequest     string           `yaml:"http_request,omitempty"`
-	Type            string           `yaml:"type,omitempty"`
-	Headers         []*HTTPHeader    `yaml:"headers,omitempty"`
-	Parameters      []*HTTPParameter `yaml:"parameters,omitempty"`
-	Body            string           `yaml:"body,omitempty"`
-	Regex           string           `yaml:"regex,omitempty"`
-	Proxy           string           `yaml:"proxy,omitempty"`
-	ResponseHeaders bool             `yaml:"response_headers,omitempty"`
-	Response        string           `yaml:"response,omitempty"`
+	actionDefaults   `yaml:",inline"`
+	HTTPRequest      string           `yaml:"http_request,omitempty"`
+	Type             string           `yaml:"type,omitempty"`
+	Headers          []*HTTPHeader    `yaml:"headers,omitempty"`
+	Parameters       []*HTTPParameter `yaml:"parameters,omitempty"`
+	Body             string           `yaml:"body,omitempty"`
+	Regex            string           `yaml:"regex,omitempty"`
+	Proxy            string           `yaml:"proxy,omitempty"`
+	DisableRedirects bool             `yaml:"disable_redirects,omitempty"`
+	ResponseHeaders  bool             `yaml:"response_headers,omitempty"`
+	Response         string           `yaml:"response,omitempty"`
 }
 
 // NewHTTPRequestStep creates a new HTTPRequestStep instance and returns a pointer to it.
@@ -247,19 +248,28 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 
 	}
 
-	// Send the request using the default HTTP client
-	client := &http.Client{}
+	// Create base transport
+	tr := &http.Transport{}
 
-	// Set proxy if specified.
+	// Configure proxy if specified
 	if r.Proxy != "" {
 		proxyURI, err := url.Parse(r.Proxy)
 		if err != nil {
 			return err
 		}
-		tr := &http.Transport{
-			Proxy: http.ProxyURL(proxyURI),
+		tr.Proxy = http.ProxyURL(proxyURI)
+	}
+
+	// Create HTTP client with configured transport
+	client := &http.Client{
+		Transport: tr,
+	}
+
+	// Configure redirect behavior if specified
+	if r.DisableRedirects {
+		client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
 		}
-		client = &http.Client{Transport: tr}
 	}
 
 	// Sanity Check Expectations

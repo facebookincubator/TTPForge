@@ -59,6 +59,18 @@ steps:
 			wantError: false,
 		},
 		{
+			name: "Simple http request with follow redirects disabled",
+			content: `
+name: test basic with headers
+description: this is a test basic test with headers returned
+steps:
+  - name: get url
+    http_request: http://someuri.com
+    disable_redirects: true
+`,
+			wantError: false,
+		},
+		{
 			name: "Request with specified type GET",
 			content: `
 name: test get
@@ -174,6 +186,17 @@ steps:
   - name: get url
     http_request: http://someuri.com
     return_headers: true
+`,
+		},
+		{
+			name: "Simple http request with follow redirects disabled",
+			content: `
+name: test basic with headers
+description: this is a test basic test with headers returned
+steps:
+  - name: get url
+    http_request: http://someuri.com
+    disable_redirects: true
 `,
 		},
 		{

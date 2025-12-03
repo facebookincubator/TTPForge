@@ -28,8 +28,11 @@ You can specify the following YAML fields for the `http_request:` action:
 - `type:` (type: `string`) The http request type (`GET`, `POST`, `PUT`,`PATCH`,
   `DELETE`).
 - `response_headers:` (type: `bool`) Whether or not the http response headers
- are included with the response (default: `false`).
-  - **Note:** Set this to `true` for `HEAD` requests, or no response will appear!
+  are included with the response (default: `false`).
+  - **Note:** Set this to `true` for `HEAD` requests, or no response will
+    appear!
+- `disable_redirects:` (type: `bool`) Don't follow http redirects (default:
+  `false`).
 - `headers:` (type: `header`) The http request headers:
   - `field:` (type: `string`) HTTP header field.
   - `value:` (type: `string`) HTTP header value.
