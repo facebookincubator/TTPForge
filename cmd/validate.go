@@ -27,6 +27,9 @@ import (
 )
 
 func buildValidateCommand(cfg *Config) *cobra.Command {
+	var runTests bool
+	var timeoutSeconds int
+
 	validateCmd := &cobra.Command{
 		Use:   "validate [repo_name//path/to/ttp]",
 		Short: "Validate the structure and syntax of a TTP YAML file",
@@ -59,9 +62,18 @@ without needing to provide all runtime arguments or match platform requirements.
 				return fmt.Errorf("validation failed with %d error(s)", len(result.Errors))
 			}
 
+			if runTests {
+				if err := runTestsForTTP(ttpAbsPath, timeoutSeconds); err != nil {
+					return fmt.Errorf("test(s) for TTP %v failed: %w", ttpRef, err)
+				}
+			}
+
 			return nil
 		},
 	}
+
+	validateCmd.Flags().BoolVar(&runTests, "run-tests", false, "Run tests defined in the TTP file after validation")
+	validateCmd.Flags().IntVar(&timeoutSeconds, "time-out-seconds", 10, "Timeout allowed for each test case (only used with --run-tests)")
 
 	return validateCmd
 }
