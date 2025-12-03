@@ -17,38 +17,101 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-set -e
-
-# Validate path to TTPForge binary
-TTPFORGE_BINARY="$1"
-if [ ! -f "${TTPFORGE_BINARY}" ]
-then
-  echo "Invalid TTPForge Binary Path Specified!"
+# Usage
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <ttpforge_binary> <path> [--ignore item1 item2 ...]"
+  echo ""
+  echo "The --ignore flag accepts both directory names and file names."
+  echo "Directories will be excluded from search, files will be skipped during execution."
+  echo ""
+  echo "Examples:"
+  echo "  $0 ./ttpforge ./ttps"
+  echo "  $0 ./ttpforge ./ttps --ignore tests broken"
+  echo "  $0 ./ttpforge ./ttps --ignore legacy temp.yaml bad.yaml"
   exit 1
 fi
-TTPFORGE_BINARY=$(realpath "${TTPFORGE_BINARY}")
 
-EXCEPTIONS_FILE=("kill-process-windows.yaml" "kill-process-windows-failure.yaml" "invalid.yaml")
+TTPFORGE_BINARY="$1"
+TTP_PATH="$2"
+shift 2
 
-# Loop over all specified directories and validate all ttps within each.
-shift
-for TTP_DIR in "$@"; do
-  # validate directory
-  if [ ! -d "${TTP_DIR}" ]
-  then
-    echo "Invalid TTP Directory Specified!"
-    exit 1
-  fi
-  TTP_DIR=$(realpath "${TTP_DIR}")
+# Parse optional arguments
+EXCLUDES=()
 
-  TTP_FILE_LIST="$(find "${TTP_DIR}" -name "*.yaml")"
-  for TTP_FILE in ${TTP_FILE_LIST}
-  do
-      echo "Running TTP: ${TTP_FILE}"
-      if [[ "${EXCEPTIONS_FILE[*]}" =~ ${TTP_FILE##*/} ]]; then
-        echo "Skipping TTP: ${TTP_FILE}"
-        continue
-      fi
-      ${TTPFORGE_BINARY} test "${TTP_FILE}"
-  done
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ignore)
+      shift
+      ;;
+    *)
+      EXCLUDES+=("$1")
+      shift
+      ;;
+  esac
 done
+
+# Validate binary
+if [ ! -f "$TTPFORGE_BINARY" ]; then
+  echo "Error: TTPForge binary not found: $TTPFORGE_BINARY"
+  exit 1
+fi
+
+# Validate path
+if [ ! -e "$TTP_PATH" ]; then
+  echo "Error: Path not found: $TTP_PATH"
+  exit 1
+fi
+
+# Build find command arguments with exclusions
+FIND_ARGS=()
+if [ ${#EXCLUDES[@]} -gt 0 ]; then
+  FIND_ARGS+=(\()
+  for i in "${!EXCLUDES[@]}"; do
+    if [ $i -gt 0 ]; then
+      FIND_ARGS+=(-o)
+    fi
+    FIND_ARGS+=(-path "*/${EXCLUDES[$i]}")
+  done
+  FIND_ARGS+=(\) -prune -o)
+fi
+FIND_ARGS+=(\( -type f -name '*.yaml' \) -print)
+
+# Track results
+FAILED_TTPS=()
+PASSED_TTPS=()
+TOTAL_COUNT=0
+
+# Find and test all TTP files
+while IFS= read -r ttp_file; do
+  TOTAL_COUNT=$((TOTAL_COUNT + 1))
+  echo "Testing: $ttp_file"
+
+  if "$TTPFORGE_BINARY" validate "$ttp_file" --run-tests; then
+    PASSED_TTPS+=("$ttp_file")
+  else
+    FAILED_TTPS+=("$ttp_file")
+    echo "FAILED: $ttp_file"
+  fi
+  echo ""
+done < <(find "$TTP_PATH" "${FIND_ARGS[@]}")
+
+# Print summary
+echo "========================================"
+echo "TEST SUMMARY"
+echo "========================================"
+echo "Total TTPs tested: $TOTAL_COUNT"
+echo "Passed: ${#PASSED_TTPS[@]}"
+echo "Failed: ${#FAILED_TTPS[@]}"
+
+if [ ${#FAILED_TTPS[@]} -gt 0 ]; then
+  echo ""
+  echo "Failed TTPs:"
+  for ttp in "${FAILED_TTPS[@]}"; do
+    echo "  - $ttp"
+  done
+  exit 1
+fi
+
+echo ""
+echo "All TTPs passed!"
+exit 0

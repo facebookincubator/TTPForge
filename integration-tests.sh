@@ -22,23 +22,33 @@
 # to run all the examples
 set -ex
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ensure we have a valid ttpforge binary path
-ttpforge_binary="$1"
-if [ ! -e "${ttpforge_binary}" ]
+TTPFORGE_BINARY="$1"
+if [ ! -e "${TTPFORGE_BINARY}" ]
 then
-  echo "Provided TTPForge Binary Path Does Not Exist: ${ttpforge_binary}"
+  echo "Provided TTPForge Binary Path Does Not Exist: ${TTPFORGE_BINARY}"
   exit 1
 fi
-ttpforge_binary=$(realpath "${ttpforge_binary}")
+TTPFORGE_BINARY=$(realpath "${TTPFORGE_BINARY}")
 
 # run all commands from the README.md
-"${ttpforge_binary}" init
-"${ttpforge_binary}" list repos
-"${ttpforge_binary}" list ttps
-"${ttpforge_binary}" show ttp examples//args/basic.yaml
-"${ttpforge_binary}" run examples//args/basic.yaml \
+"${TTPFORGE_BINARY}" init
+"${TTPFORGE_BINARY}" list repos
+"${TTPFORGE_BINARY}" list ttps
+"${TTPFORGE_BINARY}" show ttp examples//args/basic.yaml
+"${TTPFORGE_BINARY}" run examples//args/basic.yaml \
   --arg str_to_print=hello \
   --arg run_second_step=true
 
 # run all the TTP test cases
-./run-all-ttp-tests.sh "${ttpforge_binary}" "example-ttps"
+EXCEPTIONS=(
+  "kill-process-windows.yaml"
+  "kill-process-windows-failure.yaml"
+  "invalid.yaml"
+)
+
+# run all the TTP test cases
+"${SCRIPT_DIR}/run-all-ttp-tests.sh" "${TTPFORGE_BINARY}" "${SCRIPT_DIR}/example-ttps/" --ignore "${EXCEPTIONS[@]}"
