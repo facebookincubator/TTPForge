@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 6e35795a-7d18-460b-935e-46d41cc593ef
 name: spring_helpers
+authors:
+  - meta
 description: |
   This TTP shows you how to use sprig helpers in your template injections.
   You can use them with step variables too.

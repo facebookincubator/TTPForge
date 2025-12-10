@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: bc5bb5b9-d1a1-479c-93fd-843f415276e3
 name: "Kill Process Unix"
+authors:
+  - meta
 description: |
   "This is an example TTP that kills a ping process on a Unix system"
 requirements:

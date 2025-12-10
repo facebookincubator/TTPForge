@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 7be9d2be-49be-4114-8618-306a62eedec2
 name: Complex Expect Step with Python Script
+authors:
+  - meta
 description: |
   This TTP demonstrates the usage of an expect step to automate interaction
   with an interactive Python script, using the go-expect library.

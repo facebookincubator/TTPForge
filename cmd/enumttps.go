@@ -31,6 +31,14 @@ import (
 
 var allowedPlatforms = []string{"linux", "windows", "darwin", "any"}
 
+type TTPFilters struct {
+	Platforms []string
+	Tactic    string
+	Technique string
+	SubTech   string
+	Author    string
+}
+
 func checkPlatformInputValidity(platforms []string) error {
 	for _, p := range platforms {
 		// Verify that platform is valid
@@ -48,7 +56,6 @@ func gatherTTPsFromRepo(cfg *Config, repo string) ([]string, error) {
 	var ttpRefs []string
 	var err error
 	if repo == "" {
-		fmt.Println("Listing all TTPs from all repositories as repo is not specified")
 		ttpRefs, err = cfg.repoCollection.ListTTPs()
 		if err != nil {
 			return nil, err
@@ -68,7 +75,6 @@ func gatherTTPsFromRepo(cfg *Config, repo string) ([]string, error) {
 }
 
 func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech string) bool {
-	// Searching for the MITRE attack ID patterns in the parsed file content
 	dataMatching := false
 	if tactic != "" {
 		for _, ttpTactic := range ttp.Mitre.Tactics {
@@ -108,23 +114,34 @@ func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech
 	return true
 }
 
-func filterTTPs(cfg *Config, platforms []string, tactic string, technique string, subTech string, ttpRefs []string, tally map[string]int, totalCount int) (int, []string) {
-	updatedTTPRefs := []string{}
-	filterPlatform := !slices.Contains(platforms, "any")
-	fmt.Printf("Filtering by platforms: %s\n", platforms)
+func matchAuthor(ttp parseutils.TTP, author string) bool {
+	if author == "" {
+		return true
+	}
+	for _, ttpAuthor := range ttp.Authors {
+		if strings.Contains(strings.ToLower(ttpAuthor), strings.ToLower(author)) {
+			return true
+		}
+	}
+	return false
+}
 
-	if !filterPlatform && tactic == "" && technique == "" && subTech == "" {
+func filterTTPs(cfg *Config, filters TTPFilters, ttpRefs []string, tally map[string]int, totalCount int) (int, []string) {
+	updatedTTPRefs := []string{}
+	filterPlatform := !slices.Contains(filters.Platforms, "any")
+	fmt.Printf("Filtering by platforms: %s\n", filters.Platforms)
+
+	if !filterPlatform && filters.Tactic == "" && filters.Technique == "" && filters.SubTech == "" && filters.Author == "" {
 		fmt.Println("No filters specified, returning all TTPs")
 		return len(ttpRefs), ttpRefs
 	}
 	platformSet := make(map[string]bool)
-	for _, inputPlatform := range platforms {
+	for _, inputPlatform := range filters.Platforms {
 		platformSet[inputPlatform] = true
 	}
 
 	fs := afero.NewOsFs()
 
-	// Iterating over all TTPs and filtering them based on platform and attack ID and updating tally
 	for _, ttpRef := range ttpRefs {
 		_, path, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 		if err != nil {
@@ -149,11 +166,14 @@ func filterTTPs(cfg *Config, platforms []string, tactic string, technique string
 			continue
 		}
 
-		if !matchMitreData(ttp, tactic, technique, subTech) {
+		if !matchMitreData(ttp, filters.Tactic, filters.Technique, filters.SubTech) {
 			continue
 		}
 
-		// Platform filtering and updating tally
+		if !matchAuthor(ttp, filters.Author) {
+			continue
+		}
+
 		if filterPlatform {
 			ttpPlatforms := ttp.Requirements.Platforms
 			platformMatch := false
@@ -186,12 +206,13 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 		"windows": 0,
 		"darwin":  0,
 	}
+	var author string
 	var totalCount = 0
 	enumTTPsCmd := &cobra.Command{
 		Use:              "ttps",
 		Short:            "Enumerate TTPs basis optional arguments",
 		Long:             "Use this command to enumerate TTPs using optional arguments like platform, repo, category, etc.",
-		Example:          "ttpforge enum ttps --platform linux,darwin --repo examples --tactic TA0006 --technique T1555 --sub-tech T1555.005",
+		Example:          "ttpforge enum ttps --platform linux,darwin --repo examples --tactic TA0006 --technique T1555 --sub-tech T1555.005 --author meta",
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// don't want confusing usage display for errors past this point
@@ -217,8 +238,15 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 
 			fmt.Printf("Total %d TTPs found in repo: %s\n", len(ttpRefs), repo)
 
-			// Filtering by platform and Attack ID
-			totalCount, ttpRefs = filterTTPs(cfg, platforms, tactic, technique, subTech, ttpRefs, tally, totalCount)
+			filters := TTPFilters{
+				Platforms: platforms,
+				Tactic:    tactic,
+				Technique: technique,
+				SubTech:   subTech,
+				Author:    author,
+			}
+
+			totalCount, ttpRefs = filterTTPs(cfg, filters, ttpRefs, tally, totalCount)
 
 			// Printing data as per platform
 			if !slices.Contains(platforms, "any") {
@@ -230,9 +258,12 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 				fmt.Println("Total TTPs found: ", totalCount)
 			}
 
+			if filters.Author != "" {
+				fmt.Printf("Filtered by author: %s\n", filters.Author)
+			}
+
 			if logConfig.Verbose {
 				fmt.Println("Verbose output - TTPs found: ")
-				// Printing filtered out TTPs
 				for _, ttpRef := range ttpRefs {
 					fmt.Println(ttpRef)
 				}
@@ -241,10 +272,11 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 		},
 	}
 	enumTTPsCmd.PersistentFlags().StringVar(&platform, "platform", "any", "Platform to enumerate TTPs for")
-	enumTTPsCmd.PersistentFlags().StringVar(&repo, "repo", "examples", "Repo to enumerate TTPs in")
+	enumTTPsCmd.PersistentFlags().StringVar(&repo, "repo", "", "Repo to enumerate TTPs in")
 	enumTTPsCmd.PersistentFlags().StringVar(&tactic, "tactic", "", "Tactic to search for")
 	enumTTPsCmd.PersistentFlags().StringVar(&technique, "technique", "", "Technique to search for")
 	enumTTPsCmd.PersistentFlags().StringVar(&subTech, "sub-tech", "", "Sub technique to search for")
+	enumTTPsCmd.PersistentFlags().StringVar(&author, "author", "", "Author to search for")
 	enumTTPsCmd.RegisterFlagCompletionFunc("repo", completeRepoName(cfg, 0))
 	return enumTTPsCmd
 }

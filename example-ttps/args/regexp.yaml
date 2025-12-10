@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: f3328ba0-45f9-4e9f-92c7-7d064a1a0e4a
 name: Regular Expression Validation for Command-Line Arguments
+authors:
+  - meta
 description: |
   You can require user-provided command-line arguments
   to match a provided regular expression.

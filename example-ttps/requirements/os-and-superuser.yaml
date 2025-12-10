@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 60d10dc8-976d-42b7-9f75-f67f18daff64
 name: "Requirements Demo: OS and Superuser"
+authors:
+  - meta
 description: |
   This TTP demonstrates the following features of the `requirements:` section:
     * How to mark your TTP as compatible with certain

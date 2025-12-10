@@ -33,7 +33,7 @@ import (
 // using both basic structure checks and semantic validation from the blocks package
 // Note: Required field presence checks are handled in ValidateRequiredFields
 func ValidatePreamble(ttpMap map[string]any, ttpBytes []byte, result *Result) {
-	// Validate api_version value (if present)
+	// Validate api_version value
 	if apiVer, ok := ttpMap["api_version"]; ok {
 		verStr := fmt.Sprintf("%v", apiVer)
 		if verStr != "1.0" && verStr != "2.0" && verStr != "1" && verStr != "2" {
@@ -41,7 +41,7 @@ func ValidatePreamble(ttpMap map[string]any, ttpBytes []byte, result *Result) {
 		}
 	}
 
-	// Validate uuid format (if present)
+	// Validate uuid format
 	if uuid, ok := ttpMap["uuid"]; ok {
 		uuidStr := fmt.Sprintf("%v", uuid)
 		uuidPattern := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -50,7 +50,7 @@ func ValidatePreamble(ttpMap map[string]any, ttpBytes []byte, result *Result) {
 		}
 	}
 
-	// Validate name value (if present)
+	// Validate name value
 	if name, ok := ttpMap["name"]; ok {
 		nameStr := fmt.Sprintf("%v", name)
 		if strings.TrimSpace(nameStr) == "" {
@@ -58,6 +58,23 @@ func ValidatePreamble(ttpMap map[string]any, ttpBytes []byte, result *Result) {
 		}
 		if regexp.MustCompile(`^\d`).MatchString(nameStr) {
 			result.AddWarning(fmt.Sprintf("TTP name should not start with a number: %s", nameStr))
+		}
+	}
+
+	// Validate authors value
+	if authors, ok := ttpMap["authors"]; ok {
+		authorsList, isList := authors.([]any)
+		if !isList {
+			result.AddWarning("'authors' should be a list")
+		} else if len(authorsList) == 0 {
+			result.AddWarning("'authors' list cannot be empty")
+		} else {
+			for i, author := range authorsList {
+				authorStr := fmt.Sprintf("%v", author)
+				if author == nil || strings.TrimSpace(authorStr) == "" {
+					result.AddWarning(fmt.Sprintf("'authors' entry %d cannot be empty", i))
+				}
+			}
 		}
 	}
 

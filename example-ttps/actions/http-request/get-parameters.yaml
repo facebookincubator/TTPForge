@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: b2d21ff8-92ea-4bf9-a21c-fc6bef0203d3
 name: http_request_with_parameters_example
+authors:
+  - meta
 description: |
   This TTP shows you how to use the http request action type to send a GET request to a url, with specified parameters.
 steps:

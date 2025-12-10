@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: fbf458fb-c351-4633-97b6-67332f94b7c1
 name: "Kill Process Unix Failure"
+authors:
+  - meta
 description: |
   "This is an example TTP that kills a ping process on a Unix system that does not exist"
 requirements:

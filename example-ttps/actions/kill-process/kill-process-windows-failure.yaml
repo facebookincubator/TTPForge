@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: eb38a84b-837b-47d9-9373-3d35a824b003
 name: "Kill Process Windows Failure"
+authors:
+  - meta
 description: |
   "This is an example TTP that kills a ping process on a Windows system that does not exist"
 requirements:

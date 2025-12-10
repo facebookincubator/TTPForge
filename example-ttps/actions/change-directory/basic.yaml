@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 236f8a86-8034-43aa-a6e5-979337c375a4
 name: change_directory_example
+authors:
+  - meta
 description: |
   This TTP shows you how to use the change_directory action type
   to change the working directory for all future actions.  If you specify cleanup

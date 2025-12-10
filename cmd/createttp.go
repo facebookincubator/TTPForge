@@ -34,6 +34,8 @@ const ttpTemplate = `---
 api_version: 2.0
 uuid: {{.UUID}}
 name: {{.Placeholder}}
+authors:
+  - {{.Placeholder}}
 description: |
   {{.Placeholder}}
 requirements:
