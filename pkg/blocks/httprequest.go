@@ -20,9 +20,11 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -54,17 +56,18 @@ type ResponseData struct {
 // HTTPRequestStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type HTTPRequestStep struct {
-	actionDefaults   `yaml:",inline"`
-	HTTPRequest      string           `yaml:"http_request,omitempty"`
-	Type             string           `yaml:"type,omitempty"`
-	Headers          []*HTTPHeader    `yaml:"headers,omitempty"`
-	Parameters       []*HTTPParameter `yaml:"parameters,omitempty"`
-	Body             string           `yaml:"body,omitempty"`
-	Regex            string           `yaml:"regex,omitempty"`
-	Proxy            string           `yaml:"proxy,omitempty"`
-	DisableRedirects bool             `yaml:"disable_redirects,omitempty"`
-	ResponseHeaders  bool             `yaml:"response_headers,omitempty"`
-	Response         string           `yaml:"response,omitempty"`
+	actionDefaults     `yaml:",inline"`
+	HTTPRequest        string           `yaml:"http_request,omitempty"`
+	Type               string           `yaml:"type,omitempty"`
+	Headers            []*HTTPHeader    `yaml:"headers,omitempty"`
+	Parameters         []*HTTPParameter `yaml:"parameters,omitempty"`
+	Body               string           `yaml:"body,omitempty"`
+	Regex              string           `yaml:"regex,omitempty"`
+	Proxy              string           `yaml:"proxy,omitempty"`
+	DisableRedirects   bool             `yaml:"disable_redirects,omitempty"`
+	InsecureSkipVerify bool             `yaml:"insecure_skip_verify,omitempty"`
+	ResponseHeaders    bool             `yaml:"response_headers,omitempty"`
+	Response           string           `yaml:"response,omitempty"`
 }
 
 // NewHTTPRequestStep creates a new HTTPRequestStep instance and returns a pointer to it.
@@ -251,6 +254,15 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 	// Create base transport
 	tr := &http.Transport{}
 
+	// Configure TLS to skip certificate verification if specified
+	if r.InsecureSkipVerify {
+		// #nosec G402
+		tr.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS13,
+		}
+	}
+
 	// Configure proxy if specified
 	if r.Proxy != "" {
 		proxyURI, err := url.Parse(r.Proxy)
@@ -297,9 +309,7 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 	if r.ResponseHeaders {
 		// Map headers
 		headersMap := make(map[string][]string)
-		for k, v := range resp.Header {
-			headersMap[k] = v
-		}
+		maps.Copy(headersMap, resp.Header)
 
 		// ResponseData struct
 		data := ResponseData{
