@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: ce732c7f-13d3-1321-8590-bfeeeb11c6e2
 name: http_request_basic_example
+authors:
+  - meta
 description: |
   This TTP shows you how to use the http request action type to send a GET request to a url, with and without an http proxy.
 steps:

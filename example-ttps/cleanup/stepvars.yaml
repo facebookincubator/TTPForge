@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: c3a8633c-effd-493d-8ed2-e0910d508dd6
 name: Cleanup Demonstration With StepVars
+authors:
+  - meta
 description: |
   This TTP demonstrates how to use step variables to pass data between steps, including in the cleanup action.
 steps:

@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 740e4d7f-02fb-442c-af38-8efb66334305
 name: Test Case with Dry Run
+authors:
+  - meta
 description: |
   This TTP illustrates the impact of the `dry_run` field
   on the behavior of a test case. When `dry_run` is set

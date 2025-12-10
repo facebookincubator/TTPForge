@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: c15da914-de49-4297-a281-9c81b4fea413
 name: change_directory_example_with_runtime_created_directory
+authors:
+  - meta
 description: |
   This TTP shows you how to use the change_directory action type to change the
   working directory for all future actions, even if the directory doesn't exist until

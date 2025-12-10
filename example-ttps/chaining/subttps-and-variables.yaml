@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: d95a64f2-643e-4476-9efb-db2b1938d978
 name: Basic TTP Chaining
+authors:
+  - meta
 description: |
   SubTTps can set variables that can be used by other TTPs.  Variables set in SubTTps
   are surfaced up to the parent TTP.

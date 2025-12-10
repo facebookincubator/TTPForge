@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 052e4cc0-b5eb-4680-859a-6756057fbab8
 name: TTP Variable Chaining
+authors:
+  - meta
 description: |
   This TTP demonstrates that you can output variables from some types of steps and use them
   in other steps.  If a variable is already set, setting it again will overwrite the value.

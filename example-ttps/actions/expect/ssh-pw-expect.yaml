@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 891a38dc-4b2f-4614-9960-a66a7e9499ab
 name: Expect step with SSH password
+authors:
+  - meta
 description: |
   This TTP demonstrates the usage of an expect step to automate interaction
   with an SSH server using a password.

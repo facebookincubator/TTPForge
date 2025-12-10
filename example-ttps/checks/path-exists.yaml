@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 7ba3a119-dde3-4900-97cb-9e105ca6e357
 name: path_exists Check Examples
+authors:
+  - meta
 description: |
   Demonstrates path_exists check features:
   - Basic file existence verification

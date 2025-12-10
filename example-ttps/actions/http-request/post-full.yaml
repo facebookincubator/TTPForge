@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: af81ce65-70d2-496f-9aae-9086ce52bc4b
 name: http_request_post_example_full
+authors:
+  - meta
 description: |
   This TTP shows you how to use the http request action type to send a POST request containing
   data, parsing the response with a regular expression and storing the result in an environmental

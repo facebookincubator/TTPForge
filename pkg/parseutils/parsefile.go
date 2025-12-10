@@ -58,6 +58,7 @@ type TTP struct {
 	APIVersion   string       `yaml:"api_version"`
 	UUID         string       `yaml:"uuid"`
 	Name         string       `yaml:"name"`
+	Authors      []string     `yaml:"authors,omitempty"`
 	Description  string       `yaml:"description"`
 	Requirements Requirements `yaml:"requirements,omitempty"`
 	Mitre        Mitre        `yaml:"mitre,omitempty"`

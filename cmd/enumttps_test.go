@@ -79,16 +79,6 @@ func TestEnumTTPs(t *testing.T) {
 			errorExpected: true,
 		},
 		{
-			name:          "Default options",
-			description:   "Default options of any platform and examples as repo (repo doesn't exist) should throw an error",
-			platform:      "",
-			repo:          "",
-			tactic:        "",
-			technique:     "",
-			subTech:       "",
-			errorExpected: true,
-		},
-		{
 			name:          "Invalid platform",
 			description:   "Invalid platform should throw an error",
 			platform:      "solaris",

@@ -1,6 +1,8 @@
 ---
 uuid: not-a-valid-uuid
 api_version: 99.0
+authors:
+  - meta
 description: bad
 mitre:
   invalid_key: value

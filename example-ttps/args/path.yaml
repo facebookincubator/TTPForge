@@ -2,6 +2,8 @@
 api_version: 2.0
 uuid: 8f3c9d2a-1b5e-4c7a-9f8e-2d3a4b5c6d7e
 name: Path Argument Demo
+authors:
+  - meta
 description: |
   This TTP demonstrates how path arguments with default values work.
   The default path is relative to the YAML file's directory, NOT the
