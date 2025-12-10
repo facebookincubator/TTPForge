@@ -33,6 +33,8 @@ You can specify the following YAML fields for the `http_request:` action:
     appear!
 - `disable_redirects:` (type: `bool`) Don't follow http redirects (default:
   `false`).
+- `insecure_skip_verify:` (type: `bool`) Don't perform TLS certificate
+  validation (default: `false`).
 - `headers:` (type: `header`) The http request headers:
   - `field:` (type: `string`) HTTP header field.
   - `value:` (type: `string`) HTTP header value.

@@ -71,6 +71,18 @@ steps:
 			wantError: false,
 		},
 		{
+			name: "Simple http request with insecure skip verify enabled",
+			content: `
+name: test basic request with no SSL verification
+description: this is a test basic test that doesn't validate the site's SSL certificate.
+steps:
+  - name: get url
+    http_request: http://someuri.com
+    insecure_skip_verify: true
+`,
+			wantError: false,
+		},
+		{
 			name: "Request with specified type GET",
 			content: `
 name: test get
@@ -197,6 +209,17 @@ steps:
   - name: get url
     http_request: http://someuri.com
     disable_redirects: true
+`,
+		},
+		{
+			name: "Simple http request with insecure skip verify enabled",
+			content: `
+name: test basic with SSL verification disabled
+description: this is a test basic test with SSL verification disabled
+steps:
+  - name: get url
+    http_request: http://someuri.com
+    insecure_skip_verify: true
 `,
 		},
 		{
