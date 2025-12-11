@@ -91,7 +91,7 @@ func (s *SubTTPStep) Template(execCtx TTPExecutionContext) error {
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
 // and manages the outputs and cleanup steps.
-func (s *SubTTPStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
+func (s *SubTTPStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("[*] Executing Sub TTP: %s", s.TtpRef)
 	logging.IncreaseIndentLevel()
 	runErr := s.ttp.RunSteps(*s.subExecCtx)
@@ -106,7 +106,14 @@ func (s *SubTTPStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	for index, execResult := range s.subExecCtx.StepResults.ByIndex {
 		actResults[index] = &execResult.ActResult
 	}
-	return aggregateResults(actResults), nil
+	result := aggregateResults(actResults)
+
+	// Send stdout to the output variable in the parent execution context
+	if s.OutputVar != "" {
+		execCtx.Vars.StepVars[s.OutputVar] = strings.TrimSuffix(result.Stdout, "\n")
+	}
+
+	return result, nil
 }
 
 // GetDefaultCleanupAction will instruct the calling code
