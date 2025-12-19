@@ -64,7 +64,7 @@ type MitreAttack struct {
 // MarshalYAML is a custom marshalling implementation for the TTP structure.
 // It encodes a TTP object into a formatted YAML string, handling the
 // indentation and structure of the output YAML.
-func (t *TTP) MarshalYAML() (interface{}, error) {
+func (t *TTP) MarshalYAML() (any, error) {
 	marshaled, err := yaml.Marshal(*t)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal TTP to YAML: %v", err)
@@ -72,7 +72,7 @@ func (t *TTP) MarshalYAML() (interface{}, error) {
 
 	// This section is necessary to get the proper formatting.
 	// Resource: https://pkg.go.dev/gopkg.in/yaml.v3#section-readme
-	m := make(map[interface{}]interface{})
+	m := make(map[any]any)
 
 	err = yaml.Unmarshal(marshaled, &m)
 	if err != nil {
