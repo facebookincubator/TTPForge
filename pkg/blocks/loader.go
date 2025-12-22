@@ -41,7 +41,7 @@ import (
 // runtime parameters used in the
 // TTP template rendering process
 type RenderParameters struct {
-	Args     map[string]interface{}
+	Args     map[string]any
 	Platform platforms.Spec
 }
 
