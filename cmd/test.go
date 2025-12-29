@@ -58,7 +58,7 @@ func buildTestCommand(cfg *Config) *cobra.Command {
 	var timeoutSeconds int
 	runCmd := &cobra.Command{
 		Use:               "test [repo_name//path/to/ttp]",
-		Short:             "Test the TTP found in the specified YAML file.",
+		Short:             "Test TTP found in the specified YAML file",
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -78,7 +78,7 @@ func buildTestCommand(cfg *Config) *cobra.Command {
 			return nil
 		},
 	}
-	runCmd.PersistentFlags().IntVar(&timeoutSeconds, "time-out-seconds", 10, "Timeout allowed for each test case")
+	runCmd.PersistentFlags().IntVar(&timeoutSeconds, "timeout-seconds", 10, "Timeout allowed for each test case")
 
 	return runCmd
 }

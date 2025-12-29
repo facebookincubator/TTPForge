@@ -26,7 +26,7 @@ import (
 func buildShowCommand(cfg *Config) *cobra.Command {
 	showCmd := &cobra.Command{
 		Use:              "show",
-		Short:            "displays the contents of a ttpforge resource",
+		Short:            "Displays the contents of a ttpforge resource",
 		Long:             "Use this command to show TTP text, config files, etc",
 		TraverseChildren: true,
 	}
