@@ -68,11 +68,11 @@ TTPForge is a Purple Team engagement tool to execute Tactics, Techniques, and Pr
 		SilenceErrors: true,
 	}
 	// shared flags across commands - mostly logging
-	rootCmd.PersistentFlags().StringVarP(&cfg.cfgFile, "config", "c", "", "Config file")
+	rootCmd.PersistentFlags().StringVarP(&cfg.cfgFile, "config", "c", "", "Path to config file")
 	rootCmd.PersistentFlags().BoolVar(&logConfig.Stacktrace, "stack-trace", false, "Show stacktrace when logging error")
-	rootCmd.PersistentFlags().BoolVar(&logConfig.NoColor, "no-color", false, "disable colored output")
-	rootCmd.PersistentFlags().BoolVarP(&logConfig.Verbose, "verbose", "v", false, "verbose logging")
-	rootCmd.PersistentFlags().StringVarP(&logConfig.LogFile, "logfile", "l", "", "Enable logging to file.")
+	rootCmd.PersistentFlags().BoolVar(&logConfig.NoColor, "no-color", false, "Disable colored output")
+	rootCmd.PersistentFlags().BoolVarP(&logConfig.Verbose, "verbose", "v", false, "Enable verbose logging")
+	rootCmd.PersistentFlags().StringVarP(&logConfig.LogFile, "logfile", "l", "", "Enable logging to file")
 
 	// add sub commands
 	rootCmd.AddCommand(buildInitCommand())

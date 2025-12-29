@@ -26,7 +26,7 @@ import (
 func buildListCommand(cfg *Config) *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:              "list",
-		Short:            "list various resources available to TTPForge",
+		Short:            "List various resources available to TTPForge",
 		Long:             "Use this command to list repos, TTPs, etc.",
 		TraverseChildren: true,
 	}
