@@ -28,7 +28,7 @@ import (
 func buildListReposCommand(cfg *Config) *cobra.Command {
 	return &cobra.Command{
 		Use:              "repos",
-		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
+		Short:            "List TTPForge repos (in which TTPs live) that you have installed",
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, spec := range cfg.RepoSpecs {

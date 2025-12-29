@@ -34,12 +34,6 @@ func buildValidateCommand(cfg *Config) *cobra.Command {
 		Use:   "validate [repo_name//path/to/ttp]",
 		Short: "Validate the structure and syntax of a TTP YAML file",
 		Long: `Validate performs comprehensive validation on a TTP YAML file
-Unlike --dry-run, this command:
-- Does not require values to be provided for all arguments
-- Does not require OS/platform compatibility
-- Performs extensive structural and best practice checks
-- Reports errors, warnings, and informational messages
-
 This is useful for CI/CD validation, linting, and checking TTP syntax
 without needing to provide all runtime arguments or match platform requirements.`,
 		Args:              cobra.ExactArgs(1),
@@ -73,7 +67,7 @@ without needing to provide all runtime arguments or match platform requirements.
 	}
 
 	validateCmd.Flags().BoolVar(&runTests, "run-tests", false, "Run tests defined in the TTP file after validation")
-	validateCmd.Flags().IntVar(&timeoutSeconds, "time-out-seconds", 10, "Timeout allowed for each test case (only used with --run-tests)")
+	validateCmd.Flags().IntVar(&timeoutSeconds, "timeout-seconds", 10, "Timeout allowed for each test case (only used with --run-tests)")
 
 	return validateCmd
 }

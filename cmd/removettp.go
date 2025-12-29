@@ -30,7 +30,7 @@ func buildRemoveTTPCommand(cfg *Config) *cobra.Command {
 
 	removeTTPCommand := &cobra.Command{
 		Use:               "ttp [repo_name//path/to/ttp]",
-		Short:             "remove a TTP used by TTPForge",
+		Short:             "Remove a TTP used by TTPForge",
 		TraverseChildren:  true,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeTTPRef(cfg, 1),

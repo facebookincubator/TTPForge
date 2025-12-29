@@ -30,7 +30,7 @@ func buildListTTPsCommand(cfg *Config) *cobra.Command {
 	var repoFilter string
 	listTTPsCommand := &cobra.Command{
 		Use:              "ttps",
-		Short:            "list TTPForge repos (in which TTPs live) that you have installed",
+		Short:            "List TTPForge TTPs that you have installed",
 		TraverseChildren: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ttpRefs, err := cfg.repoCollection.ListTTPs()

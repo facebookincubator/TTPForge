@@ -33,7 +33,7 @@ func buildInstallRepoCommand(cfg *Config) *cobra.Command {
 	var newRepoSpec repos.Spec
 	installRepoCommand := &cobra.Command{
 		Use:              "repo --name repo_name [repo_url]",
-		Short:            "install a new repository of TTPs for use by TTPForge",
+		Short:            "Install a new repository of TTPs for use by TTPForge",
 		TraverseChildren: true,
 		Args:             cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

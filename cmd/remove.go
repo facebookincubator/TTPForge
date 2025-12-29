@@ -26,7 +26,7 @@ import (
 func buildRemoveCommand(cfg *Config) *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:              "remove",
-		Short:            "remove (uninstall/delete) various types of resources used by TTPForge",
+		Short:            "Remove (uninstall/delete) various types of resources used by TTPForge",
 		Long:             "Use this command to remove repos, TTPs, etc.",
 		TraverseChildren: true,
 	}

@@ -29,7 +29,7 @@ import (
 func buildShowTTPCommand(cfg *Config) *cobra.Command {
 	showTTPCmd := &cobra.Command{
 		Use:               "ttp",
-		Short:             "display info for a particular TTP",
+		Short:             "Display info for a particular TTP",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
