@@ -55,7 +55,9 @@ func gatherTTPsFromRepo(cfg *Config, repo string) ([]string, error) {
 	// Checking repo and accumulating TTPs
 	var ttpRefs []string
 	var err error
+
 	if repo == "" {
+		fmt.Printf("Fetching repos: %v\n", cfg.repoCollection.ListRepos())
 		ttpRefs, err = cfg.repoCollection.ListTTPs()
 		if err != nil {
 			return nil, err
@@ -236,6 +238,9 @@ func buildEnumTTPsCommand(cfg *Config) *cobra.Command {
 				return err
 			}
 
+			if repo == "" {
+				repo = "all"
+			}
 			fmt.Printf("Total %d TTPs found in repo: %s\n", len(ttpRefs), repo)
 
 			filters := TTPFilters{
