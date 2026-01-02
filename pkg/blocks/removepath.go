@@ -45,8 +45,8 @@ func NewRemovePathAction() *RemovePathAction {
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *RemovePathAction) IsNil() bool {
-	switch {
-	case s.Path == "":
+	switch s.Path {
+	case "":
 		return true
 	default:
 		return false
