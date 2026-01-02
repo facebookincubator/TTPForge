@@ -32,5 +32,6 @@ func buildEnumCommand(cfg *Config) *cobra.Command {
 	}
 	enumCmd.AddCommand(buildEnumTTPsCommand(cfg))
 	enumCmd.AddCommand(buildEnumDependenciesCommand(cfg))
+	enumCmd.AddCommand(buildEnumAuthorsCommand(cfg))
 	return enumCmd
 }
