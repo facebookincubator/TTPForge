@@ -48,8 +48,8 @@ func NewBasicStep() *BasicStep {
 
 // IsNil checks if a step is considered empty or uninitialized.
 func (b *BasicStep) IsNil() bool {
-	switch {
-	case b.Inline == "":
+	switch b.Inline {
+	case "":
 		return true
 	default:
 		return false

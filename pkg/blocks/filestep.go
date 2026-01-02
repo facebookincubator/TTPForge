@@ -45,8 +45,8 @@ func NewFileStep() *FileStep {
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (f *FileStep) IsNil() bool {
-	switch {
-	case f.FilePath == "":
+	switch f.FilePath {
+	case "":
 		return true
 	default:
 		return false

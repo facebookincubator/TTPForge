@@ -50,8 +50,8 @@ func NewCreateFileStep() *CreateFileStep {
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *CreateFileStep) IsNil() bool {
-	switch {
-	case s.Path == "":
+	switch s.Path {
+	case "":
 		return true
 	default:
 		return false
