@@ -53,8 +53,8 @@ func NewEditStep() *EditStep {
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *EditStep) IsNil() bool {
-	switch {
-	case s.FileToEdit == "":
+	switch s.FileToEdit {
+	case "":
 		return true
 	default:
 		return false
