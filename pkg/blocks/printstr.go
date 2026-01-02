@@ -39,8 +39,8 @@ func NewPrintStrAction() *PrintStrAction {
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *PrintStrAction) IsNil() bool {
-	switch {
-	case s.Message == "":
+	switch s.Message {
+	case "":
 		return true
 	default:
 		return false

@@ -43,8 +43,8 @@ func NewSubTTPStep() *SubTTPStep {
 
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *SubTTPStep) IsNil() bool {
-	switch {
-	case s.TtpRef == "":
+	switch s.TtpRef {
+	case "":
 		return true
 	default:
 		return false
