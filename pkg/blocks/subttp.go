@@ -86,7 +86,9 @@ func (s *SubTTPStep) Template(execCtx TTPExecutionContext) error {
 		}
 	}
 
-	return nil
+	// Reload sub-TTP with resolved args so that TTP-level templating
+	// (e.g., {{range}} loops using .Args) uses the actual values
+	return s.loadSubTTP(execCtx)
 }
 
 // Execute runs each step of the TTP file associated with the SubTTPStep
