@@ -27,6 +27,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -179,11 +180,8 @@ func (c TTPExecutionContext) processMatch(match string) (string, error) {
 	}
 	variableSpecifier := strings.TrimPrefix(match, contextVariablePrefix)
 	tokens := strings.Split(variableSpecifier, ".")
-	for _, token := range tokens {
-		// happens if we have a something like {{steps.wut.}} or {{.steps.wut}}
-		if token == "" {
-			return "", errors.New("leading or trailing '.' in variable expression")
-		}
+	if slices.Contains(tokens, "") {
+		return "", errors.New("leading or trailing '.' in variable expression")
 	}
 	if len(tokens) < 2 {
 		return "", fmt.Errorf("invalid variable expression: %v", match)
