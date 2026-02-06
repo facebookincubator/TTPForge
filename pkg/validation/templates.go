@@ -27,8 +27,12 @@ import (
 )
 
 var (
-	templateVarPattern = regexp.MustCompile(`\{\{\.Args\.([a-zA-Z_][a-zA-Z0-9_]*)\}\}`)
-	stepVarsPattern    = regexp.MustCompile(`\{\[\{\.StepVars\.([a-zA-Z_][a-zA-Z0-9_]*)\}\]\}`)
+	// Match .Args.varname anywhere within {{ }} template delimiters
+	// This handles: {{.Args.x}}, {{ .Args.x }}, {{if .Args.x}}, {{printf "%s" .Args.x}}, etc.
+	templateVarPattern = regexp.MustCompile(`\{\{[^}]*\.Args\.([a-zA-Z_][a-zA-Z0-9_]*)[^}]*\}\}`)
+	// Match .StepVars.varname anywhere within {[{ }]} template delimiters
+	// This handles: {[{.StepVars.x}]}, {[{ .StepVars.x }]}, etc.
+	stepVarsPattern = regexp.MustCompile(`\{\[\{[^}]*\.StepVars\.([a-zA-Z_][a-zA-Z0-9_]*)[^}]*\}\]\}`)
 )
 
 // ValidateTemplateReferences validates that template variables reference defined args/outputvars
@@ -48,13 +52,18 @@ func ValidateTemplateReferences(ttpMap map[string]any, result *Result) {
 	}
 
 	// Collect defined outputvars from steps (in order)
+	// Also track if any subttp steps exist, as they can produce outputvars
 	definedOutputVars := make(map[string]bool)
+	hasSubttpSteps := false
 	if stepsVal, ok := ttpMap["steps"]; ok {
 		if stepsList, isList := stepsVal.([]any); isList {
 			for _, step := range stepsList {
 				if stepMap, isMap := step.(map[string]any); isMap {
 					if outputvarVal, ok := stepMap["outputvar"]; ok {
 						definedOutputVars[fmt.Sprintf("%v", outputvarVal)] = true
+					}
+					if _, ok := stepMap["ttp"]; ok {
+						hasSubttpSteps = true
 					}
 				}
 			}
@@ -89,7 +98,12 @@ func ValidateTemplateReferences(ttpMap map[string]any, result *Result) {
 		if len(match) > 1 {
 			varName := match[1]
 			if !seenStepVars[varName] && !definedOutputVars[varName] {
-				result.AddError(fmt.Sprintf("Template variable '{[{.StepVars.%s}]}' references undefined outputvar '%s'", varName, varName))
+				if hasSubttpSteps {
+					// Subttp steps can produce outputvars, so only warn
+					result.AddWarning(fmt.Sprintf("Template variable '{[{.StepVars.%s}]}' references outputvar '%s' not defined in this TTP (may be defined in a subttp)", varName, varName))
+				} else {
+					result.AddError(fmt.Sprintf("Template variable '{[{.StepVars.%s}]}' references undefined outputvar '%s'", varName, varName))
+				}
 				seenStepVars[varName] = true
 			}
 		}
