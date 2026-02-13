@@ -41,6 +41,7 @@ type TTPExecutionConfig struct {
 	DryRun              bool
 	NoCleanup           bool
 	NoChecks            bool
+	NoProxy             bool
 	CleanupDelaySeconds uint
 	Repo                repos.Repo
 	Stdout              io.Writer

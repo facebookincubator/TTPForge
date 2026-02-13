@@ -263,8 +263,8 @@ func (r *HTTPRequestStep) SendRequest(execCtx TTPExecutionContext) error {
 		}
 	}
 
-	// Configure proxy if specified
-	if r.Proxy != "" {
+	// Configure proxy if specified and not disabled
+	if r.Proxy != "" && !execCtx.Cfg.NoProxy {
 		proxyURI, err := url.Parse(r.Proxy)
 		if err != nil {
 			return err

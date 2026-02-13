@@ -187,7 +187,7 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 	}
 
 	client := http.DefaultClient
-	if f.Proxy != "" {
+	if f.Proxy != "" && !execCtx.Cfg.NoProxy {
 		proxyURI, err := url.Parse(f.Proxy)
 		if err != nil {
 			return err
