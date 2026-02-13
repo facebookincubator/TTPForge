@@ -101,6 +101,7 @@ func TestFetchURI(t *testing.T) {
 		expectExecuteError  bool
 		fsysContents        map[string][]byte
 		stepVars            map[string]string
+		noProxy             bool
 	}{
 		{
 			name: "simple fetch",
@@ -171,6 +172,19 @@ fetch_uri: http://someuri.com
 location: /tmp/new_output.txt
 proxy: ssh://localhost:8888
 `,
+			fsysContents: map[string][]byte{
+				"/tmp/test.txt": []byte("Test file"),
+			},
+		},
+		{
+			name: "proxy ignored via NoProxy flag",
+			content: `
+name: noproxy_fetch
+fetch_uri: http://someuri.com
+location: /tmp/new_output.txt
+proxy: http://nonexistent-proxy.invalid:9999
+`,
+			noProxy: true,
 			fsysContents: map[string][]byte{
 				"/tmp/test.txt": []byte("Test file"),
 			},
@@ -284,8 +298,12 @@ location: /tmp/{[{.StepVars.location}]}.txt
 			// Point all requests to the test server
 			step.FetchURI = testServer.URL
 
-			// Turn off proxy after validate, since it's not supported by httptest
-			step.Proxy = ""
+			// Set NoProxy flag if specified, otherwise clear proxy since httptest doesn't support it
+			if tc.noProxy {
+				execCtx.Cfg.NoProxy = true
+			} else {
+				step.Proxy = ""
+			}
 
 			// execute
 			_, err = step.Execute(execCtx)

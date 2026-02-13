@@ -180,6 +180,7 @@ func TestHTTPequest(t *testing.T) {
 		expectExecuteError  bool
 		stepVars            map[string]string
 		overwriteProxy      bool
+		noProxy             bool
 		expectedOutput      string
 	}{
 		{
@@ -237,6 +238,18 @@ name: request through proxy
 http_request: http://someuri.com
 proxy: http://localhost:8080
 `,
+		},
+		{
+			name: "Request with proxy ignored via NoProxy flag",
+			content: `
+name: request with ignored proxy
+http_request: http://someuri.com
+proxy: http://nonexistent-proxy.invalid:9999
+outputvar: result
+`,
+			noProxy:        true,
+			stepVars:       map[string]string{},
+			expectedOutput: "Here's some data!",
 		},
 		{
 			name: "Request with headers",
@@ -467,8 +480,12 @@ outputvar: testvar
 			// Point all requests to the test server
 			step.HTTPRequest = testServer.URL
 
-			// Turn off proxy after validate, since it's not supported by httptest
-			step.Proxy = ""
+			// Set NoProxy flag if specified, otherwise clear proxy since httptest doesn't support it
+			if tc.noProxy {
+				execCtx.Cfg.NoProxy = true
+			} else {
+				step.Proxy = ""
+			}
 
 			// execute
 			_, err = step.Execute(execCtx)

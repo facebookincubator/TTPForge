@@ -82,6 +82,7 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.DryRun, "dry-run", false, "Parse arguments and validate TTP Contents, but do not actually run the TTP")
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoCleanup, "no-cleanup", false, "Disable cleanup (useful for debugging and daisy-chaining TTPs)")
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoChecks, "no-checks", false, "Skip/ignore checks")
+	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoProxy, "no-proxy", false, "Ignore proxy settings defined in TTPs")
 	runCmd.PersistentFlags().UintVar(&ttpCfg.CleanupDelaySeconds, "cleanup-delay-seconds", 0, "Wait this long after TTP execution before starting cleanup")
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "Variable input mapping for args to be used in place of inputs defined in each ttp file")
 
