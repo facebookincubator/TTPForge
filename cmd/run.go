@@ -21,19 +21,24 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 func buildRunCommand(cfg *Config) *cobra.Command {
 	var argsList []string
 	var ttpCfg blocks.TTPExecutionConfig
+	var ttpUUID string
 	runCmd := &cobra.Command{
 		Use:               "run [repo_name//path/to/ttp]",
 		Short:             "Run the TTP found in the specified YAML file",
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeTTPRef(cfg, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// don't want confusing usage display for errors past this point
@@ -44,8 +49,24 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 				ttpCfg.Stdout, ttpCfg.Stderr = cfg.testCfg.Stdout, cfg.testCfg.Stderr
 			}
 
+			var ttpRef string
+			var err error
+
+			// Determine TTP reference - either from UUID flag or positional argument
+			if ttpUUID != "" {
+				// Look up TTP by UUID
+				ttpRef, err = findTTPByUUID(cfg.repoCollection, ttpUUID)
+				if err != nil {
+					return fmt.Errorf("failed to find TTP with UUID %v: %w", ttpUUID, err)
+				}
+				logging.L().Infof("Found TTP for UUID %s: %s", ttpUUID, ttpRef)
+			} else if len(args) > 0 {
+				ttpRef = args[0]
+			} else {
+				return fmt.Errorf("must provide either a TTP reference or --uuid flag")
+			}
+
 			// find the TTP file
-			ttpRef := args[0]
 			foundRepo, ttpAbsPath, err := cfg.repoCollection.ResolveTTPRef(ttpRef)
 			if err != nil {
 				return fmt.Errorf("failed to resolve TTP reference %v: %v", ttpRef, err)
@@ -85,6 +106,53 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 	runCmd.PersistentFlags().BoolVar(&ttpCfg.NoProxy, "no-proxy", false, "Ignore proxy settings defined in TTPs")
 	runCmd.PersistentFlags().UintVar(&ttpCfg.CleanupDelaySeconds, "cleanup-delay-seconds", 0, "Wait this long after TTP execution before starting cleanup")
 	runCmd.Flags().StringArrayVarP(&argsList, "arg", "a", []string{}, "Variable input mapping for args to be used in place of inputs defined in each ttp file")
+	runCmd.Flags().StringVar(&ttpUUID, "uuid", "", "UUID of the TTP to run (will search all repos to find the TTP)")
 
 	return runCmd
+}
+
+// findTTPByUUID searches all repositories for a TTP with the given UUID
+// and returns its reference path (repo_name//path/to/ttp.yaml)
+func findTTPByUUID(rc repos.RepoCollection, targetUUID string) (string, error) {
+	// Get all TTPs from all repos
+	ttpRefs, err := rc.ListTTPs()
+	if err != nil {
+		return "", fmt.Errorf("failed to list TTPs: %w", err)
+	}
+
+	for _, ttpRef := range ttpRefs {
+		repo, ttpAbsPath, err := rc.ResolveTTPRef(ttpRef)
+		if err != nil {
+			logging.L().Debugf("Failed to resolve TTP ref %s: %v", ttpRef, err)
+			continue
+		}
+
+		// Read the TTP file using the repo's filesystem
+		content, err := afero.ReadFile(repo.GetFs(), ttpAbsPath)
+		if err != nil {
+			logging.L().Debugf("Failed to read TTP file %s: %v", ttpAbsPath, err)
+			continue
+		}
+
+		// Parse YAML to extract UUID
+		var ttpData struct {
+			UUID string `yaml:"uuid"`
+		}
+		if err := yaml.Unmarshal(content, &ttpData); err != nil {
+			logging.L().Debugf("Failed to parse TTP file %s: %v", ttpAbsPath, err)
+			continue
+		}
+
+		// Compare UUIDs (case-insensitive)
+		if strings.EqualFold(ttpData.UUID, targetUUID) {
+			// Convert absolute path back to reference format
+			ref, err := rc.ConvertAbsPathToAbsRef(repo, ttpAbsPath)
+			if err != nil {
+				return "", fmt.Errorf("found TTP but failed to convert path to ref: %w", err)
+			}
+			return ref, nil
+		}
+	}
+
+	return "", fmt.Errorf("no TTP found with UUID: %s", targetUUID)
 }

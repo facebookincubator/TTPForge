@@ -150,6 +150,28 @@ func TestRun(t *testing.T) {
 			},
 			expectedStdout: "execute_step_1\nexecute_step_2\nexecute_step_3\nexecute_step_4\ncleanup_step_4\ncleanup_step_3\ncleanup_step_2\ncleanup_step_1\n",
 		},
+		// UUID flag test cases
+		{
+			name:        "uuid-not-found",
+			description: "should fail when UUID does not exist in any TTP",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"--uuid",
+				"00000000-0000-0000-0000-000000000000",
+				"--dry-run",
+			},
+			wantError: true,
+		},
+		{
+			name:        "run-requires-ttp-ref-or-uuid",
+			description: "running without TTP reference or UUID should fail",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+			},
+			wantError: true,
+		},
 	}
 
 	for _, tc := range testCases {
