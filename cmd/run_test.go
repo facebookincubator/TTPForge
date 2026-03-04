@@ -152,6 +152,17 @@ func TestRun(t *testing.T) {
 		},
 		// UUID flag test cases
 		{
+			name:        "uuid-lookup-success",
+			description: "should find TTP by UUID and run it",
+			args: []string{
+				"-c",
+				testConfigFilePath,
+				"--uuid",
+				"740e4d7f-02fb-442c-af38-8efb66334305",
+			},
+			expectedStdout: "UUID lookup test passed\n",
+		},
+		{
 			name:        "uuid-not-found",
 			description: "should fail when UUID does not exist in any TTP",
 			args: []string{
