@@ -1,0 +1,9 @@
+---
+api_version: 2.0
+uuid: 740e4d7f-02fb-442c-af38-8efb66334305
+name: uuid-lookup-test
+description: |
+  Test TTP with UUID for testing UUID lookup functionality
+steps:
+  - name: hello
+    inline: echo "UUID lookup test passed"

@@ -25,10 +25,10 @@ import (
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
+	"github.com/facebookincubator/ttpforge/pkg/parseutils"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func buildRunCommand(cfg *Config) *cobra.Command {
@@ -134,17 +134,16 @@ func findTTPByUUID(rc repos.RepoCollection, targetUUID string) (string, error) {
 			continue
 		}
 
-		// Parse YAML to extract UUID
-		var ttpData struct {
-			UUID string `yaml:"uuid"`
-		}
-		if err := yaml.Unmarshal(content, &ttpData); err != nil {
+		// Use ParseTTP which only parses the preamble (before steps:)
+		// This avoids YAML parsing issues with Go templates in the steps section
+		ttp, err := parseutils.ParseTTP(content, ttpAbsPath)
+		if err != nil {
 			logging.L().Debugf("Failed to parse TTP file %s: %v", ttpAbsPath, err)
 			continue
 		}
 
 		// Compare UUIDs (case-insensitive)
-		if strings.EqualFold(ttpData.UUID, targetUUID) {
+		if strings.EqualFold(ttp.UUID, targetUUID) {
 			// Convert absolute path back to reference format
 			ref, err := rc.ConvertAbsPathToAbsRef(repo, ttpAbsPath)
 			if err != nil {
