@@ -16,8 +16,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.39.0
-	golang.org/x/sys v0.37.0
+	golang.org/x/crypto v0.45.0
+	golang.org/x/sys v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -43,7 +43,7 @@ require (
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
