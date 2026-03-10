@@ -205,8 +205,8 @@ func buildMoveCommand(cfg *Config) *cobra.Command {
 			// Extract just the path part from destRef (after //)
 			destPath := destRef
 
-			if index := strings.Index(destRef, repos.RepoPrefixSep); index != -1 {
-				destPath = destRef[index+2:]
+			if _, after, ok := strings.Cut(destRef, repos.RepoPrefixSep); ok {
+				destPath = after
 			}
 
 			for _, searchPath := range searchPaths {
