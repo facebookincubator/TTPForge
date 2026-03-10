@@ -19,6 +19,8 @@ THE SOFTWARE.
 
 package args
 
+import "slices"
+
 func (spec Spec) validateChoiceTypes() error {
 	if len(spec.Choices) == 0 {
 		return nil
@@ -38,10 +40,5 @@ func (spec Spec) isValidChoice(value string) bool {
 		return true
 	}
 
-	for _, choice := range spec.Choices {
-		if choice == value {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(spec.Choices, value)
 }
