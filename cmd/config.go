@@ -33,6 +33,7 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/spf13/afero"
+	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
 )
 
@@ -130,7 +131,7 @@ func (cfg *Config) init() error {
 		}
 		if exists {
 			cfg.cfgFile = defaultConfigFilePath
-		} else {
+		} else if term.IsTerminal(int(os.Stderr.Fd())) {
 			logging.L().Warn("No config file specified and default configuration file not found!")
 			logging.L().Warn("You probably want to run `ttpforge init`!")
 			logging.L().Warn("However, if you know what you are doing, then carry on :)")
