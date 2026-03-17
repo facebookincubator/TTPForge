@@ -210,6 +210,9 @@ func (r *HTTPRequestStep) Template(execCtx TTPExecutionContext) error {
 
 // Execute runs the step and returns an error if one occurs.
 func (r *HTTPRequestStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	if execCtx.Backend != nil {
+		return nil, fmt.Errorf("http_request action is not yet supported with remote: execution")
+	}
 	logging.L().Info("========= Executing ==========")
 	logging.L().Infof("HTTPRequest to: %s", r.HTTPRequest)
 	if err := r.SendRequest(execCtx); err != nil {

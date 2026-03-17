@@ -23,13 +23,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Masterminds/sprig/v3"
-	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"io"
 	"regexp"
 	"slices"
 	"strings"
 	"text/template"
+
+	"github.com/Masterminds/sprig/v3"
+	"github.com/facebookincubator/ttpforge/pkg/backends"
+	"github.com/facebookincubator/ttpforge/pkg/repos"
 )
 
 const contextVariablePrefix = "$forge."
@@ -59,6 +61,8 @@ type TTPExecutionContext struct {
 	Cfg               TTPExecutionConfig
 	Vars              *TTPExecutionVars
 	StepResults       *StepResultsRecord
+	Backend           backends.ExecutionBackend
+	ConnPool          *backends.ConnectionPool
 	actionResultsChan chan *ActResult
 	errorsChan        chan error
 	shutdownChan      chan bool

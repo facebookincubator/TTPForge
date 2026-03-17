@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/backends"
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/parseutils"
@@ -85,6 +86,11 @@ func buildRunCommand(cfg *Config) *cobra.Command {
 				logging.L().Info("Dry-Run Requested - Returning Early")
 				return nil
 			}
+
+			// Initialize connection pool here so it is shared
+			// across both Execute and RunCleanup
+			execCtx.ConnPool = backends.NewConnectionPool()
+			defer execCtx.ConnPool.CloseAll()
 
 			runErr := ttp.Execute(*execCtx)
 			// Run clean up always

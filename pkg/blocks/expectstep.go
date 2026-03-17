@@ -171,6 +171,9 @@ func (s *ExpectStep) Template(execCtx TTPExecutionContext) error {
 // *ActResult: A pointer to the action result.
 // error: An error if execution fails.
 func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	if execCtx.Backend != nil {
+		return nil, fmt.Errorf("expect action is not yet supported with remote: execution")
+	}
 	if s == nil || s.Expect == nil {
 		return nil, fmt.Errorf("expect block must be provided")
 	}

@@ -16,9 +16,16 @@ TTPForge supports the following types of actions:
 - [print_str:](actions/print_str.md) Print Strings to the Screen
 - [file:](actions/file.md) Execute an External Program (No Shell)
 - [ttp:](chaining.md) Chain Multiple TTPForge TTPs together
+- [connect:](remote.md) Establish a Named SSH Connection for Remote Execution
 
 There is no limit on how many `steps:` a TTP can have and no restrictions on the
 mix of action types that you can use in a given TTP. However, each step must map
 to one and only one action type - for example, if you specify both `inline:` and
 `create_file:`, you'll get an error pointing out that your step has an ambiguous
 action type.
+
+## Remote Execution
+
+Use a `connect` step to establish a named SSH connection, then add
+`remote: <connection_name>` to any step to run it on that remote host.
+See [Remote Execution over SSH](remote.md) for details.

@@ -31,4 +31,8 @@ import (
 type VerificationContext struct {
 	Platform   platforms.Spec
 	FileSystem afero.Fs
+	// RunCommand optionally provides a backend-aware command runner.
+	// When set, command checks use this instead of local exec.
+	// Returns output, exit code, and error.
+	RunCommand func(command string) (output string, exitCode int, err error)
 }

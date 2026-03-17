@@ -20,9 +20,11 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/backends"
 	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/spf13/afero"
@@ -34,6 +36,7 @@ import (
 // It centralizes validation to simplify the code
 type CommonStepFields struct {
 	Name   string         `yaml:"name,omitempty"`
+	Remote string         `yaml:"remote,omitempty"`
 	Checks []checks.Check `yaml:"checks,omitempty"`
 
 	// CleanupSpec is exported so that UnmarshalYAML
@@ -54,6 +57,15 @@ type Step struct {
 	// but rather must be decoded by ParseAction
 	action  Action
 	cleanup Action
+
+	// cleanupRemote is the remote override for custom cleanup actions.
+	// When set, the cleanup action runs on this named connection
+	// instead of locally.
+	cleanupRemote string
+
+	// isDefaultCleanup is true when cleanup: default was used,
+	// meaning the cleanup should inherit the step's remote: field.
+	isDefaultCleanup bool
 }
 
 func isDefaultCleanup(cleanupNode *yaml.Node) (bool, error) {
@@ -130,6 +142,7 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 		// hack for subTTPs - they should always use their default cleanup
 		if ShouldUseImplicitDefaultCleanup(s.action) {
 			s.cleanup = s.action.GetDefaultCleanupAction()
+			s.isDefaultCleanup = true
 		}
 	} else {
 		useDefaultCleanup, err := isDefaultCleanup(&csf.CleanupSpec)
@@ -137,11 +150,20 @@ func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 			return err
 		}
 		if useDefaultCleanup {
+			s.isDefaultCleanup = true
 			if dca := s.action.GetDefaultCleanupAction(); dca != nil {
 				s.cleanup = dca
 				return nil
 			}
 			return fmt.Errorf("`cleanup: default` was specified but step %v is not an action type that has a default cleanup action", s.Name)
+		}
+
+		// Extract remote: from custom cleanup mapping before parsing the action
+		var cleanupMeta struct {
+			Remote string `yaml:"remote,omitempty"`
+		}
+		if err := csf.CleanupSpec.Decode(&cleanupMeta); err == nil {
+			s.cleanupRemote = cleanupMeta.Remote
 		}
 
 		s.cleanup, err = s.ParseAction(&csf.CleanupSpec)
@@ -174,8 +196,54 @@ func (s *Step) Template(execCtx TTPExecutionContext) error {
 	return nil
 }
 
+// swapToRemote sets up the backend on the execution context for the given
+// remote connection name. It returns a restore function that must be called
+// to restore the original backend. If remoteName is empty, it is a no-op.
+//
+// When switching to a remote backend, the working directory is reset to "/"
+// because the local working directory (typically the TTP file's directory)
+// will not exist on the remote host.
+func (s *Step) swapToRemote(execCtx *TTPExecutionContext, remoteName string) (func(), error) {
+	if remoteName == "" {
+		return func() {}, nil
+	}
+	if execCtx.ConnPool == nil {
+		return nil, fmt.Errorf("remote: specified on step %q but connection pool is not initialized", s.Name)
+	}
+
+	originalBackend := execCtx.Backend
+	originalWorkDir := execCtx.Vars.WorkDir
+	backend, err := execCtx.ConnPool.GetByName(remoteName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get backend for step %q: %w", s.Name, err)
+	}
+	execCtx.Backend = backend
+	// Reset working directory for remote execution — the local TTP directory
+	// path does not exist on the remote host.
+	execCtx.Vars.WorkDir = "/"
+	return func() {
+		execCtx.Backend = originalBackend
+		execCtx.Vars.WorkDir = originalWorkDir
+	}, nil
+}
+
+// swapBackend sets up the backend on the execution context if this step
+// has a remote: connection name. It returns a restore function that must
+// be called to restore the original backend.
+func (s *Step) swapBackend(execCtx *TTPExecutionContext) (func(), error) {
+	return s.swapToRemote(execCtx, s.Remote)
+}
+
 // Execute runs the action associated with this step and sends result/error to channels of the context
 func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	// Swap backend if remote: is specified
+	restore, err := s.swapBackend(&execCtx)
+	if err != nil {
+		execCtx.errorsChan <- err
+		return nil, err
+	}
+	defer restore()
+
 	desc := s.action.GetDescription()
 	if desc != "" {
 		logging.L().Infof("Description: %v", desc)
@@ -195,6 +263,22 @@ func (s *Step) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 // Cleanup runs the cleanup action associated with this step
 func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 	if s.cleanup != nil {
+		// Determine remote target for cleanup:
+		// - cleanup: default → inherit step's remote (same host)
+		// - custom cleanup → use cleanup's own remote: (local if not specified)
+		remoteForCleanup := ""
+		if s.isDefaultCleanup {
+			remoteForCleanup = s.Remote
+		} else {
+			remoteForCleanup = s.cleanupRemote
+		}
+
+		restore, err := s.swapToRemote(&execCtx, remoteForCleanup)
+		if err != nil {
+			return nil, err
+		}
+		defer restore()
+
 		desc := s.cleanup.GetDescription()
 		if desc != "" {
 			logging.L().Infof("Description: %v", desc)
@@ -212,11 +296,12 @@ func (s *Step) Cleanup(execCtx TTPExecutionContext) (*ActResult, error) {
 // format into the appropriate struct
 func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 	var typeField struct {
-		Inline    string     `yaml:"inline"`
-		File      string     `yaml:"file"`
-		TTP       string     `yaml:"ttp"`
-		EditFile  string     `yaml:"edit_file"`
-		Responses []Response `yaml:"responses"`
+		Inline    string       `yaml:"inline"`
+		File      string       `yaml:"file"`
+		TTP       string       `yaml:"ttp"`
+		EditFile  string       `yaml:"edit_file"`
+		Responses []Response   `yaml:"responses"`
+		Connect   *ConnectStep `yaml:"connect"`
 	}
 
 	if err := node.Decode(&typeField); err != nil {
@@ -237,8 +322,16 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 	if typeField.EditFile != "" {
 		typesCount++
 	}
+	if typeField.Connect != nil && !typeField.Connect.IsNil() {
+		typesCount++
+	}
 	if typesCount > 1 {
 		return nil, fmt.Errorf("step %v has ambiguous type", s.Name)
+	}
+
+	// Check for ConnectStep
+	if typeField.Connect != nil && !typeField.Connect.IsNil() {
+		return typeField.Connect, nil
 	}
 
 	// Check for ExpectStep
@@ -301,16 +394,89 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 	return action, nil
 }
 
+// buildVerificationContext creates a VerificationContext for the given remote
+// connection name. If remoteName is empty, the context targets the local machine.
+func (s *Step) buildVerificationContext(execCtx TTPExecutionContext, remoteName string) (checks.VerificationContext, error) {
+	var activeBackend backends.ExecutionBackend
+	if remoteName != "" && execCtx.ConnPool != nil {
+		var err error
+		activeBackend, err = execCtx.ConnPool.GetByName(remoteName)
+		if err != nil {
+			return checks.VerificationContext{}, fmt.Errorf("failed to get backend for check on step %q: %w", s.Name, err)
+		}
+	} else if remoteName == "" {
+		activeBackend = execCtx.Backend
+	}
+
+	var fsys afero.Fs
+	if activeBackend != nil {
+		var err error
+		fsys, err = activeBackend.GetFs()
+		if err != nil {
+			return checks.VerificationContext{}, fmt.Errorf("failed to get filesystem for checks: %w", err)
+		}
+	} else {
+		fsys = afero.NewOsFs()
+	}
+
+	verificationCtx := checks.VerificationContext{
+		FileSystem: fsys,
+	}
+
+	if activeBackend != nil {
+		shellName := "sh"
+		shellArgs := []string{"-c"}
+		if remoteName != "" && execCtx.ConnPool != nil {
+			if remoteCfg := execCtx.ConnPool.GetConfigByName(remoteName); remoteCfg != nil {
+				switch remoteCfg.Shell {
+				case "powershell":
+					shellName = "powershell"
+					shellArgs = []string{"-Command"}
+				case "cmd":
+					shellName = "cmd"
+					shellArgs = []string{"/c"}
+				}
+			}
+		}
+		verificationCtx.RunCommand = func(command string) (string, int, error) {
+			ctx := context.Background()
+			args := append(shellArgs, command)
+			stdout, stderr, err := activeBackend.RunCommand(ctx, shellName, "", args, nil, "", nil, nil)
+			output := stdout + stderr
+			if err != nil {
+				return output, 1, nil //nolint:nilerr // non-zero exit is not a check error
+			}
+			return output, 0, nil
+		}
+	}
+
+	return verificationCtx, nil
+}
+
 // VerifyChecks runs all checks and returns an error if any of them fail
-func (s *Step) VerifyChecks() error {
+func (s *Step) VerifyChecks(execCtx TTPExecutionContext) error {
 	if len(s.Checks) == 0 {
 		logging.L().Debugf("No checks defined for step %v", s.Name)
 		return nil
 	}
-	verificationCtx := checks.VerificationContext{
-		FileSystem: afero.NewOsFs(),
-	}
+
 	for checkIdx, check := range s.Checks {
+		// Resolve the effective remote for this check
+		checkRemote := check.GetRemote()
+		switch checkRemote {
+		case "":
+			// No per-check override → inherit the step's remote
+			checkRemote = s.Remote
+		case "local":
+			// Explicit "local" → force local execution
+			checkRemote = ""
+		}
+
+		verificationCtx, err := s.buildVerificationContext(execCtx, checkRemote)
+		if err != nil {
+			return fmt.Errorf("success check %d of step %q setup failed: %w", checkIdx+1, s.Name, err)
+		}
+
 		if err := check.Verify(verificationCtx); err != nil {
 			return fmt.Errorf("success check %d of step %q failed: %w", checkIdx+1, s.Name, err)
 		}

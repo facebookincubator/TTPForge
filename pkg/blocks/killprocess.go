@@ -166,7 +166,11 @@ func (s *KillProcessStep) killProcesses(pids []int) error {
 }
 
 // Execute runs the step and returns an error if one occurs while extracting PIDs or killing processes.
-func (s *KillProcessStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
+func (s *KillProcessStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
+	if execCtx.Backend != nil {
+		return s.executeRemote(execCtx)
+	}
+
 	pids, err := s.extractPIDs()
 	if err != nil {
 		return nil, err
@@ -178,6 +182,51 @@ func (s *KillProcessStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 	}
 	if err := s.killProcesses(pids); err != nil {
 		return nil, err
+	}
+
+	return &ActResult{}, nil
+}
+
+// executeRemote handles process killing via the execution backend.
+func (s *KillProcessStep) executeRemote(execCtx TTPExecutionContext) (*ActResult, error) {
+	backend := execCtx.Backend
+
+	var pids []int
+	processID, _ := strconv.Atoi(s.ProcessID)
+
+	if processID > 0 {
+		exists, err := backend.ProcessExists(processID)
+		if err != nil || !exists {
+			if s.ErrorOnFindProcessFailure {
+				return nil, fmt.Errorf("process %d not found on remote host", processID)
+			}
+			logging.L().Infof("No processes found to kill")
+			return &ActResult{}, nil
+		}
+		pids = []int{processID}
+	} else if s.ProcessName != "" {
+		var err error
+		pids, err = backend.FindProcessesByName(s.ProcessName)
+		if err != nil {
+			if s.ErrorOnFindProcessFailure {
+				return nil, err
+			}
+			logging.L().Infof("No processes found to kill")
+			return &ActResult{}, nil
+		}
+	} else {
+		return nil, fmt.Errorf("no valid process ID or name provided")
+	}
+
+	for _, pid := range pids {
+		if err := backend.KillProcess(pid); err != nil {
+			logging.L().Errorf("Failed to kill remote process %d: %v", pid, err)
+			if s.ErrorOnKillFailure {
+				return nil, err
+			}
+			continue
+		}
+		logging.L().Infof("Killed remote process with ID: %d", pid)
 	}
 
 	return &ActResult{}, nil

@@ -29,7 +29,8 @@ import (
 
 // CommonCheckFields are common fields across all check types
 type CommonCheckFields struct {
-	Msg string `yaml:"msg"`
+	Msg    string `yaml:"msg"`
+	Remote string `yaml:"remote,omitempty"`
 }
 
 // Check is wrapper struct around a Condition.
@@ -42,6 +43,9 @@ type Check struct {
 	CommonCheckFields
 	condition Condition
 }
+
+// GetRemote returns the per-check remote override (empty means inherit from step)
+func (c *Check) GetRemote() string { return c.Remote }
 
 // Verify wraps the Verify method from the underlying condition
 func (c *Check) Verify(ctx VerificationContext) error {
