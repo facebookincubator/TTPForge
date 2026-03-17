@@ -146,16 +146,25 @@ func (s *EditStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	backupPath := s.BackupFile
 
 	if fileSystem == nil {
-		fileSystem = afero.NewOsFs()
-		var err error
-		targetPath, err = FetchAbs(targetPath, execCtx.Vars.WorkDir)
-		if err != nil {
-			return nil, err
-		}
-		if backupPath != "" {
-			backupPath, err = FetchAbs(backupPath, execCtx.Vars.WorkDir)
+		if execCtx.Backend != nil {
+			var err error
+			fileSystem, err = execCtx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get filesystem: %w", err)
+			}
+			// For remote execution, use paths as-is (no local abs resolution)
+		} else {
+			fileSystem = afero.NewOsFs()
+			var err error
+			targetPath, err = FetchAbs(targetPath, execCtx.Vars.WorkDir)
 			if err != nil {
 				return nil, err
+			}
+			if backupPath != "" {
+				backupPath, err = FetchAbs(backupPath, execCtx.Vars.WorkDir)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

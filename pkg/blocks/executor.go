@@ -22,6 +22,7 @@ package blocks
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,6 +44,34 @@ const (
 	ExecutorBinary            = "binary"
 	ExecutorCmd               = "cmd.exe"
 )
+
+// resolveStreamWriters returns the stdout and stderr writers to pass to
+// RunCommand for remote execution. If the execution context provides explicit
+// writers they are used; otherwise default streaming writers are created.
+// The returned cleanup function must be called after RunCommand to flush any
+// trailing partial lines.
+func resolveStreamWriters(execCtx TTPExecutionContext) (stdoutW, stderrW io.Writer, cleanup func()) {
+	stdoutW = execCtx.Cfg.Stdout
+	stderrW = execCtx.Cfg.Stderr
+
+	var toClose []*bufferedWriter
+	if stdoutW == nil {
+		bw := defaultStreamWriter("[STDOUT] ")
+		stdoutW = bw
+		toClose = append(toClose, bw)
+	}
+	if stderrW == nil {
+		bw := defaultStreamWriter("[STDERR] ")
+		stderrW = bw
+		toClose = append(toClose, bw)
+	}
+	cleanup = func() {
+		for _, bw := range toClose {
+			bw.Close()
+		}
+	}
+	return stdoutW, stderrW, cleanup
+}
 
 // Executor is an interface that defines the Execute method.
 type Executor interface {
@@ -87,14 +116,6 @@ func (e *ScriptExecutor) buildCommand(ctx context.Context) *exec.Cmd {
 
 // Execute runs the command
 func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
-	// Validate executor exists at runtime (unless it's binary)
-	if e.Name != ExecutorBinary {
-		if _, err := exec.LookPath(e.Name); err != nil {
-			return nil, fmt.Errorf("executor %q not found in PATH: %w", e.Name, err)
-		}
-		logging.L().Debugw("executor found in path", "executor", e.Name)
-	}
-
 	// expand variables in command
 	expandedInlines, err := execCtx.ExpandVariables([]string{e.Inline})
 	if err != nil {
@@ -107,7 +128,32 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 		body = fmt.Sprintf("$ErrorActionPreference = 'Stop' ; &{%s}\n\n", body)
 	}
 
-	// expand variables in environment
+	// Remote backend path: delegate to backend.RunCommand
+	if execCtx.Backend != nil {
+		// For remote execution, only pass explicitly declared env vars
+		expandedEnvAsList, err := execCtx.ExpandVariables(FetchEnv(e.Environment))
+		if err != nil {
+			return nil, err
+		}
+
+		stdoutW, stderrW, flushWriters := resolveStreamWriters(execCtx)
+		stdout, stderr, err := execCtx.Backend.RunCommand(ctx, e.Name, body, nil, expandedEnvAsList, execCtx.Vars.WorkDir, stdoutW, stderrW)
+		flushWriters()
+		if err != nil {
+			return nil, err
+		}
+		return &ActResult{Stdout: stdout, Stderr: stderr}, nil
+	}
+
+	// Local path: validate executor exists at runtime
+	if e.Name != ExecutorBinary {
+		if _, err := exec.LookPath(e.Name); err != nil {
+			return nil, fmt.Errorf("executor %q not found in PATH: %w", e.Name, err)
+		}
+		logging.L().Debugw("executor found in path", "executor", e.Name)
+	}
+
+	// expand variables in environment (include inherited env for local execution)
 	envAsList := append(FetchEnv(e.Environment), os.Environ()...)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {
@@ -124,7 +170,39 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 
 // Execute runs the binary with arguments
 func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext) (*ActResult, error) {
-	// Validate executor exists at runtime (unless it's binary)
+	// expand variables in command line arguments
+	expandedArgs, err := execCtx.ExpandVariables(e.Args)
+	if err != nil {
+		return nil, err
+	}
+
+	// Remote backend path: delegate to backend.RunCommand
+	if execCtx.Backend != nil {
+		expandedEnvAsList, err := execCtx.ExpandVariables(FetchEnv(e.Environment))
+		if err != nil {
+			return nil, err
+		}
+
+		var name string
+		var args []string
+		if e.Name == ExecutorBinary {
+			name = e.FilePath
+			args = expandedArgs
+		} else {
+			name = e.Name
+			args = append([]string{e.FilePath}, expandedArgs...)
+		}
+
+		stdoutW, stderrW, flushWriters := resolveStreamWriters(execCtx)
+		stdout, stderr, err := execCtx.Backend.RunCommand(ctx, name, "", args, expandedEnvAsList, execCtx.Vars.WorkDir, stdoutW, stderrW)
+		flushWriters()
+		if err != nil {
+			return nil, err
+		}
+		return &ActResult{Stdout: stdout, Stderr: stderr}, nil
+	}
+
+	// Local path: validate executor exists at runtime
 	if e.Name != ExecutorBinary {
 		if _, err := exec.LookPath(e.Name); err != nil {
 			return nil, fmt.Errorf("executor %q not found in PATH: %w", e.Name, err)
@@ -132,13 +210,7 @@ func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext)
 		logging.L().Debugw("executor found in path", "executor", e.Name)
 	}
 
-	// expand variables in command line arguments
-	expandedArgs, err := execCtx.ExpandVariables(e.Args)
-	if err != nil {
-		return nil, err
-	}
-
-	// expand variables in environment
+	// expand variables in environment (include inherited env for local execution)
 	envAsList := append(FetchEnv(e.Environment), os.Environ()...)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {

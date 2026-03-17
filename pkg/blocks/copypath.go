@@ -21,9 +21,10 @@ package blocks
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
-	"github.com/otiai10/copy"
 	"github.com/spf13/afero"
 )
 
@@ -89,11 +90,19 @@ func (s *CopyPathStep) Template(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the step and returns an error if one occurs.
-func (s *CopyPathStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
+func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Copying file(s) from %v to %v", s.Source, s.Destination)
 	fsys := s.FileSystem
 	if fsys == nil {
-		fsys = afero.NewOsFs()
+		if execCtx.Backend != nil {
+			var err error
+			fsys, err = execCtx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get filesystem: %w", err)
+			}
+		} else {
+			fsys = afero.NewOsFs()
+		}
 	}
 
 	// check if source exists.
@@ -133,13 +142,48 @@ func (s *CopyPathStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
 		mode = 0666
 	}
 
-	// Copy a file
-	err = copy.Copy(s.Source, s.Destination)
+	// Copy the file or directory
+	if srcInfo.IsDir() {
+		err = aferoCopyDir(fsys, s.Source, s.Destination)
+	} else {
+		err = aferoCopyFile(fsys, s.Source, s.Destination, os.FileMode(mode))
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	return &ActResult{}, nil
+}
+
+// aferoCopyFile copies a single file using afero operations.
+func aferoCopyFile(fsys afero.Fs, src, dst string, mode os.FileMode) error {
+	contents, err := afero.ReadFile(fsys, src)
+	if err != nil {
+		return fmt.Errorf("failed to read source %s: %w", src, err)
+	}
+	return afero.WriteFile(fsys, dst, contents, mode)
+}
+
+// aferoCopyDir recursively copies a directory using afero operations.
+func aferoCopyDir(fsys afero.Fs, src, dst string) error {
+	return afero.Walk(fsys, src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Compute the relative path from source and construct destination path
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, relPath)
+
+		if info.IsDir() {
+			return fsys.MkdirAll(dstPath, info.Mode())
+		}
+
+		return aferoCopyFile(fsys, path, dstPath, info.Mode())
+	})
 }
 
 // GetDefaultCleanupAction will instruct the calling code

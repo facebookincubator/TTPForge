@@ -83,6 +83,39 @@ Check out the example below, which you can run with
 
 https://github.com/facebookincubator/TTPForge/blob/7634dc65879ec43a108a4b2d44d7eb2105a2a4b1/example-ttps/cleanup/default.yaml#L1-L12
 
+## Cleanup and Remote Execution
+
+When a step uses `remote:` to run on a remote host, the cleanup behavior depends
+on how the cleanup is specified:
+
+- **`cleanup: default`** inherits the step's `remote:` field, so cleanup runs on
+  the same host as the step action. For example, `create_file` with
+  `cleanup: default` removes the file from the remote filesystem.
+- **Custom cleanup (YAML mapping)** runs **locally by default**. To run cleanup
+  on a remote host, add `remote: <connection_name>` inside the cleanup block.
+
+```yaml
+steps:
+  - name: drop-payload
+    remote: target
+    create_file: /tmp/payload.sh
+    contents: echo "hello"
+    cleanup: default              # runs on remote (inherits step's remote:)
+
+  - name: run-payload
+    remote: target
+    inline: /tmp/payload.sh
+    cleanup:
+      remote: target              # explicit: cleanup runs on remote
+      inline: rm -f /tmp/payload.sh
+
+  - name: exfil
+    remote: target
+    inline: cat /etc/passwd
+    cleanup:
+      inline: rm -f /tmp/local-evidence.log   # no remote: → cleanup runs locally
+```
+
 ## Handling Failures Gracefully
 
 Whenever a step fails, the cleanup process will begin from the last successful

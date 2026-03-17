@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: codespell
         entry: |
-          codespell -q 3 -f --skip=".git,.github,go.*" README.md
+          codespell -q 3 -f -L fo --skip=".git,.github,go.*" README.md
 
   - repo: local
     hooks:

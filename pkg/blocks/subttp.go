@@ -174,5 +174,9 @@ func (s *SubTTPStep) loadSubTTP(execCtx TTPExecutionContext) error {
 	s.ttp = ttps
 	s.subExecCtx = ctx
 
+	// Propagate backend and connection pool to child context
+	s.subExecCtx.Backend = execCtx.Backend
+	s.subExecCtx.ConnPool = execCtx.ConnPool
+
 	return nil
 }

@@ -76,11 +76,19 @@ func (s *RemovePathAction) Template(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the step and returns an error if one occurs.
-func (s *RemovePathAction) Execute(_ TTPExecutionContext) (*ActResult, error) {
+func (s *RemovePathAction) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Removing path %v", s.Path)
 	fsys := s.FileSystem
 	if fsys == nil {
-		fsys = afero.NewOsFs()
+		if execCtx.Backend != nil {
+			var err error
+			fsys, err = execCtx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get filesystem: %w", err)
+			}
+		} else {
+			fsys = afero.NewOsFs()
+		}
 	}
 
 	// cannot remove a non-existent path

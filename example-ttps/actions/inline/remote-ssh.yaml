@@ -1,0 +1,54 @@
+---
+api_version: 2.0
+uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+name: remote_ssh_demo
+authors:
+  - meta
+description: |
+  Demonstrates SSH-based remote execution. A `connect` step establishes
+  a named connection, then subsequent steps reference it with `remote:`.
+args:
+  - name: target_host
+    description: The remote host to connect to
+  - name: target_port
+    default: 22
+    type: int
+    description: The port to connect to on the remote host
+  - name: target_user
+    default: root
+    description: SSH user on the remote host
+  - name: target_key_file
+    description: SSH key file to use for authentication
+steps:
+  # This step will run on the local machine, not the remote host
+  - name: enumerate_local
+    inline: |
+      echo "Echo from local machine $(whoami && uname -a && hostname)"
+
+  - name: setup-connection
+    connect:
+      protocol: ssh
+      host: "{{ .Args.target_host }}"
+      port: {{ .Args.target_port }}
+      user: "{{ .Args.target_user }}"
+      auth: key
+      key_file: "{{ .Args.target_key_file }}"
+      connection_name: target
+
+  - name: enumerate_remote
+    remote: target
+    inline: |
+      echo "Echo from remote machine $(whoami && uname -a && hostname)"
+
+  - name: drop_payload
+    remote: target
+    create_file: /tmp/ttpforge_test_payload.sh
+    contents: |
+      #!/bin/bash
+      echo "payload executed on $(hostname) at $(date)"
+    mode: 0755
+    cleanup: default
+
+  - name: run_payload
+    remote: target
+    inline: /tmp/ttpforge_test_payload.sh

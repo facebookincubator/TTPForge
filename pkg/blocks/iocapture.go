@@ -88,6 +88,15 @@ func (zw *zapWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// defaultStreamWriter creates a bufferedWriter that streams output through
+// the zap logger with the given prefix. The returned writer must be closed
+// after use to flush any trailing partial line.
+func defaultStreamWriter(prefix string) *bufferedWriter {
+	return &bufferedWriter{
+		writer: &zapWriter{prefix: prefix},
+	}
+}
+
 func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
 	if stdout == nil {
 		stdout = &bufferedWriter{
