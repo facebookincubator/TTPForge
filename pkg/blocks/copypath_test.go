@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/facebookincubator/ttpforge/pkg/testutils"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -183,4 +184,168 @@ func TestCopyPathExecute(t *testing.T) {
 
 		})
 	}
+}
+
+func TestCopyPathValidateDirection(t *testing.T) {
+	execCtx := NewTTPExecutionContext()
+
+	t.Run("valid direction upload", func(t *testing.T) {
+		step := CopyPathStep{Source: "/src", Destination: "/dst", Direction: "upload"}
+		require.NoError(t, step.Validate(execCtx))
+	})
+
+	t.Run("valid direction download", func(t *testing.T) {
+		step := CopyPathStep{Source: "/src", Destination: "/dst", Direction: "download"}
+		require.NoError(t, step.Validate(execCtx))
+	})
+
+	t.Run("empty direction is valid", func(t *testing.T) {
+		step := CopyPathStep{Source: "/src", Destination: "/dst"}
+		require.NoError(t, step.Validate(execCtx))
+	})
+
+	t.Run("invalid direction", func(t *testing.T) {
+		step := CopyPathStep{Source: "/src", Destination: "/dst", Direction: "sideways"}
+		err := step.Validate(execCtx)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid direction")
+	})
+}
+
+func TestCopyPathDirectionUpload(t *testing.T) {
+	// "local" FS: source lives here
+	localFs := afero.NewMemMapFs()
+	require.NoError(t, afero.WriteFile(localFs, "/local/file.txt", []byte("local content"), 0644))
+
+	// "remote" FS: destination goes here
+	remoteFs := afero.NewMemMapFs()
+
+	t.Run("aferoCopyFile cross-FS", func(t *testing.T) {
+		err := aferoCopyFile(localFs, remoteFs, "/local/file.txt", "/remote/file.txt", 0644)
+		require.NoError(t, err)
+
+		content, err := afero.ReadFile(remoteFs, "/remote/file.txt")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("local content"), content)
+	})
+
+	t.Run("aferoCopyDir cross-FS", func(t *testing.T) {
+		srcFs := afero.NewMemMapFs()
+		dstFs := afero.NewMemMapFs()
+		require.NoError(t, srcFs.MkdirAll("/src/sub", 0755))
+		require.NoError(t, afero.WriteFile(srcFs, "/src/a.txt", []byte("aaa"), 0644))
+		require.NoError(t, afero.WriteFile(srcFs, "/src/sub/b.txt", []byte("bbb"), 0644))
+
+		err := aferoCopyDir(srcFs, dstFs, "/src", "/dst")
+		require.NoError(t, err)
+
+		contentA, err := afero.ReadFile(dstFs, "/dst/a.txt")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("aaa"), contentA)
+
+		contentB, err := afero.ReadFile(dstFs, "/dst/sub/b.txt")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("bbb"), contentB)
+	})
+}
+
+func TestCopyPathDirectionRequiresBackend(t *testing.T) {
+	execCtx := NewTTPExecutionContext()
+	// No backend set — direction should fail at Execute time.
+
+	t.Run("upload without backend", func(t *testing.T) {
+		step := CopyPathStep{Source: "/src", Destination: "/dst", Direction: "upload"}
+		_, err := step.Execute(execCtx)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "requires a remote: block")
+	})
+
+	t.Run("download without backend", func(t *testing.T) {
+		step := CopyPathStep{Source: "/src", Destination: "/dst", Direction: "download"}
+		_, err := step.Execute(execCtx)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "requires a remote: block")
+	})
+}
+
+func TestCopyPathDirectionWithBackend(t *testing.T) {
+	t.Run("upload copies from local to remote", func(t *testing.T) {
+		remoteFs := afero.NewMemMapFs()
+
+		// Create a temp file on the real local filesystem as the source.
+		tmpDir := t.TempDir()
+		srcPath := filepath.Join(tmpDir, "upload_src.txt")
+		require.NoError(t, os.WriteFile(srcPath, []byte("upload me"), 0644))
+
+		dstPath := "/remote/uploaded.txt"
+
+		execCtx := NewTTPExecutionContext()
+		execCtx.Backend = &mockBackend{fs: remoteFs}
+
+		step := CopyPathStep{
+			Source:      srcPath,
+			Destination: dstPath,
+			Direction:   "upload",
+		}
+		_, err := step.Execute(execCtx)
+		require.NoError(t, err)
+
+		content, err := afero.ReadFile(remoteFs, dstPath)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("upload me"), content)
+	})
+
+	t.Run("download copies from remote to local", func(t *testing.T) {
+		remoteFs := afero.NewMemMapFs()
+		require.NoError(t, afero.WriteFile(remoteFs, "/remote/secret.txt", []byte("downloaded"), 0644))
+
+		tmpDir := t.TempDir()
+		dstPath := filepath.Join(tmpDir, "downloaded.txt")
+
+		execCtx := NewTTPExecutionContext()
+		execCtx.Backend = &mockBackend{fs: remoteFs}
+
+		step := CopyPathStep{
+			Source:      "/remote/secret.txt",
+			Destination: dstPath,
+			Direction:   "download",
+		}
+		_, err := step.Execute(execCtx)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(dstPath)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("downloaded"), content)
+	})
+}
+
+func TestCopyPathDownloadCleanup(t *testing.T) {
+	step := CopyPathStep{
+		Source:      "/remote/file.txt",
+		Destination: "/local/file.txt",
+		Direction:   "download",
+		Recursive:   true,
+	}
+	cleanup := step.GetDefaultCleanupAction()
+	removeAction, ok := cleanup.(*RemovePathAction)
+	require.True(t, ok)
+
+	assert.Equal(t, "/local/file.txt", removeAction.Path)
+	assert.True(t, removeAction.Recursive, "cleanup should propagate Recursive flag")
+	assert.NotNil(t, removeAction.FileSystem, "download cleanup should pin FileSystem to local OS")
+}
+
+func TestCopyPathDefaultCleanupNoDirection(t *testing.T) {
+	step := CopyPathStep{
+		Source:      "/src",
+		Destination: "/dst",
+		Recursive:   true,
+	}
+	cleanup := step.GetDefaultCleanupAction()
+	removeAction, ok := cleanup.(*RemovePathAction)
+	require.True(t, ok)
+
+	assert.Equal(t, "/dst", removeAction.Path)
+	assert.True(t, removeAction.Recursive)
+	assert.Nil(t, removeAction.FileSystem, "non-download cleanup should not pin FileSystem")
 }
