@@ -1,0 +1,76 @@
+---
+api_version: 2.0
+uuid: b2c3d4e5-f6a7-8901-bcde-f23456789012
+name: copy_path_remote_transfer
+authors:
+  - meta
+description: |
+  Demonstrates copy_path with direction for transferring files between
+  the local machine and a remote host over SSH.
+
+  - upload: local file → remote host
+  - download: remote file → local machine
+  - no direction: copy within the remote filesystem
+args:
+  - name: target_host
+    description: The remote host to connect to
+  - name: target_port
+    default: 22
+    type: int
+    description: The port to connect to on the remote host
+  - name: target_user
+    default: root
+    description: SSH user on the remote host
+  - name: target_key_file
+    description: SSH key file to use for authentication
+requirements:
+  platforms:
+    - os: linux
+steps:
+  - name: setup-connection
+    connect:
+      protocol: ssh
+      host: "{{ .Args.target_host }}"
+      port: {{ .Args.target_port }}
+      user: "{{ .Args.target_user }}"
+      auth: key
+      key_file: "{{ .Args.target_key_file }}"
+      connection_name: target
+
+  - name: create_local_file
+    create_file: /tmp/ttpforge_upload_test.txt
+    contents: |
+      This file was created locally and uploaded via copy_path.
+      Timestamp: {{now | date "2006-01-02T15:04:05Z07:00"}}
+    cleanup: default
+
+  - name: upload_file
+    remote: target
+    copy_path: /tmp/ttpforge_upload_test.txt
+    to: /tmp/ttpforge_uploaded.txt
+    direction: upload
+    cleanup: default
+
+  - name: verify_upload
+    remote: target
+    inline: |
+      echo "--- Uploaded file on remote host ---"
+      cat /tmp/ttpforge_uploaded.txt
+
+  - name: download_file
+    remote: target
+    copy_path: /tmp/ttpforge_uploaded.txt
+    to: /tmp/ttpforge_downloaded.txt
+    direction: download
+    cleanup: default
+
+  - name: verify_download
+    inline: |
+      echo "--- Downloaded file on local machine ---"
+      cat /tmp/ttpforge_downloaded.txt
+
+  - name: remote_copy
+    remote: target
+    copy_path: /tmp/ttpforge_uploaded.txt
+    to: /tmp/ttpforge_remote_copy.txt
+    cleanup: default

@@ -1,38 +1,106 @@
 # TTPForge Actions: `copy_path`
 
-The `copy_path` action can be used to copy files on disk without the need to
-loudly invoke a shell and use `cat`, `echo`, or `cp`. Check out the TTP below to
-see how it works:
-
-https://github.com/facebookincubator/TTPForge/blob/ce5561457f6d9a6f61cf3b6ed0b3ea69a32550eb/example-ttps/actions/copy-path/basic.yaml#L1-L18
-
-You can experiment with the above TTP by installing the `examples` TTP
-repository (skip this if `ttpforge list repos` shows that the `examples` repo is
-already installed):
-
-```bash
-ttpforge install repo https://github.com/facebookincubator/TTPForge --name examples
-```
-
-and then running the below command:
-
-```bash
-ttpforge run examples//actions/copy-path/basic.yaml
-```
+The `copy_path` action copies files or directories on disk without invoking a
+shell — no `cp`, `cat`, or `echo` appears in shell history. This simulates
+C2-style file operations.
 
 ## Fields
 
-You can specify the following YAML fields for the `copy_path:` action:
+- `copy_path:` (type: `string`) the source path to copy from.
+- `to:` (type: `string`) the destination path to copy to.
+- `recursive:` (type: `bool`) set to `true` to copy directories and their
+  contents. Required when the source is a directory.
+- `overwrite:` (type: `bool`) whether existing destination files should be
+  overwritten. Defaults to `false`.
+- `mode:` (type: `int`) octal permission mode (`chmod` style) for copied files.
+  Defaults to `0666`.
+- `direction:` (type: `string`) controls which filesystem the source and
+  destination refer to when used with a `remote:` block. See
+  [Remote File Transfer](#remote-file-transfer) below.
+- `cleanup:` set to `default` to automatically remove the destination on
+  cleanup, or define a custom
+  [cleanup action](../cleanup.md#cleanup-basics).
 
-- `copy_path:` (type: `string`) the path to the file or directory you want to
-  copy.
-- `to:` (type: `string`) the path to the file or directory you want to write the
-  copy to file.
-- `recursive:` (type: `bool`) whether or not the copy action should be recursive
-  (copy all files in directory)
-- `overwrite:` (type: `bool`) whether the file(s) should be overwritten if they
-  already exist in the destination.
-- `mode:` the octal permission mode (`chmod` style) for the new file.
-- `cleanup:` you can set this to `default` in order to automatically cleanup the
-  created file, or define a custom
-  [cleanup action](https://github.com/facebookincubator/TTPForge/blob/main/docs/foundations/cleanup.md#cleanup-basics).
+## Basic Usage
+
+```yaml
+steps:
+  - name: copy_config
+    copy_path: /etc/app/config.yaml
+    to: /tmp/config_backup.yaml
+```
+
+Copy a directory recursively:
+
+```yaml
+steps:
+  - name: copy_logs
+    copy_path: /var/log/app
+    to: /tmp/app_logs
+    recursive: true
+    cleanup: default
+```
+
+## Remote File Transfer
+
+When used with a [`remote:` block](../remote.md), `copy_path` operates on the
+remote filesystem by default. To transfer files *between* the local machine and
+a remote host, use the `direction` field:
+
+- `direction: upload` — reads from the local filesystem, writes to the remote
+  host
+- `direction: download` — reads from the remote filesystem, writes to the local
+  machine
+- omitted — copies within the same filesystem (local or remote depending on
+  whether `remote:` is set)
+
+The `direction` field requires a `remote:` block on the step. If you need a
+local-only copy, simply omit `remote:` from the step.
+
+To transfer directories, set `recursive: true`. This works with all directions.
+
+### Upload a local file to a remote host
+
+```yaml
+steps:
+  - name: setup-connection
+    connect:
+      protocol: ssh
+      host: "{{ .Args.target_host }}"
+      auth: agent
+      connection_name: target
+
+  - name: upload_payload
+    remote: target
+    copy_path: /tmp/local_payload.bin
+    to: /opt/payload.bin
+    direction: upload
+```
+
+### Download a remote file to the local machine
+
+```yaml
+steps:
+  - name: download_loot
+    remote: target
+    copy_path: /etc/shadow
+    to: /tmp/loot/shadow
+    direction: download
+    cleanup: default
+```
+
+When `direction: download` is used with `cleanup: default`, the cleanup action
+removes the destination from the **local** filesystem (not the remote host).
+
+### Upload a directory
+
+```yaml
+steps:
+  - name: upload_tools
+    remote: target
+    copy_path: /opt/tools
+    to: /tmp/tools
+    direction: upload
+    recursive: true
+    cleanup: default
+```

@@ -40,6 +40,7 @@ type CopyPathStep struct {
 	Recursive      bool     `yaml:"recursive,omitempty"`
 	Overwrite      bool     `yaml:"overwrite,omitempty"`
 	Mode           int      `yaml:"mode,omitempty"`
+	Direction      string   `yaml:"direction,omitempty"`
 	FileSystem     afero.Fs `yaml:"-,omitempty"`
 }
 
@@ -68,6 +69,9 @@ func (s *CopyPathStep) Validate(_ TTPExecutionContext) error {
 	if s.Destination == "" {
 		return fmt.Errorf("dest field cannot be empty")
 	}
+	if s.Direction != "" && s.Direction != "upload" && s.Direction != "download" {
+		return fmt.Errorf("invalid direction %q: must be \"upload\" or \"download\"", s.Direction)
+	}
 	return nil
 }
 
@@ -86,27 +90,61 @@ func (s *CopyPathStep) Template(execCtx TTPExecutionContext) error {
 	if err != nil {
 		return err
 	}
+	s.Direction, err = execCtx.templateStep(s.Direction)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // Execute runs the step and returns an error if one occurs.
 func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Copying file(s) from %v to %v", s.Source, s.Destination)
-	fsys := s.FileSystem
-	if fsys == nil {
-		if execCtx.Backend != nil {
-			var err error
-			fsys, err = execCtx.Backend.GetFs()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get filesystem: %w", err)
+
+	var srcFs, dstFs afero.Fs
+	if s.FileSystem != nil {
+		// Testing path: use injected FS for both sides.
+		srcFs = s.FileSystem
+		dstFs = s.FileSystem
+	} else {
+		switch s.Direction {
+		case "upload":
+			if execCtx.Backend == nil {
+				return nil, fmt.Errorf("direction %q requires a remote: block", s.Direction)
 			}
-		} else {
-			fsys = afero.NewOsFs()
+			remoteFs, err := execCtx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get remote filesystem: %w", err)
+			}
+			srcFs = afero.NewOsFs()
+			dstFs = remoteFs
+		case "download":
+			if execCtx.Backend == nil {
+				return nil, fmt.Errorf("direction %q requires a remote: block", s.Direction)
+			}
+			remoteFs, err := execCtx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get remote filesystem: %w", err)
+			}
+			srcFs = remoteFs
+			dstFs = afero.NewOsFs()
+		default:
+			// Existing behavior: single FS (local or remote).
+			if execCtx.Backend != nil {
+				var err error
+				srcFs, err = execCtx.Backend.GetFs()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get filesystem: %w", err)
+				}
+			} else {
+				srcFs = afero.NewOsFs()
+			}
+			dstFs = srcFs
 		}
 	}
 
 	// check if source exists.
-	sourceExists, err := afero.Exists(fsys, s.Source)
+	sourceExists, err := afero.Exists(srcFs, s.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +155,7 @@ func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 	}
 
 	// if source is a directory but recursive is false
-	srcInfo, err := fsys.Stat(s.Source)
+	srcInfo, err := srcFs.Stat(s.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +164,7 @@ func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 	}
 
 	// check if destination exists.
-	destExists, err := afero.Exists(fsys, s.Destination)
+	destExists, err := afero.Exists(dstFs, s.Destination)
 	if err != nil {
 		return nil, err
 	}
@@ -144,9 +182,9 @@ func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 
 	// Copy the file or directory
 	if srcInfo.IsDir() {
-		err = aferoCopyDir(fsys, s.Source, s.Destination)
+		err = aferoCopyDir(srcFs, dstFs, s.Source, s.Destination)
 	} else {
-		err = aferoCopyFile(fsys, s.Source, s.Destination, os.FileMode(mode))
+		err = aferoCopyFile(srcFs, dstFs, s.Source, s.Destination, os.FileMode(mode))
 	}
 	if err != nil {
 		return nil, err
@@ -155,18 +193,18 @@ func (s *CopyPathStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) 
 	return &ActResult{}, nil
 }
 
-// aferoCopyFile copies a single file using afero operations.
-func aferoCopyFile(fsys afero.Fs, src, dst string, mode os.FileMode) error {
-	contents, err := afero.ReadFile(fsys, src)
+// aferoCopyFile copies a single file, reading from srcFs and writing to dstFs.
+func aferoCopyFile(srcFs, dstFs afero.Fs, src, dst string, mode os.FileMode) error {
+	contents, err := afero.ReadFile(srcFs, src)
 	if err != nil {
 		return fmt.Errorf("failed to read source %s: %w", src, err)
 	}
-	return afero.WriteFile(fsys, dst, contents, mode)
+	return afero.WriteFile(dstFs, dst, contents, mode)
 }
 
-// aferoCopyDir recursively copies a directory using afero operations.
-func aferoCopyDir(fsys afero.Fs, src, dst string) error {
-	return afero.Walk(fsys, src, func(path string, info os.FileInfo, err error) error {
+// aferoCopyDir recursively copies a directory, reading from srcFs and writing to dstFs.
+func aferoCopyDir(srcFs, dstFs afero.Fs, src, dst string) error {
+	return afero.Walk(srcFs, src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -179,19 +217,26 @@ func aferoCopyDir(fsys afero.Fs, src, dst string) error {
 		dstPath := filepath.Join(dst, relPath)
 
 		if info.IsDir() {
-			return fsys.MkdirAll(dstPath, info.Mode())
+			return dstFs.MkdirAll(dstPath, info.Mode())
 		}
 
-		return aferoCopyFile(fsys, path, dstPath, info.Mode())
+		return aferoCopyFile(srcFs, dstFs, path, dstPath, info.Mode())
 	})
 }
 
 // GetDefaultCleanupAction will instruct the calling code
 // to remove the path created by this action
 func (s *CopyPathStep) GetDefaultCleanupAction() Action {
-	return &RemovePathAction{
-		Path: s.Destination,
+	cleanup := &RemovePathAction{
+		Path:      s.Destination,
+		Recursive: s.Recursive,
 	}
+	if s.Direction == "download" {
+		// Destination is local — pin to local FS so cleanup doesn't
+		// accidentally remove from the remote host.
+		cleanup.FileSystem = afero.NewOsFs()
+	}
+	return cleanup
 }
 
 // CanBeUsedInCompositeAction enables this action to be used in a composite action

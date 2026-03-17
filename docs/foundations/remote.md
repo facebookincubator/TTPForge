@@ -229,7 +229,8 @@ The following action types support remote execution:
 - `file:` — scripts/binaries execute on the remote host
 - `create_file:` — files are created on the remote filesystem
 - `remove_path:` — files/directories are removed from the remote filesystem
-- `copy_path:` — files are copied on the remote filesystem
+- `copy_path:` — files are copied on the remote filesystem (or transferred
+  between local and remote with `direction:`)
 - `edit_file:` — files are edited on the remote filesystem
 - `fetch_uri:` — fetched content is written to the remote filesystem
 - `change_directory:` — working directory is changed on the remote filesystem
