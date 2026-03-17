@@ -173,11 +173,20 @@ func (f *FetchURIStep) fetchURI(execCtx TTPExecutionContext) error {
 	absLocal := f.Location
 
 	if appFs == nil {
-		var err error
-		appFs = afero.NewOsFs()
-		absLocal, err = FetchAbs(f.Location, execCtx.Vars.WorkDir)
-		if err != nil {
-			return err
+		if execCtx.Backend != nil {
+			var err error
+			appFs, err = execCtx.Backend.GetFs()
+			if err != nil {
+				return fmt.Errorf("failed to get filesystem: %w", err)
+			}
+			// For remote execution, use paths as-is
+		} else {
+			var err error
+			appFs = afero.NewOsFs()
+			absLocal, err = FetchAbs(f.Location, execCtx.Vars.WorkDir)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

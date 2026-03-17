@@ -85,11 +85,19 @@ func (s *CreateFileStep) Template(execCtx TTPExecutionContext) error {
 }
 
 // Execute runs the step and returns an error if one occurs.
-func (s *CreateFileStep) Execute(_ TTPExecutionContext) (*ActResult, error) {
+func (s *CreateFileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	logging.L().Infof("Creating file %v", s.Path)
 	fsys := s.FileSystem
 	if fsys == nil {
-		fsys = afero.NewOsFs()
+		if execCtx.Backend != nil {
+			var err error
+			fsys, err = execCtx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get filesystem: %w", err)
+			}
+		} else {
+			fsys = afero.NewOsFs()
+		}
 	}
 
 	// check whether path already exists and

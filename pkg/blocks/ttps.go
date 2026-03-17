@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/facebookincubator/ttpforge/pkg/backends"
 	"github.com/facebookincubator/ttpforge/pkg/checks"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/platforms"
@@ -149,6 +150,12 @@ func (t *TTP) Execute(execCtx TTPExecutionContext) error {
 
 // RunSteps executes all of the steps in the given TTP.
 func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
+	// Initialize connection pool if not already set
+	if execCtx.ConnPool == nil {
+		execCtx.ConnPool = backends.NewConnectionPool()
+		defer execCtx.ConnPool.CloseAll()
+	}
+
 	// go to the configuration directory for this TTP
 	changeBack, err := t.chdir()
 	if err != nil {
@@ -212,7 +219,7 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 
 		// if the user specified custom success checks, run them now
 		if !execCtx.Cfg.NoChecks {
-			verifyError = step.VerifyChecks()
+			verifyError = step.VerifyChecks(execCtx)
 		}
 
 		if stepError != nil || verifyError != nil || shutdownFlag {

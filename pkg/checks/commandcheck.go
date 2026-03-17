@@ -49,28 +49,39 @@ func (c *CommandCheck) Verify(ctx VerificationContext) error {
 		return fmt.Errorf("command cannot be empty")
 	}
 
-	// Execute the command using platform-appropriate shell
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		// @lint-ignore G204
-		cmd = exec.Command("cmd.exe", "/c", c.Command)
-	} else {
-		// @lint-ignore G204
-		cmd = exec.Command("sh", "-c", c.Command)
-	}
+	var outputStr string
+	var exitCode int
 
-	output, err := cmd.CombinedOutput()
-	outputStr := string(output)
-	exitCode := 0
-
-	// Get the actual exit code
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			// Command failed to execute at all
+	if ctx.RunCommand != nil {
+		// Use the backend-aware command runner
+		var err error
+		outputStr, exitCode, err = ctx.RunCommand(c.Command)
+		if err != nil {
 			return fmt.Errorf("failed to execute command %q: %w", c.Command, err)
+		}
+	} else {
+		// Execute the command using platform-appropriate shell
+		var cmd *exec.Cmd
+		if runtime.GOOS == "windows" {
+			// @lint-ignore G204
+			cmd = exec.Command("cmd.exe", "/c", c.Command)
+		} else {
+			// @lint-ignore G204
+			cmd = exec.Command("sh", "-c", c.Command)
+		}
+
+		output, err := cmd.CombinedOutput()
+		outputStr = string(output)
+
+		// Get the actual exit code
+		if err != nil {
+			exitErr := &exec.ExitError{}
+			if errors.As(err, &exitErr) {
+				exitCode = exitErr.ExitCode()
+			} else {
+				// Command failed to execute at all
+				return fmt.Errorf("failed to execute command %q: %w", c.Command, err)
+			}
 		}
 	}
 

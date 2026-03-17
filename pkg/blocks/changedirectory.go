@@ -100,6 +100,12 @@ func (step *ChangeDirectoryStep) Execute(ctx TTPExecutionContext) (*ActResult, e
 	if fsys == nil {
 		if step.PreviousCDStep != nil && step.PreviousCDStep.FileSystem != nil {
 			fsys = step.PreviousCDStep.FileSystem
+		} else if ctx.Backend != nil {
+			var err error
+			fsys, err = ctx.Backend.GetFs()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get filesystem: %w", err)
+			}
 		} else {
 			fsys = afero.NewOsFs()
 		}
