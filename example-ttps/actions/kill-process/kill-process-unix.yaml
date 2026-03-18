@@ -21,8 +21,8 @@ steps:
       ps aux | grep ping | grep -v grep
       echo "================="
   - name: Killing the ping process
-    kill_process_id: ""
-    kill_process_name: "ping"
+    kill_process:
+      name: "ping"
     error_on_find_process_failure: true
   - name: Show processes
     inline: |

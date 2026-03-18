@@ -354,16 +354,8 @@ func detectAndValidateActionType(stepMap map[string]any, _ string, execCtx block
 		}
 	}
 
-	// Special case for kill_process which can use kill_process_name or kill_process_id
-	if _, hasName := stepMap["kill_process_name"]; hasName {
-		action := blocks.NewKillProcessStep()
-		if err := yaml.Unmarshal(stepYAML, action); err == nil {
-			if validationErr := action.Validate(execCtx); validationErr != nil {
-				return validationErr.Error()
-			}
-		}
-	}
-	if _, hasID := stepMap["kill_process_id"]; hasID {
+	// Special case for kill_process which uses a nested structure
+	if _, hasKillProcess := stepMap["kill_process"]; hasKillProcess {
 		action := blocks.NewKillProcessStep()
 		if err := yaml.Unmarshal(stepYAML, action); err == nil {
 			if validationErr := action.Validate(execCtx); validationErr != nil {
