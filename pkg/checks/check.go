@@ -76,6 +76,7 @@ func (c *Check) UnmarshalYAML(node *yaml.Node) error {
 	candidateTypeInstances := []Condition{
 		&PathExists{},
 		&CommandCheck{},
+		&OutputCheck{},
 	}
 	for _, candidateTypeInstance := range candidateTypeInstances {
 		err := node.Decode(candidateTypeInstance)

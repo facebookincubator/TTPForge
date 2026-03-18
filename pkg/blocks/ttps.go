@@ -188,8 +188,9 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 		// 1. step execution successful
 		// 2. step execution failed
 		// 3. shutdown signal received
+		var stepResult *ActResult
 		select {
-		case stepResult := <-execCtx.actionResultsChan:
+		case stepResult = <-execCtx.actionResultsChan:
 			// step execution successful - record results
 			execResult := &ExecutionResult{
 				ActResult: *stepResult,
@@ -219,7 +220,7 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 
 		// if the user specified custom success checks, run them now
 		if !execCtx.Cfg.NoChecks {
-			verifyError = step.VerifyChecks(execCtx)
+			verifyError = step.VerifyChecks(execCtx, stepResult)
 		}
 
 		if stepError != nil || verifyError != nil || shutdownFlag {

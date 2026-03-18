@@ -35,4 +35,7 @@ type VerificationContext struct {
 	// When set, command checks use this instead of local exec.
 	// Returns output, exit code, and error.
 	RunCommand func(command string) (output string, exitCode int, err error)
+	// StepOutput holds the combined stdout+stderr from the step that just ran.
+	// Empty when no step output is available.
+	StepOutput string
 }
