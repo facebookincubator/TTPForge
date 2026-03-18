@@ -28,15 +28,20 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/processutils"
 )
 
+// KillProcessConfig holds the configuration for the kill_process action
+type KillProcessConfig struct {
+	ID   string `yaml:"id,omitempty"`
+	Name string `yaml:"name,omitempty"`
+}
+
 // KillProcessStep kills a process using ID/name
 // Its intended use is simulating malicious programs stopping
 // critical applications/processes
 type KillProcessStep struct {
 	actionDefaults            `yaml:",inline"`
-	ProcessID                 string `yaml:"kill_process_id,omitempty"`
-	ProcessName               string `yaml:"kill_process_name,omitempty"`
-	ErrorOnFindProcessFailure bool   `yaml:"error_on_find_process_failure,omitempty"`
-	ErrorOnKillFailure        bool   `yaml:"error_on_kill_failure,omitempty"`
+	KillProcess               KillProcessConfig `yaml:"kill_process,omitempty"`
+	ErrorOnFindProcessFailure bool              `yaml:"error_on_find_process_failure,omitempty"`
+	ErrorOnKillFailure        bool              `yaml:"error_on_kill_failure,omitempty"`
 }
 
 // NewKillProcessStep creates a new KillProcessStep instance and returns a pointer to it.
@@ -47,7 +52,7 @@ func NewKillProcessStep() *KillProcessStep {
 // IsNil checks if the step is nil or empty and returns a boolean value.
 func (s *KillProcessStep) IsNil() bool {
 	switch {
-	case s.ProcessID == "" && s.ProcessName == "":
+	case s.KillProcess.ID == "" && s.KillProcess.Name == "":
 		return true
 	default:
 		return false
@@ -56,21 +61,20 @@ func (s *KillProcessStep) IsNil() bool {
 
 // Validate validates the step, checking for the necessary attributes and dependencies.
 func (s *KillProcessStep) Validate(_ TTPExecutionContext) error {
-	if s.IsNil() {
-		return fmt.Errorf("Both Process ID and Process Name cannot be empty")
+	if s.KillProcess.ID == "" && s.KillProcess.Name == "" {
+		return fmt.Errorf("either id or name must be provided")
 	}
-	if s.ProcessID == "" {
-		logging.L().Infof("Processing using process name: %v", s.ProcessName)
-		return nil
+	if s.KillProcess.ID != "" && s.KillProcess.Name != "" {
+		return fmt.Errorf("only one of id or name can be provided, not both")
 	}
-	// Not handling for overflow
-	processID, err := strconv.Atoi(s.ProcessID)
-	if err != nil {
-		return fmt.Errorf("Invalid Process ID: %v", s.ProcessID)
-	}
-
-	if processID <= 0 {
-		return fmt.Errorf("Process ID cannot be less than or equal to 0")
+	if s.KillProcess.ID != "" {
+		processID, err := strconv.Atoi(s.KillProcess.ID)
+		if err != nil {
+			return fmt.Errorf("invalid process id: %v", s.KillProcess.ID)
+		}
+		if processID <= 0 {
+			return fmt.Errorf("process id must be greater than 0")
+		}
 	}
 	return nil
 }
@@ -82,11 +86,11 @@ func (s *KillProcessStep) Validate(_ TTPExecutionContext) error {
 // error: error if template resolution fails, nil otherwise
 func (s *KillProcessStep) Template(execCtx TTPExecutionContext) error {
 	var err error
-	s.ProcessID, err = execCtx.templateStep(s.ProcessID)
+	s.KillProcess.ID, err = execCtx.templateStep(s.KillProcess.ID)
 	if err != nil {
 		return err
 	}
-	s.ProcessName, err = execCtx.templateStep(s.ProcessName)
+	s.KillProcess.Name, err = execCtx.templateStep(s.KillProcess.Name)
 	if err != nil {
 		return err
 	}
@@ -96,10 +100,8 @@ func (s *KillProcessStep) Template(execCtx TTPExecutionContext) error {
 // extractPIDs - extracts process IDs based on the user input.
 // Returns a slice of process IDs to be killed.
 func (s *KillProcessStep) extractPIDs() ([]int, error) {
-	// If process ID is invalid then we try to process using process name, if even that fails then we throw an error
-	processID, _ := strconv.Atoi(s.ProcessID)
-
-	if processID > 0 {
+	if s.KillProcess.ID != "" {
+		processID, _ := strconv.Atoi(s.KillProcess.ID)
 		logging.L().Infof("Using Process ID: %v", processID)
 
 		err := processutils.VerifyPIDExists(processID)
@@ -111,27 +113,26 @@ func (s *KillProcessStep) extractPIDs() ([]int, error) {
 			return []int{}, nil
 		}
 		return []int{processID}, nil
-	} else if s.ProcessName != "" {
-		logging.L().Infof("Finding processes with name: %v", s.ProcessName)
-
-		processes, err := processutils.GetPIDsByName(s.ProcessName)
-		if err != nil {
-			logging.L().Errorf("Error while trying to get PIDs from name: %+v", err)
-			if s.ErrorOnFindProcessFailure {
-				return nil, err
-			}
-			return []int{}, nil
-		}
-
-		pids := make([]int, len(processes))
-		for i, pid := range processes {
-			pids[i] = int(pid)
-		}
-
-		return pids, nil
 	}
 
-	return nil, fmt.Errorf("No valid process ID or name provided")
+	// s.KillProcess.Name must be set (validated in Validate())
+	logging.L().Infof("Finding processes with name: %v", s.KillProcess.Name)
+
+	processes, err := processutils.GetPIDsByName(s.KillProcess.Name)
+	if err != nil {
+		logging.L().Errorf("Error while trying to get PIDs from name: %+v", err)
+		if s.ErrorOnFindProcessFailure {
+			return nil, err
+		}
+		return []int{}, nil
+	}
+
+	pids := make([]int, len(processes))
+	for i, pid := range processes {
+		pids[i] = int(pid)
+	}
+
+	return pids, nil
 }
 
 // killProcesses - kills all processes with the given process IDs.
@@ -192,9 +193,9 @@ func (s *KillProcessStep) executeRemote(execCtx TTPExecutionContext) (*ActResult
 	backend := execCtx.Backend
 
 	var pids []int
-	processID, _ := strconv.Atoi(s.ProcessID)
 
-	if processID > 0 {
+	if s.KillProcess.ID != "" {
+		processID, _ := strconv.Atoi(s.KillProcess.ID)
 		exists, err := backend.ProcessExists(processID)
 		if err != nil || !exists {
 			if s.ErrorOnFindProcessFailure {
@@ -204,9 +205,10 @@ func (s *KillProcessStep) executeRemote(execCtx TTPExecutionContext) (*ActResult
 			return &ActResult{}, nil
 		}
 		pids = []int{processID}
-	} else if s.ProcessName != "" {
+	} else {
+		// s.KillProcess.Name must be set (validated in Validate())
 		var err error
-		pids, err = backend.FindProcessesByName(s.ProcessName)
+		pids, err = backend.FindProcessesByName(s.KillProcess.Name)
 		if err != nil {
 			if s.ErrorOnFindProcessFailure {
 				return nil, err
@@ -214,8 +216,6 @@ func (s *KillProcessStep) executeRemote(execCtx TTPExecutionContext) (*ActResult
 			logging.L().Infof("No processes found to kill")
 			return &ActResult{}, nil
 		}
-	} else {
-		return nil, fmt.Errorf("no valid process ID or name provided")
 	}
 
 	for _, pid := range pids {

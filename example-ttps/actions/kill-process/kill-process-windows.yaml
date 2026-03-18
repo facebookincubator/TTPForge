@@ -20,8 +20,8 @@ steps:
       tasklist | findstr PING.EXE
       echo "================="
   - name: Killing the ping process
-    kill_process_id: ""
-    kill_process_name: "PING.EXE"
+    kill_process:
+      name: "PING.EXE"
   - name: Show processes
     executor: cmd
     inline: |

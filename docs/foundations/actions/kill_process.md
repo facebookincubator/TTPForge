@@ -24,20 +24,36 @@ ttpforge run examples//actions/kill-process/kill-process-[unix/windows].yaml
 
 You can specify the following YAML fields for the `kill_process:` action:
 
-- `kill_process_id:` (type: `string`) the process ID of the process that
-you wish to kill
-- `kill_process_name:` (type: `string`) the process name of the process that
-you wish to kill
+- `id:` (type: `string`) the process ID of the process that you wish to kill
+- `name:` (type: `string`) the process name of the process that you wish to kill
 - `error_on_find_process_failure:` (type: `bool`) whether to raise an error if
 finding the process name/id fails
 - `error_on_kill_failure:` (type: `bool`) whether to raise an error if killing
  the process fails
 
+**Note:** You must specify exactly one of `id` or `name`. You cannot specify both,
+and at least one is required.
+
+## Example Usage
+
+Kill a process by name:
+
+```yaml
+- name: Kill ping process
+  kill_process:
+    name: "ping"
+  error_on_find_process_failure: true
+```
+
+Kill a process by ID:
+
+```yaml
+- name: Kill process by ID
+  kill_process:
+    id: "1234"
+```
+
 ## Additional Notes
 
-If both `kill_process_id` and `kill_process_name` are specified, the action
-will only consider process ID as long as it is valid.
-If an invalid `kill_process_id` is specified, the action will fall back to
-using `kill_process_name` to kill the processes.
 Both the flags `error_on_find_process_failure` and `error_on_kill_failure` are
 set to `false` by default.

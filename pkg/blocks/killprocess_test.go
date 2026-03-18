@@ -41,22 +41,20 @@ func TestKillProcessExecute(t *testing.T) {
 		expectValidateError bool
 	}{
 		{
-			name:        "Kill non-existent process with process id - throw error",
-			description: "Trying to kill a process with process id that doesn't exist",
+			name:        "Kill non-existent process with id - throw error",
+			description: "Trying to kill a process with id that doesn't exist",
 			step: &KillProcessStep{
-				ProcessID:                 "123",
-				ProcessName:               "ping",
+				KillProcess:               KillProcessConfig{ID: "123"},
 				ErrorOnFindProcessFailure: true,
 			},
 			createProcess:      false,
 			expectExecuteError: true,
 		},
 		{
-			name:        "Kill non-existent process with process id - continue on error",
-			description: "Trying to kill a process with process id that doesn't exist",
+			name:        "Kill non-existent process with id - continue on error",
+			description: "Trying to kill a process with id that doesn't exist",
 			step: &KillProcessStep{
-				ProcessID:                 "123456789",
-				ProcessName:               "ping",
+				KillProcess:               KillProcessConfig{ID: "123456789"},
 				ErrorOnFindProcessFailure: false,
 				ErrorOnKillFailure:        false,
 			},
@@ -64,80 +62,79 @@ func TestKillProcessExecute(t *testing.T) {
 			expectExecuteError: false,
 		},
 		{
-			// Test might throw an error on stress run
-			name:        "Kill non-existent process with process name - throw error",
-			description: "Trying to kill a process with process name that doesn't exist",
+			name:        "Kill non-existent process with name - throw error",
+			description: "Trying to kill a process with name that doesn't exist",
 			step: &KillProcessStep{
-				ProcessID:                 "",
-				ProcessName:               "ping",
+				KillProcess:               KillProcessConfig{Name: "ttpforge_nonexistent_process_12345"},
 				ErrorOnFindProcessFailure: true,
 			},
 			createProcess:      false,
 			expectExecuteError: true,
 		},
 		{
-			name:        "Kill non-existent process with process name - continue on error",
-			description: "Trying to kill a process with process name that doesn't exist",
+			name:        "Kill non-existent process with name - continue on error",
+			description: "Trying to kill a process with name that doesn't exist",
 			step: &KillProcessStep{
-				ProcessID:   "",
-				ProcessName: "ping",
+				KillProcess: KillProcessConfig{Name: "ttpforge_nonexistent_process_12345"},
 			},
 			createProcess:      false,
 			expectExecuteError: false,
 		},
 		{
-			name:        "Kill non-existent process with process id",
-			description: "Trying to kill a process with process id that exists",
+			name:        "Kill existent process with id",
+			description: "Trying to kill a process with id that exists",
 			step: &KillProcessStep{
-				ProcessID:   "123456789",
-				ProcessName: "ping",
+				KillProcess: KillProcessConfig{ID: "123456789"},
 			},
 			createProcess:      true,
 			expectExecuteError: false,
 		},
 		{
-			name:        "Kill existent process with process name",
-			description: "Trying to kill a process with process name that exists",
+			name:        "Kill existent process with name",
+			description: "Trying to kill a process with name that exists",
 			step: &KillProcessStep{
-				ProcessID:   "",
-				ProcessName: "ping",
+				KillProcess: KillProcessConfig{Name: "ping"},
 			},
 			createProcess:      true,
 			expectExecuteError: false,
 		},
 		{
-			name:        "Kill process invalid process id",
-			description: "Trying to kill a process with negative process id",
+			name:        "Kill process invalid id",
+			description: "Trying to kill a process with negative id",
 			step: &KillProcessStep{
-				ProcessID:   "-100",
-				ProcessName: "ping",
+				KillProcess: KillProcessConfig{ID: "-100"},
 			},
 			expectValidateError: true,
 		},
 		{
-			name:        "Kill process with no process id and name",
-			description: "Trying to kill a process with null process id and name",
+			name:        "Kill process with no id and name",
+			description: "Trying to kill a process with null id and name",
 			step: &KillProcessStep{
-				ProcessID:   "",
-				ProcessName: "",
+				KillProcess: KillProcessConfig{ID: "", Name: ""},
 			},
 			expectValidateError: true,
 		},
 		{
-			name:        "Kill process with char process id",
-			description: "Trying to kill a process with character process id",
+			name:        "Kill process with both id and name",
+			description: "Trying to kill a process with both id and name set",
 			step: &KillProcessStep{
-				ProcessID:   "ABCD",
-				ProcessName: "",
+				KillProcess: KillProcessConfig{ID: "123", Name: "ping"},
 			},
 			expectValidateError: true,
 		},
 		{
-			name:        "Kill process ID with templating",
+			name:        "Kill process with char id",
+			description: "Trying to kill a process with character id",
+			step: &KillProcessStep{
+				KillProcess: KillProcessConfig{ID: "ABCD"},
+			},
+			expectValidateError: true,
+		},
+		{
+			name:        "Kill process id with templating",
 			description: "Trying to kill a process with templating",
 			step: &KillProcessStep{
-				ProcessID:                 "{[{.StepVars.pid}]}",
-				ProcessName:               "ping",
+				KillProcess:               KillProcessConfig{ID: "{[{.StepVars.pid}]}"},
 				ErrorOnFindProcessFailure: true,
 			},
 			stepVars: map[string]string{
@@ -149,10 +146,9 @@ func TestKillProcessExecute(t *testing.T) {
 		},
 		{
 			name:        "Kill process name with templating",
-			description: "Trying to kill a process with process name and templating",
+			description: "Trying to kill a process with name and templating",
 			step: &KillProcessStep{
-				ProcessID:                 "",
-				ProcessName:               "{[{.StepVars.processName}]}",
+				KillProcess:               KillProcessConfig{Name: "{[{.StepVars.processName}]}"},
 				ErrorOnFindProcessFailure: true,
 			},
 			stepVars: map[string]string{
@@ -163,11 +159,10 @@ func TestKillProcessExecute(t *testing.T) {
 			expectExecuteError:  true,
 		},
 		{
-			name:        "Kill process ID with templating error",
-			description: "Trying to kill a process ID without proper templating",
+			name:        "Kill process id with templating error",
+			description: "Trying to kill a process id without proper templating",
 			step: &KillProcessStep{
-				ProcessID:   "{[{.StepVars.pid}]}",
-				ProcessName: "ping",
+				KillProcess: KillProcessConfig{ID: "{[{.StepVars.pid}]}"},
 			},
 			expectTemplateError: true,
 		},
@@ -175,8 +170,7 @@ func TestKillProcessExecute(t *testing.T) {
 			name:        "Kill process name with templating error",
 			description: "Trying to kill a process name without proper templating",
 			step: &KillProcessStep{
-				ProcessID:   "",
-				ProcessName: "{[{.StepVars.processName}]}",
+				KillProcess: KillProcessConfig{Name: "{[{.StepVars.processName}]}"},
 			},
 			expectTemplateError: true,
 		},
@@ -211,7 +205,7 @@ func TestKillProcessExecute(t *testing.T) {
 				require.NoError(t, error1)
 
 				// set the process id for execution
-				tc.step.ProcessID = strconv.Itoa(pid)
+				tc.step.KillProcess.ID = strconv.Itoa(pid)
 				_, err = os.FindProcess(pid)
 				require.NoError(t, err)
 			}
