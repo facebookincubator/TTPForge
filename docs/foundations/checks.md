@@ -16,9 +16,11 @@ confidence that:
    but that the file exists on disk
 2. **Commands produced expected output** - Verify services are running,
    processes exist, etc.
-3. **Exit codes match expectations** - Detect when operations fail
+3. **Step output is correct** - Inspect the stdout/stderr of the step
+   itself without re-running commands
+4. **Exit codes match expectations** - Detect when operations fail
    silently
-4. **Content integrity** - Ensure files weren't modified or corrupted
+5. **Content integrity** - Ensure files weren't modified or corrupted
    by security tools
 
 ## Available Check Types
@@ -129,6 +131,43 @@ checks:
     expect_exit_code: 0
     output_contains: "SUCCESS"
     output_regex: "[0-9]{4}-[0-9]{2}-[0-9]{2}"
+```
+
+### 3. Step Output Check
+
+Inspects the combined stdout+stderr from the step that just ran, without
+re-running any command or writing output to a file. This is useful when you
+want to verify that a step produced (or did not produce) specific output.
+
+**Fields:**
+
+- `output_contains` (optional): String that must appear in the step's output
+- `output_not_contains` (optional): String that must NOT appear in the step's output
+- `output_regex` (optional): Regex pattern to match against the step's output
+
+All three fields are optional and can be combined within a single check.
+
+**Example:**
+
+```yaml
+checks:
+  # Verify step output contains a string
+  - msg: "Running as root"
+    output_contains: "root"
+
+  # Verify step output does NOT contain a string
+  - msg: "No errors in output"
+    output_not_contains: "error"
+
+  # Verify step output matches a regex
+  - msg: "Hostname matches pattern"
+    output_regex: "web-[0-9]+"
+
+  # Combine multiple output conditions
+  - msg: "Output looks correct"
+    output_contains: "success"
+    output_not_contains: "warning"
+    output_regex: "completed in [0-9]+ms"
 ```
 
 ## Using Checks in TTP YAML

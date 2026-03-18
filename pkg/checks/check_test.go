@@ -33,6 +33,7 @@ func TestCheckVerify(t *testing.T) {
 		name                 string
 		contentStr           string
 		fsysContents         map[string][]byte
+		stepOutput           string
 		expectUnmarshalError bool
 		expectVerifyError    bool
 	}{
@@ -154,6 +155,67 @@ checksum:
 content_contains: "foo"`,
 			fsysContents: map[string][]byte{"payload.txt": []byte("foo")},
 		},
+		{
+			name: "Output Contains (Pass)",
+			contentStr: `msg: Running as root
+output_contains: "root"`,
+			stepOutput: "root\nweb-01\n",
+		},
+		{
+			name: "Output Contains (Fail)",
+			contentStr: `msg: Running as root
+output_contains: "root"`,
+			stepOutput:        "deploy\nweb-01\n",
+			expectVerifyError: true,
+		},
+		{
+			name: "Output Not Contains (Pass)",
+			contentStr: `msg: No errors in output
+output_not_contains: "error"`,
+			stepOutput: "success\nall good\n",
+		},
+		{
+			name: "Output Not Contains (Fail)",
+			contentStr: `msg: No errors in output
+output_not_contains: "error"`,
+			stepOutput:        "something went error here\n",
+			expectVerifyError: true,
+		},
+		{
+			name: "Output Regex (Pass)",
+			contentStr: `msg: Hostname matches pattern
+output_regex: "web-[0-9]+"`,
+			stepOutput: "root\nweb-01\n",
+		},
+		{
+			name: "Output Regex (Fail)",
+			contentStr: `msg: Hostname matches pattern
+output_regex: "web-[0-9]+"`,
+			stepOutput:        "root\ndb-server\n",
+			expectVerifyError: true,
+		},
+		{
+			name: "Output Regex Invalid Pattern",
+			contentStr: `msg: Bad regex
+output_regex: "[invalid"`,
+			stepOutput:        "test output",
+			expectVerifyError: true,
+		},
+		{
+			name: "Combined Output Checks (Pass)",
+			contentStr: `msg: Output meets all criteria
+output_contains: "root"
+output_not_contains: "error"
+output_regex: "root"`,
+			stepOutput: "root\nweb-01\n",
+		},
+		{
+			name: "Output Contains with Empty Step Output (Fail)",
+			contentStr: `msg: Should fail on empty output
+output_contains: "something"`,
+			stepOutput:        "",
+			expectVerifyError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -172,7 +234,7 @@ content_contains: "foo"`,
 			require.NoError(t, err)
 
 			// run verification
-			err = check.Verify(VerificationContext{FileSystem: fsys})
+			err = check.Verify(VerificationContext{FileSystem: fsys, StepOutput: tc.stepOutput})
 			if tc.expectVerifyError {
 				require.Error(t, err)
 				return

@@ -396,7 +396,8 @@ func (s *Step) ParseAction(node *yaml.Node) (Action, error) {
 
 // buildVerificationContext creates a VerificationContext for the given remote
 // connection name. If remoteName is empty, the context targets the local machine.
-func (s *Step) buildVerificationContext(execCtx TTPExecutionContext, remoteName string) (checks.VerificationContext, error) {
+// stepOutput is the combined stdout+stderr from the step that just ran.
+func (s *Step) buildVerificationContext(execCtx TTPExecutionContext, remoteName string, stepOutput string) (checks.VerificationContext, error) {
 	var activeBackend backends.ExecutionBackend
 	if remoteName != "" && execCtx.ConnPool != nil {
 		var err error
@@ -421,6 +422,7 @@ func (s *Step) buildVerificationContext(execCtx TTPExecutionContext, remoteName 
 
 	verificationCtx := checks.VerificationContext{
 		FileSystem: fsys,
+		StepOutput: stepOutput,
 	}
 
 	if activeBackend != nil {
@@ -453,11 +455,17 @@ func (s *Step) buildVerificationContext(execCtx TTPExecutionContext, remoteName 
 	return verificationCtx, nil
 }
 
-// VerifyChecks runs all checks and returns an error if any of them fail
-func (s *Step) VerifyChecks(execCtx TTPExecutionContext) error {
+// VerifyChecks runs all checks and returns an error if any of them fail.
+// result is the ActResult from the step execution; it may be nil.
+func (s *Step) VerifyChecks(execCtx TTPExecutionContext, result *ActResult) error {
 	if len(s.Checks) == 0 {
 		logging.L().Debugf("No checks defined for step %v", s.Name)
 		return nil
+	}
+
+	var stepOutput string
+	if result != nil {
+		stepOutput = result.Stdout + result.Stderr
 	}
 
 	for checkIdx, check := range s.Checks {
@@ -472,7 +480,7 @@ func (s *Step) VerifyChecks(execCtx TTPExecutionContext) error {
 			checkRemote = ""
 		}
 
-		verificationCtx, err := s.buildVerificationContext(execCtx, checkRemote)
+		verificationCtx, err := s.buildVerificationContext(execCtx, checkRemote, stepOutput)
 		if err != nil {
 			return fmt.Errorf("success check %d of step %q setup failed: %w", checkIdx+1, s.Name, err)
 		}
