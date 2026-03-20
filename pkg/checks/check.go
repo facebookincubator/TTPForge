@@ -44,7 +44,7 @@ type Check struct {
 	condition Condition
 }
 
-// GetRemote returns the per-check remote override (empty means inherit from step)
+// GetRemote returns the per-check remote override (empty means run locally on the runner)
 func (c *Check) GetRemote() string { return c.Remote }
 
 // Verify wraps the Verify method from the underlying condition
