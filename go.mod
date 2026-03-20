@@ -7,6 +7,7 @@ toolchain go1.25.5
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
+	github.com/creack/pty v1.1.17
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/pkg/sftp v1.13.7
@@ -25,7 +26,6 @@ require (
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/creack/pty v1.1.17 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect

@@ -20,6 +20,7 @@ THE SOFTWARE.
 package blocks
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -28,6 +29,7 @@ import (
 	"time"
 
 	"github.com/Netflix/go-expect"
+	"github.com/creack/pty"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
 )
@@ -39,6 +41,7 @@ import (
 // Chdir: Directory to change to before executing the command.
 // Responses: List of expected prompts and responses.
 // Timeout: Timeout duration for the expect command.
+// TerminalWidth: Width of the PTY in columns (default 512).
 // Executor: Shell to use for executing the command.
 // Environment: Environment variables for the command.
 // Inline: Inline script to execute.
@@ -48,6 +51,7 @@ type ExpectStep struct {
 	actionDefaults `yaml:",inline"`
 	Chdir          string                  `yaml:"chdir,omitempty"`
 	Timeout        int                     `yaml:"timeout,omitempty"`
+	TerminalWidth  int                     `yaml:"terminal_width,omitempty"`
 	Executor       string                  `yaml:"executor,omitempty"`
 	Expect         *ExpectSpec             `yaml:"expect,omitempty"`
 	Environment    map[string]string       `yaml:"env,omitempty"`
@@ -187,7 +191,7 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	}
 	defer func() {
 		if err := os.Chdir(originalDir); err != nil {
-			logging.L().Errorf("failed to change back to original directory: %w", err)
+			logging.L().Errorf("failed to change back to original directory: %v", err)
 		}
 	}()
 
@@ -197,11 +201,22 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		}
 	}
 
-	console, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithStdin(os.Stdin))
+	var transcript bytes.Buffer
+	console, err := expect.NewConsole(expect.WithStdout(os.Stdout, &transcript), expect.WithStdin(os.Stdin))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new console: %w", err)
 	}
 	defer console.Close()
+
+	// Set PTY width to prevent long commands from being truncated/wrapped.
+	// Default 80 columns is too narrow for device CLI prompts + commands.
+	termWidth := 512
+	if s.TerminalWidth > 0 {
+		termWidth = s.TerminalWidth
+	}
+	if err := pty.Setsize(console.Tty(), &pty.Winsize{Rows: 24, Cols: uint16(termWidth)}); err != nil {
+		logging.L().Warnf("failed to set terminal width: %v", err)
+	}
 
 	if s.Environment != nil {
 		for k, v := range s.Environment {
@@ -271,7 +286,7 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		return nil, fmt.Errorf("failed to expect EOF: %w", err)
 	}
 
-	return &ActResult{}, nil
+	return &ActResult{Stdout: transcript.String()}, nil
 }
 
 // prepareCommand prepares the command to be executed.
