@@ -52,15 +52,15 @@ func (o *OutputCheck) Verify(ctx VerificationContext) error {
 
 	if o.OutputContains != "" {
 		if !strings.Contains(output, o.OutputContains) {
-			return fmt.Errorf("step output does not contain %q. Output: %s",
-				o.OutputContains, output)
+			return fmt.Errorf("step output does not contain %q",
+				o.OutputContains)
 		}
 	}
 
 	if o.OutputNotContains != "" {
 		if strings.Contains(output, o.OutputNotContains) {
-			return fmt.Errorf("step output contains %q but should not. Output: %s",
-				o.OutputNotContains, output)
+			return fmt.Errorf("step output contains %q but should not",
+				o.OutputNotContains)
 		}
 	}
 
@@ -70,8 +70,8 @@ func (o *OutputCheck) Verify(ctx VerificationContext) error {
 			return fmt.Errorf("invalid regex pattern %q: %w", o.OutputRegex, err)
 		}
 		if !matched {
-			return fmt.Errorf("step output does not match regex %q. Output: %s",
-				o.OutputRegex, output)
+			return fmt.Errorf("step output does not match regex %q",
+				o.OutputRegex)
 		}
 	}
 
