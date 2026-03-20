@@ -469,14 +469,14 @@ func (s *Step) VerifyChecks(execCtx TTPExecutionContext, result *ActResult) erro
 	}
 
 	for checkIdx, check := range s.Checks {
-		// Resolve the effective remote for this check
+		// Resolve the effective remote for this check.
+		// Default (empty) → run on localhost (the runner).
+		// "local" → reserved alias, same as default (runner).
+		// "<connection_name>" → run on that named remote connection.
 		checkRemote := check.GetRemote()
 		switch checkRemote {
-		case "":
-			// No per-check override → inherit the step's remote
-			checkRemote = s.Remote
-		case "local":
-			// Explicit "local" → force local execution
+		case "", "local":
+			// No override or explicit "local" → run on the runner
 			checkRemote = ""
 		}
 
