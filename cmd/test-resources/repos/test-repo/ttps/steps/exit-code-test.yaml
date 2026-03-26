@@ -1,0 +1,6 @@
+---
+name: exit-code-test
+description: Tests that non-zero exit codes propagate correctly.
+steps:
+  - name: exit_with_code_4
+    inline: exit 4

@@ -21,7 +21,9 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -190,6 +192,35 @@ func TestRun(t *testing.T) {
 			checkRunCmdTestCase(t, tc)
 		})
 	}
+}
+
+// TestRunExitCodePropagation verifies that when a TTP step exits
+// with a specific non-zero exit code, the error returned by
+// Execute() wraps an exec.ExitError with that exact code. This
+// is what allows main() to call os.Exit with the real exit code
+// instead of always using 1.
+func TestRunExitCodePropagation(t *testing.T) {
+	testConfigFilePath := filepath.Join(testResourcesDir, "test-config.yaml")
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	rc := BuildRootCommand(&TestConfig{
+		Stdout: &stdoutBuf,
+		Stderr: &stderrBuf,
+	})
+	rc.SetArgs([]string{
+		"run",
+		"-c", testConfigFilePath,
+		testRepoName + "//steps/exit-code-test.yaml",
+	})
+	logMutex.Lock()
+	err := rc.Execute()
+	logMutex.Unlock()
+
+	require.Error(t, err)
+
+	var exitErr *exec.ExitError
+	require.True(t, errors.As(err, &exitErr), "error should wrap exec.ExitError, got: %T: %v", err, err)
+	assert.Equal(t, 4, exitErr.ExitCode(), "exit code should be 4")
 }
 
 // TestRunPathArguments checks that referencing relative paths in `--arg` values
