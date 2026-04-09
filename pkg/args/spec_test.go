@@ -80,7 +80,7 @@ func TestValidateArgs(t *testing.T) {
 				{
 					Name:    "beta",
 					Type:    "int",
-					Default: "1337",
+					Default: StringPtr("1337"),
 				},
 			},
 			argKvStrs: []string{
@@ -197,13 +197,43 @@ func TestValidateArgs(t *testing.T) {
 				{
 					Name:    "alpha",
 					Type:    "int",
-					Default: "wut",
+					Default: StringPtr("wut"),
 				},
 			},
 			argKvStrs: []string{
 				"alpha=1337",
 			},
 			wantError: true,
+		},
+		{
+			name: "Empty String Default Is Valid (Not Required)",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Default: StringPtr(""),
+				},
+			},
+			argKvStrs: []string{},
+			expectedResult: map[string]any{
+				"alpha": "",
+			},
+			wantError: false,
+		},
+		{
+			name: "Empty String Default Can Be Overridden",
+			specs: []Spec{
+				{
+					Name:    "alpha",
+					Default: StringPtr(""),
+				},
+			},
+			argKvStrs: []string{
+				"alpha=override",
+			},
+			expectedResult: map[string]any{
+				"alpha": "override",
+			},
+			wantError: false,
 		},
 		{
 			name: "Format with valid value",
@@ -344,7 +374,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: "yaml-file.txt",
+					Default: StringPtr("yaml-file.txt"),
 				},
 			},
 			argKvStrs:      []string{},
@@ -379,7 +409,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: cliFile,
+					Default: StringPtr(cliFile),
 				},
 			},
 			argKvStrs:      []string{},
@@ -414,7 +444,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: "./yaml-file.txt",
+					Default: StringPtr("./yaml-file.txt"),
 				},
 			},
 			argKvStrs:      []string{},
@@ -449,7 +479,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: "../cli/cli-file.txt",
+					Default: StringPtr("../cli/cli-file.txt"),
 				},
 			},
 			argKvStrs:      []string{},
@@ -484,7 +514,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: "yaml-file.txt",
+					Default: StringPtr("yaml-file.txt"),
 				},
 			},
 			argKvStrs: []string{
@@ -503,7 +533,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "default_file",
 					Type:    "path",
-					Default: "yaml-file.txt",
+					Default: StringPtr("yaml-file.txt"),
 				},
 				{
 					Name: "cli_file",

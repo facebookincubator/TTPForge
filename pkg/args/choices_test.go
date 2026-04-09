@@ -48,7 +48,7 @@ func TestValidateArgsChoices(t *testing.T) {
 				{
 					Name:    "alpha",
 					Choices: []string{"foo", "bar"},
-					Default: "baz",
+					Default: StringPtr("baz"),
 				},
 			},
 			argKvStrs: []string{
