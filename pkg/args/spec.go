@@ -34,11 +34,19 @@ import (
 type Spec struct {
 	Name    string   `yaml:"name"`
 	Type    string   `yaml:"type,omitempty"`
-	Default string   `yaml:"default,omitempty"`
+	Default *string  `yaml:"default,omitempty"`
 	Choices []string `yaml:"choices,omitempty"`
 	Format  string   `yaml:"regexp,omitempty"`
 
 	formatReg *regexp.Regexp
+}
+
+// StringPtr is a helper to create a *string from a string literal.
+// Useful for setting Default values in Spec definitions and tests.
+//
+//nolint:modernize // auto-fix produces invalid syntax for this pattern
+func StringPtr(s string) *string {
+	return &s
 }
 
 // ParseAndValidate checks that the provided arguments
@@ -71,16 +79,17 @@ func ParseAndValidate(specs []Spec, argsKvStrs []string, cliBaseDir string, defa
 
 		// set the default value, will be overwritten by passed value
 		// Path defaults are resolved relative to defaultBaseDir (typically the YAML directory)
-		if spec.Default != "" {
-			if !spec.isValidChoice(spec.Default) {
-				return nil, fmt.Errorf("invalid default value: %v, allowed values: %v ", spec.Default, strings.Join(spec.Choices, ", "))
+		if spec.Default != nil {
+			defaultStr := *spec.Default
+			if !spec.isValidChoice(defaultStr) {
+				return nil, fmt.Errorf("invalid default value: %v, allowed values: %v ", defaultStr, strings.Join(spec.Choices, ", "))
 			}
 
 			// For path types, resolve relative paths relative to defaultBaseDir
 			// Absolute paths and paths with shell variables are left as-is
-			defaultValue := spec.Default
-			if spec.Type == "path" && !filepath.IsAbs(spec.Default) && !fileutils.ContainsShellVariable(spec.Default) {
-				defaultValue = filepath.Join(defaultBaseDir, spec.Default)
+			defaultValue := defaultStr
+			if spec.Type == "path" && !filepath.IsAbs(defaultStr) && !fileutils.ContainsShellVariable(defaultStr) {
+				defaultValue = filepath.Join(defaultBaseDir, defaultStr)
 			}
 
 			defaultVal, err := spec.convertArgToType(defaultValue)
