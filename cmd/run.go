@@ -140,16 +140,15 @@ func findTTPByUUID(rc repos.RepoCollection, targetUUID string) (string, error) {
 			continue
 		}
 
-		// Use ParseTTP which only parses the preamble (before steps:)
-		// This avoids YAML parsing issues with Go templates in the steps section
-		ttp, err := parseutils.ParseTTP(content, ttpAbsPath)
+		// Parse only the preamble (before steps:) to avoid YAML issues with Go templates
+		preamble, err := parseutils.ParsePreamble(content, ttpAbsPath)
 		if err != nil {
 			logging.L().Debugf("Failed to parse TTP file %s: %v", ttpAbsPath, err)
 			continue
 		}
 
 		// Compare UUIDs (case-insensitive)
-		if strings.EqualFold(ttp.UUID, targetUUID) {
+		if strings.EqualFold(preamble.UUID, targetUUID) {
 			// Convert absolute path back to reference format
 			ref, err := rc.ConvertAbsPathToAbsRef(repo, ttpAbsPath)
 			if err != nil {

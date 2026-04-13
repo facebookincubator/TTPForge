@@ -124,30 +124,29 @@ func renderTemplatedTTPForValidation(ttpStr string, rp blocks.RenderParameters) 
 func extractDummyArgsFromTTP(ttpStr string) map[string]any {
 	dummyArgs := make(map[string]any)
 
-	// Use parseutils to parse the TTP header (which includes args but excludes steps)
-	// This handles template control structures in steps gracefully
-	ttp, err := parseutils.ParseTTP([]byte(ttpStr), "validation")
+	// Parse only the preamble (before steps:) to avoid template issues in steps
+	preamble, err := parseutils.ParsePreamble([]byte(ttpStr), "validation")
 	if err != nil {
 		logging.L().Debugf("Failed to parse TTP for arg extraction: %v", err)
 		return dummyArgs
 	}
 
 	// Create dummy values from parsed args
-	for _, arg := range ttp.Args {
+	for _, spec := range preamble.ArgSpecs {
 		// Check if there's a default value (highest priority)
-		if arg.Default != nil {
-			dummyArgs[arg.Name] = arg.Default
+		if spec.Default != nil {
+			dummyArgs[spec.Name] = *spec.Default
 			continue
 		}
 
 		// Check if there are choices (use first choice)
-		if len(arg.Choices) > 0 {
-			dummyArgs[arg.Name] = arg.Choices[0]
+		if len(spec.Choices) > 0 {
+			dummyArgs[spec.Name] = spec.Choices[0]
 			continue
 		}
 
 		// Generate dummy value based on type (lowest priority)
-		dummyArgs[arg.Name] = generateDummyValueForType(arg.Type)
+		dummyArgs[spec.Name] = generateDummyValueForType(spec.Type)
 	}
 
 	return dummyArgs
