@@ -60,6 +60,7 @@ type TTPExecutionVars struct {
 type TTPExecutionContext struct {
 	Cfg               TTPExecutionConfig
 	Vars              *TTPExecutionVars
+	GlobalEnv         map[string]string
 	StepResults       *StepResultsRecord
 	Backend           backends.ExecutionBackend
 	ConnPool          *backends.ConnectionPool

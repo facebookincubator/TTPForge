@@ -218,11 +218,15 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 		logging.L().Warnf("failed to set terminal width: %v", err)
 	}
 
-	if s.Environment != nil {
-		for k, v := range s.Environment {
-			if err := os.Setenv(k, v); err != nil {
-				return nil, fmt.Errorf("failed to set environment variable: %w", err)
-			}
+	// Set TTP-level env vars first, then step-level (step overrides TTP)
+	for k, v := range execCtx.GlobalEnv {
+		if err := os.Setenv(k, v); err != nil {
+			return nil, fmt.Errorf("failed to set environment variable: %w", err)
+		}
+	}
+	for k, v := range s.Environment {
+		if err := os.Setenv(k, v); err != nil {
+			return nil, fmt.Errorf("failed to set environment variable: %w", err)
 		}
 	}
 
