@@ -130,8 +130,9 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 
 	// Remote backend path: delegate to backend.RunCommand
 	if execCtx.Backend != nil {
-		// For remote execution, only pass explicitly declared env vars
-		expandedEnvAsList, err := execCtx.ExpandVariables(FetchEnv(e.Environment))
+		// For remote execution, pass TTP-level env + step env (no os.Environ)
+		envAsList := append(FetchEnv(execCtx.GlobalEnv), FetchEnv(e.Environment)...)
+		expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 		if err != nil {
 			return nil, err
 		}
@@ -153,8 +154,9 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 		logging.L().Debugw("executor found in path", "executor", e.Name)
 	}
 
-	// expand variables in environment (include inherited env for local execution)
-	envAsList := append(FetchEnv(e.Environment), os.Environ()...)
+	// Build environment: inherited → TTP-level → step-level (last wins)
+	envAsList := append(os.Environ(), FetchEnv(execCtx.GlobalEnv)...)
+	envAsList = append(envAsList, FetchEnv(e.Environment)...)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {
 		return nil, err
@@ -178,7 +180,9 @@ func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext)
 
 	// Remote backend path: delegate to backend.RunCommand
 	if execCtx.Backend != nil {
-		expandedEnvAsList, err := execCtx.ExpandVariables(FetchEnv(e.Environment))
+		// For remote execution, pass TTP-level env + step env (no os.Environ)
+		envAsList := append(FetchEnv(execCtx.GlobalEnv), FetchEnv(e.Environment)...)
+		expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 		if err != nil {
 			return nil, err
 		}
@@ -210,8 +214,9 @@ func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext)
 		logging.L().Debugw("executor found in path", "executor", e.Name)
 	}
 
-	// expand variables in environment (include inherited env for local execution)
-	envAsList := append(FetchEnv(e.Environment), os.Environ()...)
+	// Build environment: inherited → TTP-level → step-level (last wins)
+	envAsList := append(os.Environ(), FetchEnv(execCtx.GlobalEnv)...)
+	envAsList = append(envAsList, FetchEnv(e.Environment)...)
 	expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 	if err != nil {
 		return nil, err

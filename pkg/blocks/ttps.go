@@ -156,6 +156,11 @@ func (t *TTP) RunSteps(execCtx TTPExecutionContext) error {
 		defer execCtx.ConnPool.CloseAll()
 	}
 
+	// inject TTP-level environment variables into the execution context
+	if len(t.Environment) > 0 {
+		execCtx.GlobalEnv = t.Environment
+	}
+
 	// go to the configuration directory for this TTP
 	changeBack, err := t.chdir()
 	if err != nil {
