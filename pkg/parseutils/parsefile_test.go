@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseTTP(t *testing.T) {
+func TestParsePreamble(t *testing.T) {
 	tests := []struct {
 		name        string
 		ttpStr      string
@@ -68,7 +68,7 @@ args:
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := ParseTTP([]byte(tc.ttpStr), tc.name+".yaml")
+			_, err := ParsePreamble([]byte(tc.ttpStr), tc.name+".yaml")
 			if tc.expectError {
 				require.Error(t, err)
 			} else {

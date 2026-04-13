@@ -24,7 +24,9 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"github.com/facebookincubator/ttpforge/pkg/parseutils"
+	"github.com/facebookincubator/ttpforge/pkg/platforms"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -76,10 +78,14 @@ func gatherTTPsFromRepo(cfg *Config, repo string) ([]string, error) {
 	return ttpRefs, nil
 }
 
-func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech string) bool {
+func matchMitreData(preamble *blocks.PreambleFields, tactic string, technique string, subTech string) bool {
+	if preamble.MitreAttackMapping == nil {
+		return tactic == "" && technique == "" && subTech == ""
+	}
+	mitre := preamble.MitreAttackMapping
 	dataMatching := false
 	if tactic != "" {
-		for _, ttpTactic := range ttp.Mitre.Tactics {
+		for _, ttpTactic := range mitre.Tactics {
 			if strings.Contains(ttpTactic, tactic) {
 				dataMatching = true
 				break
@@ -91,7 +97,7 @@ func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech
 		dataMatching = false
 	}
 	if technique != "" {
-		for _, ttpTechnique := range ttp.Mitre.Techniques {
+		for _, ttpTechnique := range mitre.Techniques {
 			if strings.Contains(ttpTechnique, technique) {
 				dataMatching = true
 				break
@@ -103,7 +109,7 @@ func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech
 		dataMatching = false
 	}
 	if subTech != "" {
-		for _, ttpSubTech := range ttp.Mitre.Subtechniques {
+		for _, ttpSubTech := range mitre.SubTechniques {
 			if strings.Contains(ttpSubTech, subTech) {
 				dataMatching = true
 				break
@@ -116,11 +122,11 @@ func matchMitreData(ttp parseutils.TTP, tactic string, technique string, subTech
 	return true
 }
 
-func matchAuthor(ttp parseutils.TTP, author string) bool {
+func matchAuthor(preamble *blocks.PreambleFields, author string) bool {
 	if author == "" {
 		return true
 	}
-	for _, ttpAuthor := range ttp.Authors {
+	for _, ttpAuthor := range preamble.Authors {
 		if strings.Contains(strings.ToLower(ttpAuthor), strings.ToLower(author)) {
 			return true
 		}
@@ -160,7 +166,7 @@ func filterTTPs(cfg *Config, filters TTPFilters, ttpRefs []string, tally map[str
 			continue
 		}
 
-		ttp, err := parseutils.ParseTTP(content, path)
+		preamble, err := parseutils.ParsePreamble(content, path)
 		if err != nil {
 			if logConfig.Verbose {
 				fmt.Printf("Error parsing TTP ref: %v with error: %v\n", ttpRef, err)
@@ -168,16 +174,19 @@ func filterTTPs(cfg *Config, filters TTPFilters, ttpRefs []string, tally map[str
 			continue
 		}
 
-		if !matchMitreData(ttp, filters.Tactic, filters.Technique, filters.SubTech) {
+		if !matchMitreData(preamble, filters.Tactic, filters.Technique, filters.SubTech) {
 			continue
 		}
 
-		if !matchAuthor(ttp, filters.Author) {
+		if !matchAuthor(preamble, filters.Author) {
 			continue
 		}
 
 		if filterPlatform {
-			ttpPlatforms := ttp.Requirements.Platforms
+			var ttpPlatforms []platforms.Spec
+			if preamble.Requirements != nil {
+				ttpPlatforms = preamble.Requirements.Platforms
+			}
 			platformMatch := false
 			for _, p := range ttpPlatforms {
 				if platformSet[p.OS] {

@@ -40,6 +40,7 @@ type PreambleFields struct {
 	APIVersion         string              `yaml:"api_version,omitempty"`
 	UUID               string              `yaml:"uuid,omitempty"`
 	Name               string              `yaml:"name,omitempty"`
+	Authors            []string            `yaml:"authors,omitempty"`
 	Description        string              `yaml:"description"`
 	MitreAttackMapping *MitreAttack        `yaml:"mitre,omitempty"`
 	Requirements       *RequirementsConfig `yaml:"requirements,omitempty"`

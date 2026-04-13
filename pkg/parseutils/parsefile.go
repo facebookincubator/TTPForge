@@ -23,58 +23,21 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/blocks"
 	"gopkg.in/yaml.v3"
 )
 
-// Arg is a struct that represents the information of an argument in a TTP in a YAML file.
-type Arg struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description,omitempty"`
-	Type        string `yaml:"type,omitempty"`
-	Choices     []any  `yaml:"choices,omitempty"`
-	Default     any    `yaml:"default,omitempty"`
-}
-
-// Mitre is a struct that represents a MITRE tactic, technique, or subtechnique in a YAML file.
-type Mitre struct {
-	Tactics       []string `yaml:"tactics,omitempty"`
-	Techniques    []string `yaml:"techniques,omitempty"`
-	Subtechniques []string `yaml:"subtechniques,omitempty"`
-}
-
-// Platform is a struct that represents a platform in a YAML file like Windows, Linux, etc.
-type Platform struct {
-	OS string `yaml:"os"`
-}
-
-// Requirements is a struct that represents the requirements of a TTP in a YAML file like Platform (OS), superuser, etc.
-type Requirements struct {
-	Platforms []Platform `yaml:"platforms,omitempty"`
-	Superuser bool       `yaml:"superuser,omitempty"`
-}
-
-// TTP is a struct that represents a TTP in a YAML file.
-type TTP struct {
-	APIVersion   string       `yaml:"api_version"`
-	UUID         string       `yaml:"uuid"`
-	Name         string       `yaml:"name"`
-	Authors      []string     `yaml:"authors,omitempty"`
-	Description  string       `yaml:"description"`
-	Requirements Requirements `yaml:"requirements,omitempty"`
-	Mitre        Mitre        `yaml:"mitre,omitempty"`
-	Args         []Arg        `yaml:"args,omitempty"`
-}
-
-// ParseTTP parses a YAML file and returns a map of the contents.
-func ParseTTP(data []byte, filename string) (TTP, error) {
-	// Find steps: in data
+// ParsePreamble parses the preamble of a TTP YAML file into the canonical
+// blocks.PreambleFields struct. It truncates at the steps: boundary to avoid
+// parsing issues with Go templates in the steps section.
+func ParsePreamble(data []byte, filename string) (*blocks.PreambleFields, error) {
 	stepsIndex := bytes.Index(data, []byte("\nsteps:"))
 	if stepsIndex != -1 {
 		data = data[:stepsIndex+1]
 	}
-	var ttp TTP
-	if err := yaml.Unmarshal(data, &ttp); err != nil {
-		return TTP{}, fmt.Errorf("Failed to unmarshal file %s: %w", filename, err)
+	var preamble blocks.PreambleFields
+	if err := yaml.Unmarshal(data, &preamble); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal preamble from %s: %w", filename, err)
 	}
-	return ttp, nil
+	return &preamble, nil
 }

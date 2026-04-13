@@ -75,7 +75,7 @@ func buildEnumAuthorsCommand(cfg *Config) *cobra.Command {
 					continue
 				}
 
-				ttp, err := parseutils.ParseTTP(content, path)
+				preamble, err := parseutils.ParsePreamble(content, path)
 				if err != nil {
 					if logConfig.Verbose {
 						fmt.Printf("Error parsing TTP ref: %v with error: %v\n", ttpRef, err)
@@ -85,7 +85,7 @@ func buildEnumAuthorsCommand(cfg *Config) *cobra.Command {
 
 				// Aggregate authors
 				hasValidAuthor := false
-				for _, author := range ttp.Authors {
+				for _, author := range preamble.Authors {
 					// Normalize author name (trim spaces)
 					author = strings.TrimSpace(author)
 					if author == "" {
