@@ -25,11 +25,13 @@ import (
 )
 
 // requiredFieldPatterns defines regex patterns for detecting required top-level fields
+// requiredFieldPatterns defines regex patterns for detecting required top-level fields.
+// Note: "steps" is not checked here as it is validated by preprocess.Parse()
+// (called in ValidatePreamble) and ValidateStructure().
 var requiredFieldPatterns = map[string]*regexp.Regexp{
 	"name":        regexp.MustCompile(`(?m)^name:`),
 	"uuid":        regexp.MustCompile(`(?m)^uuid:`),
 	"api_version": regexp.MustCompile(`(?m)^api_version:`),
-	"steps":       regexp.MustCompile(`(?m)^steps:`),
 }
 
 // ValidateRequiredFields checks that all required top-level fields are present

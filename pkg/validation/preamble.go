@@ -25,99 +25,61 @@ import (
 	"strings"
 
 	"github.com/facebookincubator/ttpforge/pkg/blocks"
-	"github.com/facebookincubator/ttpforge/pkg/preprocess"
-	"gopkg.in/yaml.v3"
 )
 
-// ValidatePreamble validates description, MITRE ATT&CK, and preamble field values
-// using both basic structure checks and semantic validation from the blocks package
-// Note: Required field presence checks are handled in ValidateRequiredFields
-func ValidatePreamble(ttpMap map[string]any, ttpBytes []byte, result *Result) {
+var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+// ValidatePreamble validates preamble field values using the canonical
+// blocks.PreambleFields struct parsed via parseutils.ParsePreambleOnly.
+func ValidatePreamble(preamble *blocks.PreambleFields, result *Result) {
 	// Validate api_version value
-	if apiVer, ok := ttpMap["api_version"]; ok {
-		verStr := fmt.Sprintf("%v", apiVer)
-		if verStr != "1.0" && verStr != "2.0" && verStr != "1" && verStr != "2" {
-			result.AddWarning(fmt.Sprintf("Unusual api_version: %v (typically 1.0 or 2.0)", apiVer))
+	if preamble.APIVersion != "" {
+		ver := preamble.APIVersion
+		if ver != "1.0" && ver != "2.0" && ver != "1" && ver != "2" {
+			result.AddWarning(fmt.Sprintf("Unusual api_version: %v (typically 1.0 or 2.0)", ver))
 		}
 	}
 
 	// Validate uuid format
-	if uuid, ok := ttpMap["uuid"]; ok {
-		uuidStr := fmt.Sprintf("%v", uuid)
-		uuidPattern := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
-		if !uuidPattern.MatchString(uuidStr) {
-			result.AddError(fmt.Sprintf("Invalid UUID format: %s (expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)", uuidStr))
+	if preamble.UUID != "" {
+		if !uuidPattern.MatchString(preamble.UUID) {
+			result.AddError(fmt.Sprintf("Invalid UUID format: %s (expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)", preamble.UUID))
 		}
 	}
 
 	// Validate name value
-	if name, ok := ttpMap["name"]; ok {
-		nameStr := fmt.Sprintf("%v", name)
-		if strings.TrimSpace(nameStr) == "" {
+	if preamble.Name != "" {
+		if strings.TrimSpace(preamble.Name) == "" {
 			result.AddError("'name' cannot be empty")
 		}
-		if regexp.MustCompile(`^\d`).MatchString(nameStr) {
-			result.AddWarning(fmt.Sprintf("TTP name should not start with a number: %s", nameStr))
+		if regexp.MustCompile(`^\d`).MatchString(preamble.Name) {
+			result.AddWarning(fmt.Sprintf("TTP name should not start with a number: %s", preamble.Name))
 		}
 	}
 
-	// Validate authors value
-	if authors, ok := ttpMap["authors"]; ok {
-		authorsList, isList := authors.([]any)
-		if !isList {
-			result.AddWarning("'authors' should be a list")
-		} else if len(authorsList) == 0 {
-			result.AddWarning("'authors' list cannot be empty")
-		} else {
-			for i, author := range authorsList {
-				authorStr := fmt.Sprintf("%v", author)
-				if author == nil || strings.TrimSpace(authorStr) == "" {
-					result.AddWarning(fmt.Sprintf("'authors' entry %d cannot be empty", i))
-				}
+	// Validate authors
+	if len(preamble.Authors) == 0 {
+		// not an error — authors are optional
+	} else {
+		for i, author := range preamble.Authors {
+			if strings.TrimSpace(author) == "" {
+				result.AddWarning(fmt.Sprintf("'authors' entry %d cannot be empty", i))
 			}
 		}
 	}
 
 	// Validate description
-	if desc, ok := ttpMap["description"]; ok {
-		descStr := fmt.Sprintf("%v", desc)
-		if strings.TrimSpace(descStr) == "" || len(strings.TrimSpace(descStr)) < 10 {
-			result.AddWarning("'description' should be more detailed")
-		}
-	} else {
-		result.AddWarning("Consider adding a 'description' field")
+	if strings.TrimSpace(preamble.Description) == "" || len(strings.TrimSpace(preamble.Description)) < 10 {
+		result.AddWarning("'description' should be more detailed")
 	}
 
 	// Validate MITRE ATT&CK
-	if mitre, ok := ttpMap["mitre"]; ok {
-		_, isMap := mitre.(map[string]any)
-		if !isMap {
-			result.AddError("'mitre' must be a dictionary")
-			return
-		}
-	} else {
+	if preamble.MitreAttackMapping == nil {
 		result.AddInfo("Consider adding MITRE ATT&CK mappings under 'mitre' field")
 	}
 
-	// Semantic validation using blocks package
-	preprocessResult, err := preprocess.Parse(ttpBytes)
-	if err != nil {
-		result.AddError(fmt.Sprintf("Preamble preprocessing failed: %v", err))
-		return
-	}
-
-	type PreambleContainer struct {
-		blocks.PreambleFields `yaml:",inline"`
-	}
-	var preamble PreambleContainer
-	err = yaml.Unmarshal(preprocessResult.PreambleBytes, &preamble)
-	if err != nil {
-		result.AddError(fmt.Sprintf("Failed to unmarshal YAML preamble: %v", err))
-		return
-	}
-
-	// Validate using blocks package (strict=false means UUID format check is skipped)
-	err = preamble.Validate(false)
+	// Semantic validation using blocks package (validates requirements, mitre tactics, etc.)
+	err := preamble.Validate(false)
 	if err != nil {
 		result.AddError(err.Error())
 	}

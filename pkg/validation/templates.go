@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/facebookincubator/ttpforge/pkg/args"
 	"gopkg.in/yaml.v3"
 )
 
@@ -36,18 +37,13 @@ var (
 )
 
 // ValidateTemplateReferences validates that template variables reference defined args/outputvars
-// and that all defined args are actually used
-func ValidateTemplateReferences(ttpMap map[string]any, result *Result) {
+// and that all defined args are actually used.
+// argSpecs comes from the parsed preamble; ttpMap is needed for steps/outputvar scanning.
+func ValidateTemplateReferences(argSpecs []args.Spec, ttpMap map[string]any, result *Result) {
 	definedArgs := make(map[string]bool)
-	if argsVal, ok := ttpMap["args"]; ok {
-		if argsList, isList := argsVal.([]any); isList {
-			for _, arg := range argsList {
-				if argMap, isMap := arg.(map[string]any); isMap {
-					if nameVal, ok := argMap["name"]; ok {
-						definedArgs[fmt.Sprintf("%v", nameVal)] = true
-					}
-				}
-			}
+	for _, spec := range argSpecs {
+		if spec.Name != "" {
+			definedArgs[spec.Name] = true
 		}
 	}
 
