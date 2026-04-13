@@ -22,6 +22,7 @@ package validation
 import (
 	"fmt"
 
+	"github.com/facebookincubator/ttpforge/pkg/parseutils"
 	"github.com/facebookincubator/ttpforge/pkg/repos"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
@@ -99,27 +100,34 @@ func ValidateTTP(ttpFilePath string, fsys afero.Fs, repo repos.Repo) *Result {
 
 	ttpContent := string(ttpBytes)
 
-	// Check required fields first - this always runs regardless of YAML parsing success
+	// Check required fields (name, uuid, api_version) via regex — runs
+	// regardless of YAML parsing success
 	ValidateRequiredFields(ttpContent, result)
 
-	// Run structural validation checks
+	// Structural validation via yaml.Node API (steps is last key, is sequence, non-empty)
 	ValidateStructure(ttpContent, result)
 
-	// Attempt to parse YAML
+	// Parse preamble into the canonical struct — this is the single preamble
+	// parse that preamble, args, and template validation all share
+	preamble, err := parseutils.ParsePreamble(ttpBytes, ttpFilePath)
+	if err != nil {
+		result.AddWarning(fmt.Sprintf("Preamble parsing had issues: %v - skipping preamble validation", err))
+	} else {
+		ValidatePreamble(preamble, result)
+		ValidateArgs(preamble.ArgSpecs, result)
+	}
+
+	// Template reference validation needs the map for step/outputvar scanning
+	// but uses the parsed preamble for arg names
 	var ttpMap map[string]any
 	err = yaml.Unmarshal(ttpBytes, &ttpMap)
 	if err != nil {
-		// If YAML parsing fails, it's likely due to templates
-		result.AddWarning(fmt.Sprintf("YAML parsing had issues: %v - skipping full validation", err))
-	} else {
-		// YAML parsed successfully - run all structure-based validations
-		ValidatePreamble(ttpMap, ttpBytes, result)
-		ValidateRequirements(ttpMap, result)
-		ValidateArgs(ttpMap, result)
-		ValidateTemplateReferences(ttpMap, result)
+		result.AddWarning(fmt.Sprintf("YAML parsing had issues: %v - skipping template validation", err))
+	} else if preamble != nil {
+		ValidateTemplateReferences(preamble.ArgSpecs, ttpMap, result)
 	}
 
-	// Run blocks package validation
+	// Integration validation — best-effort full parse with dummy args
 	ValidateIntegration(ttpFilePath, ttpBytes, repo, result)
 
 	return result

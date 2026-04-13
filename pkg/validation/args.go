@@ -27,68 +27,42 @@ import (
 	"github.com/facebookincubator/ttpforge/pkg/args"
 )
 
-var (
-	namingPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
-)
+var namingPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
-// ValidateArgs validates argument definitions
-func ValidateArgs(ttpMap map[string]any, result *Result) {
-	argsVal, ok := ttpMap["args"]
-	if !ok {
-		return
-	}
-
-	argsList, isList := argsVal.([]any)
-	if !isList {
-		result.AddError("'args' must be a list")
-		return
-	}
-
+// ValidateArgs validates argument definitions from the parsed preamble.
+func ValidateArgs(argSpecs []args.Spec, result *Result) {
 	seenArgs := make(map[string]bool)
-	for i, arg := range argsList {
-		argMap, isMap := arg.(map[string]any)
-		if !isMap {
-			result.AddError(fmt.Sprintf("Argument %d must be a dictionary", i+1))
-			continue
-		}
+	validTypes := args.GetValidArgTypes()
+	validTypesMap := make(map[string]bool)
+	for _, t := range validTypes {
+		validTypesMap[t] = true
+	}
 
-		nameVal, hasName := argMap["name"]
-		if !hasName {
+	for i, spec := range argSpecs {
+		if spec.Name == "" {
 			result.AddError(fmt.Sprintf("Argument %d missing 'name' field", i+1))
 			continue
 		}
 
-		argName := fmt.Sprintf("%v", nameVal)
-
-		if seenArgs[argName] {
-			result.AddError(fmt.Sprintf("Duplicate argument name: %s", argName))
+		if seenArgs[spec.Name] {
+			result.AddError(fmt.Sprintf("Duplicate argument name: %s", spec.Name))
 		}
-		seenArgs[argName] = true
+		seenArgs[spec.Name] = true
 
-		if !namingPattern.MatchString(argName) {
-			result.AddWarning(fmt.Sprintf("Argument name should be lowercase with underscores: %s", argName))
+		if !namingPattern.MatchString(spec.Name) {
+			result.AddWarning(fmt.Sprintf("Argument name should be lowercase with underscores: %s", spec.Name))
 		}
 
-		if argType, ok := argMap["type"]; ok {
-			typeStr := fmt.Sprintf("%v", argType)
-			validTypes := args.GetValidArgTypes()
-			validTypesMap := make(map[string]bool)
-			for _, t := range validTypes {
-				validTypesMap[t] = true
-			}
-			if !validTypesMap[typeStr] {
-				result.AddError(fmt.Sprintf("Invalid argument type: %s (valid: %s)", typeStr, strings.Join(validTypes, ", ")))
+		if spec.Type != "" {
+			if !validTypesMap[spec.Type] {
+				result.AddError(fmt.Sprintf("Invalid argument type: %s (valid: %s)", spec.Type, strings.Join(validTypes, ", ")))
 			}
 		} else {
-			result.AddInfo(fmt.Sprintf("Argument '%s' has no type specified (defaults to string)", argName))
+			result.AddInfo(fmt.Sprintf("Argument '%s' has no type specified (defaults to string)", spec.Name))
 		}
 
-		if _, ok := argMap["description"]; !ok {
-			result.AddWarning(fmt.Sprintf("Argument '%s' should have a description", argName))
-		}
-
-		if _, ok := argMap["default"]; !ok {
-			result.AddInfo(fmt.Sprintf("Argument '%s' has no default value", argName))
+		if spec.Default == nil {
+			result.AddInfo(fmt.Sprintf("Argument '%s' has no default value", spec.Name))
 		}
 	}
 }
