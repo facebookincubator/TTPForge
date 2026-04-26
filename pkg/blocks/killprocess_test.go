@@ -44,7 +44,7 @@ func TestKillProcessExecute(t *testing.T) {
 			name:        "Kill non-existent process with id - throw error",
 			description: "Trying to kill a process with id that doesn't exist",
 			step: &KillProcessStep{
-				KillProcess:               KillProcessConfig{ID: "123"},
+				KillProcess:               KillProcessConfig{ID: "123456789"},
 				ErrorOnFindProcessFailure: true,
 			},
 			createProcess:      false,
