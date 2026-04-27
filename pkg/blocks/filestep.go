@@ -30,12 +30,13 @@ import (
 // FileStep represents a step in a process that consists of a main action,
 // a cleanup action, and additional metadata.
 type FileStep struct {
-	actionDefaults `yaml:",inline"`
-	FilePath       string                  `yaml:"file,omitempty"`
-	Executor       string                  `yaml:"executor,omitempty"`
-	Environment    map[string]string       `yaml:"env,omitempty"`
-	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
-	Args           []string                `yaml:"args,omitempty,flow"`
+	actionDefaults      `yaml:",inline"`
+	timedActionDefaults `yaml:",inline"`
+	FilePath            string                  `yaml:"file,omitempty"`
+	Executor            string                  `yaml:"executor,omitempty"`
+	Environment         map[string]string       `yaml:"env,omitempty"`
+	Outputs             map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	Args                []string                `yaml:"args,omitempty,flow"`
 }
 
 // NewFileStep creates a new FileStep instance and returns a pointer to it.
@@ -73,6 +74,10 @@ func (f *FileStep) Validate(execCtx TTPExecutionContext) error {
 		f.Executor = InferExecutor(f.FilePath)
 	}
 
+	if _, err := f.resolveTimeout(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -102,7 +107,11 @@ func (f *FileStep) Template(execCtx TTPExecutionContext) error {
 
 // Execute runs the step and returns an error if one occurs.
 func (f *FileStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
+	timeout, err := f.resolveTimeout()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// Resolve file path at execution time

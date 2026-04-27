@@ -167,7 +167,7 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 	cmd.Dir = execCtx.Vars.WorkDir
 	cmd.Stdin = strings.NewReader(body)
 
-	return streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+	return streamAndCapture(cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 }
 
 // Execute runs the binary with arguments
@@ -232,7 +232,7 @@ func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext)
 
 	cmd.Env = expandedEnvAsList
 	cmd.Dir = execCtx.Vars.WorkDir
-	return streamAndCapture(*cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
+	return streamAndCapture(cmd, execCtx.Cfg.Stdout, execCtx.Cfg.Stderr)
 }
 
 // InferExecutor infers the executor based on the file extension and

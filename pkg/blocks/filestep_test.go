@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/yaml.v3"
 )
@@ -95,4 +96,17 @@ func getDefaultExecutor() string {
 		return ExecutorCmd
 	}
 	return ExecutorSh
+}
+
+func TestFileStepValidateRejectsLongTimeoutWithoutOptIn(t *testing.T) {
+	content := `name: test_file_step
+file: script.sh
+step_timeout: 7h`
+	var f FileStep
+	execCtx := NewTTPExecutionContext()
+	err := yaml.Unmarshal([]byte(content), &f)
+	require.NoError(t, err)
+	err = f.Validate(execCtx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "long_running")
 }
