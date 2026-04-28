@@ -97,7 +97,13 @@ func defaultStreamWriter(prefix string) *bufferedWriter {
 	}
 }
 
-func streamAndCapture(cmd exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
+// streamAndCapture takes cmd by pointer because os/exec.Cmd contains internal
+// state (notably the watchdog goroutine started by CommandContext, which holds
+// a reference to cmd.Process) that is unsafe to copy. Passing by value used to
+// be benign only because the previous 100m default timeout never expired in
+// practice; with user-controlled step_timeout values it will, and the watchdog
+// would dereference a nil Process on the original copy.
+func streamAndCapture(cmd *exec.Cmd, stdout, stderr io.Writer) (*ActResult, error) {
 	if stdout == nil {
 		stdout = &bufferedWriter{
 			writer: &zapWriter{

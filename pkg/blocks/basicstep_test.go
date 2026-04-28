@@ -21,6 +21,7 @@ package blocks
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -161,6 +162,43 @@ outputvar: foo`
 	_, err = s.Execute(execCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "line1\nline2\n\nline4\n", execCtx.Vars.StepVars["foo"], "outputvar should be set")
+}
+
+func TestBasicStepValidateRejectsLongTimeoutWithoutOptIn(t *testing.T) {
+	content := `name: test_basic_step
+inline: echo hi
+step_timeout: 7h`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "long_running")
+}
+
+func TestBasicStepExecuteHonorsShortStepTimeout(t *testing.T) {
+	// Use a bash-internal busy loop rather than `sleep N`. `sleep` forks a
+	// child of bash that inherits the stdout/stderr pipes; after bash gets
+	// SIGKILL'd at the deadline, cmd.Wait() blocks until the orphaned sleep
+	// also exits (it would naturally end at 5s). A pure-bash loop has no
+	// descendants holding the pipes, so kill takes effect immediately.
+	content := `name: test_basic_step
+inline: while true; do :; done
+step_timeout: 500ms`
+	var s BasicStep
+	execCtx := NewTTPExecutionContext()
+	err := yaml.Unmarshal([]byte(content), &s)
+	require.NoError(t, err)
+	err = s.Validate(execCtx)
+	require.NoError(t, err)
+
+	start := time.Now()
+	_, err = s.Execute(execCtx)
+	elapsed := time.Since(start)
+
+	require.Error(t, err, "Execute should fail when inline outlasts step_timeout")
+	assert.Less(t, elapsed, 3*time.Second, "subprocess was not killed near the step_timeout deadline")
 }
 
 func TestBasicStepExecuteOutputsToAndOverwritesOutputVar(t *testing.T) {

@@ -23,22 +23,19 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 	"github.com/facebookincubator/ttpforge/pkg/outputs"
 )
 
-// DefaultExecutionTimeout is the default timeout for step execution.
-const DefaultExecutionTimeout = 100 * time.Minute
-
 // BasicStep is a type that represents a basic execution step.
 type BasicStep struct {
-	actionDefaults `yaml:",inline"`
-	ExecutorName   string                  `yaml:"executor,omitempty"`
-	Inline         string                  `yaml:"inline,flow"`
-	Environment    map[string]string       `yaml:"env,omitempty"`
-	Outputs        map[string]outputs.Spec `yaml:"outputs,omitempty"`
+	actionDefaults      `yaml:",inline"`
+	timedActionDefaults `yaml:",inline"`
+	ExecutorName        string                  `yaml:"executor,omitempty"`
+	Inline              string                  `yaml:"inline,flow"`
+	Environment         map[string]string       `yaml:"env,omitempty"`
+	Outputs             map[string]outputs.Spec `yaml:"outputs,omitempty"`
 }
 
 // NewBasicStep creates a new BasicStep instance with an initialized Act struct.
@@ -69,6 +66,10 @@ func (b *BasicStep) Validate(execCtx TTPExecutionContext) error {
 		b.ExecutorName = ExecutorBash
 	}
 
+	if _, err := b.resolveTimeout(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -84,7 +85,11 @@ func (b *BasicStep) Template(execCtx TTPExecutionContext) error {
 
 // Execute runs the step and returns an error if one occurs.
 func (b *BasicStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultExecutionTimeout)
+	timeout, err := b.resolveTimeout()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if b.Inline == "" {
