@@ -30,6 +30,39 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TestSubTTPCleanupWithFailingStep is a regression test for a nil-pointer panic
+// that occurred when a sub-TTP step's cleanup returned (nil, err). The error was
+// swallowed by startCleanupForCompletedSteps, leaving a nil entry in the results
+// slice that aggregateResults then dereferenced.
+func TestSubTTPCleanupWithFailingStep(t *testing.T) {
+	fsys := makeTestFsForSubTTPs(t)
+	spec := repos.Spec{Name: "b", Path: "repos/b"}
+
+	var step SubTTPStep
+	err := yaml.Unmarshal([]byte(`name: failing-cleanup
+ttp: with/failing-cleanup.yaml`), &step)
+	require.NoError(t, err)
+
+	repo, err := spec.Load(fsys, "")
+	require.NoError(t, err)
+
+	execCtx := NewTTPExecutionContext()
+	execCtx.Cfg = TTPExecutionConfig{Repo: repo}
+
+	require.NoError(t, step.Validate(execCtx))
+	require.NoError(t, step.Template(execCtx))
+
+	result, err := step.Execute(execCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "sub_step_1_output\n", result.Stdout)
+
+	// Running cleanup must not panic even when a sub-step's cleanup fails.
+	cleanupAction := step.GetDefaultCleanupAction()
+	_, err = cleanupAction.Execute(execCtx)
+	// An error is acceptable; a panic is not.
+	_ = err
+}
+
 func makeTestFsForSubTTPs(t *testing.T) afero.Fs {
 	fsys, err := testutils.MakeAferoTestFs(map[string][]byte{
 		"repos/a/" + repos.RepoConfigFileName: []byte(`ttp_search_paths: ["myttps"]`),
@@ -62,6 +95,13 @@ steps:
     inline: echo sub_step_2_output
     cleanup:
       inline: echo cleanup_sub_step_2`),
+		"repos/b/ttps/with/failing-cleanup.yaml": []byte(`name: with-failing-cleanup
+description: test sub ttp where a cleanup step fails
+steps:
+  - name: sub_step_1
+    inline: echo sub_step_1_output
+    cleanup:
+      inline: exit 1`),
 	},
 	)
 	require.NoError(t, err)

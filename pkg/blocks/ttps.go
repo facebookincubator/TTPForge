@@ -326,6 +326,9 @@ func (t *TTP) startCleanupForCompletedSteps(execCtx TTPExecutionContext) ([]*Act
 		logging.L().Infof("Cleaning Up Step #%d: %q", cleanupIdx+1, stepToCleanup.Name)
 		cleanupResult, err := stepToCleanup.Cleanup(execCtx)
 		// must be careful to put these in step order, not in execution (reverse) order
+		if cleanupResult == nil {
+			cleanupResult = &ActResult{}
+		}
 		cleanupResults[cleanupIdx] = cleanupResult
 		if err != nil {
 			logging.L().Errorf("error cleaning up step: %v", err)
