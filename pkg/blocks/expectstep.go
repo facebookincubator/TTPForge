@@ -214,7 +214,8 @@ func (s *ExpectStep) Execute(execCtx TTPExecutionContext) (*ActResult, error) {
 	if s.TerminalWidth > 0 {
 		termWidth = s.TerminalWidth
 	}
-	if err := pty.Setsize(console.Tty(), &pty.Winsize{Rows: 24, Cols: uint16(termWidth)}); err != nil {
+	ws := newWinsize(24, termWidth)
+	if err := pty.Setsize(console.Tty(), &ws); err != nil {
 		logging.L().Warnf("failed to set terminal width: %v", err)
 	}
 
