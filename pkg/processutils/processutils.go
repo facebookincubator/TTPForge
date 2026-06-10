@@ -21,7 +21,7 @@ package processutils
 
 import (
 	"fmt"
-	"github.com/shirou/gopsutil/process"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 // GetPIDsByName returns a list of process IDs that match the given process name
