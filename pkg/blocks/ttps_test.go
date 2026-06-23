@@ -178,7 +178,7 @@ func TestTTP(t *testing.T) {
 	testCases := []struct {
 		name               string
 		content            string
-		args               map[string]interface{}
+		args               map[string]any
 		expectedByIndexOut map[int]string
 		expectedByNameOut  map[string]string
 		expectExecuteError bool
@@ -235,7 +235,7 @@ steps:
   - name: optional_step_2
     inline: echo "optional step 2"
 {{ end }}`,
-			args: map[string]interface{}{
+			args: map[string]any{
 				"arg1":               "victory",
 				"do_optional_step_2": true,
 			},
@@ -266,7 +266,7 @@ steps:
     inline: echo "first output is baz"
   - name: step3
     inline: echo "arg value is {{ .Args.arg1 }}"`,
-			args: map[string]interface{}{
+			args: map[string]any{
 				"arg1": "victory",
 			},
 			expectedByIndexOut: map[int]string{
