@@ -36,8 +36,7 @@ func main() {
 		logging.L().Errorf("failed to run command:\n\t%v", err)
 		// extract the actual exit code from the command if available
 		exitCode := 1
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			exitCode = exitErr.ExitCode()
 		}
 		os.Exit(exitCode)
