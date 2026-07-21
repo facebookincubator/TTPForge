@@ -23,6 +23,18 @@ package blocks
 
 import "github.com/creack/pty"
 
+// pty.Winsize's Rows/Cols are uint16 in the fbcode-vendored creack/pty but uint
+// in the upstream module's Windows variant, so a fixed cast fails one build or
+// the other. setDim infers the field's own integer type and converts to it,
+// letting this compile under both the internal buck opt-win build and the OSS
+// GOOS=windows cross-compile.
 func newWinsize(rows, cols int) pty.Winsize {
-	return pty.Winsize{Rows: uint(rows), Cols: uint(cols)}
+	var ws pty.Winsize
+	setDim(&ws.Rows, rows)
+	setDim(&ws.Cols, cols)
+	return ws
+}
+
+func setDim[T ~uint | ~uint16](dst *T, v int) {
+	*dst = T(v)
 }
