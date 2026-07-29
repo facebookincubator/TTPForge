@@ -47,7 +47,7 @@ func checkPlatformInputValidity(platforms []string) error {
 		found := slices.Contains(allowedPlatforms, p)
 		if !found {
 			fmt.Printf("Pick a valid platform out of these: %v\n", allowedPlatforms)
-			return fmt.Errorf("Invalid platform: %s", p)
+			return fmt.Errorf("invalid platform: %s", p)
 		}
 	}
 	return nil
@@ -68,11 +68,11 @@ func gatherTTPsFromRepo(cfg *Config, repo string) ([]string, error) {
 		fmt.Printf("Fetching repo: %s\n", repo)
 		r, err := cfg.repoCollection.GetRepo(repo)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get repo %s: %w", repo, err)
+			return nil, fmt.Errorf("failed to get repo %s: %w", repo, err)
 		}
 		ttpRefs, err = r.ListTTPs()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to list TTPs in repo %s: %w", repo, err)
+			return nil, fmt.Errorf("failed to list TTPs in repo %s: %w", repo, err)
 		}
 	}
 	return ttpRefs, nil
