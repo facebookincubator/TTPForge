@@ -38,7 +38,7 @@ func GetPIDsByName(processName string) ([]int32, error) {
 		}
 	}
 	if len(pids) == 0 {
-		return nil, fmt.Errorf("No process found with name: %s", processName)
+		return nil, fmt.Errorf("no process found with name: %s", processName)
 	}
 	return pids, nil
 }
@@ -54,5 +54,5 @@ func VerifyPIDExists(pid int) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("No process found with PID: %d", pid)
+	return fmt.Errorf("no process found with PID: %d", pid)
 }
