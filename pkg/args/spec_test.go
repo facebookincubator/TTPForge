@@ -80,7 +80,7 @@ func TestValidateArgs(t *testing.T) {
 				{
 					Name:    "beta",
 					Type:    "int",
-					Default: StringPtr("1337"),
+					Default: new("1337"),
 				},
 			},
 			argKvStrs: []string{
@@ -197,7 +197,7 @@ func TestValidateArgs(t *testing.T) {
 				{
 					Name:    "alpha",
 					Type:    "int",
-					Default: StringPtr("wut"),
+					Default: new("wut"),
 				},
 			},
 			argKvStrs: []string{
@@ -210,7 +210,7 @@ func TestValidateArgs(t *testing.T) {
 			specs: []Spec{
 				{
 					Name:    "alpha",
-					Default: StringPtr(""),
+					Default: new(""),
 				},
 			},
 			argKvStrs: []string{},
@@ -224,7 +224,7 @@ func TestValidateArgs(t *testing.T) {
 			specs: []Spec{
 				{
 					Name:    "alpha",
-					Default: StringPtr(""),
+					Default: new(""),
 				},
 			},
 			argKvStrs: []string{
@@ -374,7 +374,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: StringPtr("yaml-file.txt"),
+					Default: new("yaml-file.txt"),
 				},
 			},
 			argKvStrs:      []string{},
@@ -409,7 +409,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: StringPtr(cliFile),
+					Default: new(cliFile),
 				},
 			},
 			argKvStrs:      []string{},
@@ -444,7 +444,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: StringPtr("./yaml-file.txt"),
+					Default: new("./yaml-file.txt"),
 				},
 			},
 			argKvStrs:      []string{},
@@ -479,7 +479,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: StringPtr("../cli/cli-file.txt"),
+					Default: new("../cli/cli-file.txt"),
 				},
 			},
 			argKvStrs:      []string{},
@@ -514,7 +514,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "file",
 					Type:    "path",
-					Default: StringPtr("yaml-file.txt"),
+					Default: new("yaml-file.txt"),
 				},
 			},
 			argKvStrs: []string{
@@ -533,7 +533,7 @@ func TestPathArgHandling(t *testing.T) {
 				{
 					Name:    "default_file",
 					Type:    "path",
-					Default: StringPtr("yaml-file.txt"),
+					Default: new("yaml-file.txt"),
 				},
 				{
 					Name: "cli_file",
