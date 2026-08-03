@@ -31,7 +31,7 @@ func CreateProcessToTerminate() (int, error) {
 	cmd := exec.Command("ping", "-n", "60", "127.0.0.1")
 	err := cmd.Start()
 	if err != nil {
-		return 0, fmt.Errorf("Failed to start process: %w", err)
+		return 0, fmt.Errorf("failed to start process: %w", err)
 	}
 	pid := cmd.Process.Pid
 	return pid, nil
