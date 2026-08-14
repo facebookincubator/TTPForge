@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 /*
 Copyright © 2023-present, Meta Platforms, Inc. and affiliates
