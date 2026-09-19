@@ -22,6 +22,8 @@ package blocks
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBashExecutor(t *testing.T) {
@@ -71,5 +73,48 @@ func TestBashExecutor(t *testing.T) {
 				t.Fatalf("expected output %#v, got %#v", tc.expectedResult, result.Stdout)
 			}
 		})
+	}
+}
+
+func TestRemoteExecutorRejectsInvalidForwardedEnvName(t *testing.T) {
+	for _, execution := range []struct {
+		name     string
+		filePath string
+	}{
+		{name: "script"},
+		{name: "file", filePath: "script"},
+	} {
+		for _, shell := range []struct {
+			name       string
+			unsafeName string
+		}{
+			{name: ExecutorSh, unsafeName: "TTPFORGE_TEST_BAD;name"},
+			{name: ExecutorPowershell, unsafeName: "TTPFORGE_TEST_BAD$(name)"},
+			{name: ExecutorCmd, unsafeName: "TTPFORGE_TEST_BAD&name"},
+		} {
+			for _, source := range []string{"flag", "environment"} {
+				t.Run(execution.name+"/"+shell.name+"/"+source, func(t *testing.T) {
+					t.Setenv(ForwardEnvVar, "")
+					t.Setenv(shell.unsafeName, "value")
+					backend := newMockBackend("remote")
+					execCtx := TTPExecutionContext{
+						Vars:    &TTPExecutionVars{},
+						Backend: backend,
+					}
+					if source == "flag" {
+						execCtx.Cfg.ForwardEnv = []string{shell.unsafeName}
+					} else {
+						t.Setenv(ForwardEnvVar, shell.unsafeName)
+					}
+					executor := NewExecutor(shell.name, "echo execution", execution.filePath, nil, nil)
+
+					result, err := executor.Execute(t.Context(), execCtx)
+
+					assert.ErrorContains(t, err, "invalid forwarded environment variable name")
+					assert.Nil(t, result)
+					assert.Empty(t, backend.getCommands())
+				})
+			}
+		}
 	}
 }

@@ -29,6 +29,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFetchAbs(t *testing.T) {
@@ -219,5 +220,151 @@ func TestFetchEnv(t *testing.T) {
 
 			assert.Equal(t, tt.expected, result)
 		})
+	}
+}
+
+func TestForwardedEnv(t *testing.T) {
+	t.Setenv(ForwardEnvVar, "")
+	t.Setenv("TTPFORGE_TEST_ABSENT", "")
+	assert.NoError(t, os.Unsetenv("TTPFORGE_TEST_ABSENT"))
+
+	tests := []struct {
+		name     string
+		set      map[string]string
+		names    []string
+		expected []string
+	}{
+		{
+			name:     "No names requested",
+			names:    nil,
+			expected: nil,
+		},
+		{
+			name:     "Requested name is unset locally",
+			names:    []string{"TTPFORGE_TEST_ABSENT"},
+			expected: nil,
+		},
+		{
+			name:     "Single forwarded variable",
+			set:      map[string]string{"TTPFORGE_TEST_SESSION": "session-abc123"},
+			names:    []string{"TTPFORGE_TEST_SESSION"},
+			expected: []string{"TTPFORGE_TEST_SESSION=session-abc123"},
+		},
+		{
+			name:     "Empty value is still forwarded",
+			set:      map[string]string{"TTPFORGE_TEST_EMPTY": ""},
+			names:    []string{"TTPFORGE_TEST_EMPTY"},
+			expected: []string{"TTPFORGE_TEST_EMPTY="},
+		},
+		{
+			name: "Portable variable names are accepted",
+			set: map[string]string{
+				"_":                   "underscore",
+				"ttpforge_test_lower": "lowercase",
+				"TTPFORGE_TEST_2":     "digit-after-first",
+			},
+			names: []string{"_", "ttpforge_test_lower", "TTPFORGE_TEST_2"},
+			expected: []string{
+				"_=underscore",
+				"ttpforge_test_lower=lowercase",
+				"TTPFORGE_TEST_2=digit-after-first",
+			},
+		},
+		{
+			name:     "Empty names are ignored in both sources",
+			set:      map[string]string{ForwardEnvVar: ", ,\t"},
+			names:    []string{"", " \t "},
+			expected: nil,
+		},
+		{
+			name: "Set and unset names mixed, order preserved",
+			set: map[string]string{
+				"TTPFORGE_TEST_ONE": "1",
+				"TTPFORGE_TEST_TWO": "2",
+			},
+			names:    []string{"TTPFORGE_TEST_ONE", "TTPFORGE_TEST_ABSENT", "TTPFORGE_TEST_TWO"},
+			expected: []string{"TTPFORGE_TEST_ONE=1", "TTPFORGE_TEST_TWO=2"},
+		},
+		{
+			name: "Names come from TTPFORGE_FORWARD_ENV alone",
+			set: map[string]string{
+				"TTPFORGE_TEST_ONE": "1",
+				ForwardEnvVar:       "TTPFORGE_TEST_ONE",
+			},
+			expected: []string{"TTPFORGE_TEST_ONE=1"},
+		},
+		{
+			name: "TTPFORGE_FORWARD_ENV list is split and trimmed",
+			set: map[string]string{
+				"TTPFORGE_TEST_ONE": "1",
+				"TTPFORGE_TEST_TWO": "2",
+				ForwardEnvVar:       " TTPFORGE_TEST_ONE , TTPFORGE_TEST_TWO ",
+			},
+			expected: []string{"TTPFORGE_TEST_ONE=1", "TTPFORGE_TEST_TWO=2"},
+		},
+		{
+			name: "A name given both ways is emitted once",
+			set: map[string]string{
+				"TTPFORGE_TEST_ONE": "1",
+				ForwardEnvVar:       "TTPFORGE_TEST_ONE",
+			},
+			names:    []string{"TTPFORGE_TEST_ONE"},
+			expected: []string{"TTPFORGE_TEST_ONE=1"},
+		},
+		{
+			name:     "Empty TTPFORGE_FORWARD_ENV forwards nothing",
+			set:      map[string]string{ForwardEnvVar: ""},
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.set {
+				t.Setenv(k, v)
+			}
+
+			result, err := ForwardedEnv(tt.names)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestForwardedEnvRejectsInvalidNames(t *testing.T) {
+	t.Setenv(ForwardEnvVar, "")
+	t.Setenv("TTPFORGE_TEST_SAFE", "safe")
+
+	for _, tc := range []struct {
+		name    string
+		invalid string
+	}{
+		{name: "POSIX command separator", invalid: "TTPFORGE_TEST_BAD;printf injected"},
+		{name: "PowerShell subexpression", invalid: "TTPFORGE_TEST_BAD$(Write-Output injected)"},
+		{name: "cmd command separator", invalid: "TTPFORGE_TEST_BAD&echo injected&"},
+		{name: "Digit first", invalid: "1TTPFORGE_TEST_BAD"},
+		{name: "Interior whitespace", invalid: "TTPFORGE TEST_BAD"},
+		{name: "Non-ASCII letter", invalid: "TTPFORGE_TEST_\u00e9"},
+	} {
+		for _, source := range []string{"explicit", "environment"} {
+			for _, set := range []bool{true, false} {
+				t.Run(fmt.Sprintf("%s/%s/set=%t", tc.name, source, set), func(t *testing.T) {
+					t.Setenv(tc.invalid, "must-not-forward")
+					if !set {
+						require.NoError(t, os.Unsetenv(tc.invalid))
+					}
+					names := []string{"TTPFORGE_TEST_SAFE"}
+					if source == "environment" {
+						t.Setenv(ForwardEnvVar, tc.invalid)
+					} else {
+						names = append(names, tc.invalid)
+					}
+
+					result, err := ForwardedEnv(names)
+					require.ErrorContains(t, err, "invalid forwarded environment variable name")
+					assert.Nil(t, result)
+				})
+			}
+		}
 	}
 }
