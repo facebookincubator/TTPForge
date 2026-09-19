@@ -239,6 +239,62 @@ The following action types support remote execution:
 Output from remote `inline:` and `file:` steps is streamed line-by-line in
 real time, matching the behavior of local execution.
 
+## Environment Variables
+
+Remote `inline:` and `file:` steps receive TTP-level and step-level `env`
+values, but do not inherit the runner's full environment. To forward selected
+variables from TTPForge's process environment, use either form:
+
+```bash
+ttpforge run my-ttp.yaml --forward-env EXAMPLE_RUN_ID --forward-env EXAMPLE_TRACE_ID
+TTPFORGE_FORWARD_ENV='EXAMPLE_RUN_ID, EXAMPLE_TRACE_ID' ttpforge run my-ttp.yaml
+```
+
+The flag is repeatable. `TTPFORGE_FORWARD_ENV` accepts a comma-separated list.
+Names from both sources are trimmed, merged, and deduplicated, with flag names
+first. Unset variables are skipped; variables set to an empty string are
+forwarded. Values use the existing remote command environment handling and do
+not require SSH `AcceptEnv` configuration.
+
+After trimming, names must match `[A-Za-z_][A-Za-z0-9_]*`. An invalid name
+fails the remote step before running its command, even if the variable is unset.
+
+Forwarded values are passed literally, including any `$forge.` references.
+TTP-level and step-level `env` values still expand those references.
+
+When the same name appears at multiple levels, later values override earlier
+ones:
+
+1. Forwarded variables from the runner.
+2. TTP-level `env`.
+3. Step-level `env`.
+
+For example, run this TTP with
+`EXAMPLE_RUN_ID=runner ttpforge run my-ttp.yaml --forward-env EXAMPLE_RUN_ID`:
+
+```yaml
+api_version: "2.0"
+name: remote-env-precedence
+env:
+  EXAMPLE_RUN_ID: ttp
+steps:
+  - name: connect-target
+    connect:
+      host: target.example.com
+      auth: agent
+      connection_name: target
+  - name: ttp-value
+    remote: target
+    inline: printf '%s\n' "$EXAMPLE_RUN_ID"
+  - name: step-value
+    remote: target
+    env:
+      EXAMPLE_RUN_ID: step
+    inline: printf '%s\n' "$EXAMPLE_RUN_ID"
+```
+
+The first remote command prints `ttp`; the second prints `step`.
+
 ## How Remote Actions Work
 
 Remote actions use one of two mechanisms:
