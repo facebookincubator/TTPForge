@@ -130,12 +130,18 @@ func (e *ScriptExecutor) Execute(ctx context.Context, execCtx TTPExecutionContex
 
 	// Remote backend path: delegate to backend.RunCommand
 	if execCtx.Backend != nil {
-		// For remote execution, pass TTP-level env + step env (no os.Environ)
+		forwardedEnv, err := ForwardedEnv(execCtx.Cfg.ForwardEnv)
+		if err != nil {
+			return nil, err
+		}
+
+		// Forwarded values are literal; only TTP-authored values expand variables.
 		envAsList := append(FetchEnv(execCtx.GlobalEnv), FetchEnv(e.Environment)...)
 		expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 		if err != nil {
 			return nil, err
 		}
+		expandedEnvAsList = append(forwardedEnv, expandedEnvAsList...)
 
 		stdoutW, stderrW, flushWriters := resolveStreamWriters(execCtx)
 		stdout, stderr, err := execCtx.Backend.RunCommand(ctx, e.Name, body, nil, expandedEnvAsList, execCtx.Vars.WorkDir, stdoutW, stderrW)
@@ -180,12 +186,18 @@ func (e *FileExecutor) Execute(ctx context.Context, execCtx TTPExecutionContext)
 
 	// Remote backend path: delegate to backend.RunCommand
 	if execCtx.Backend != nil {
-		// For remote execution, pass TTP-level env + step env (no os.Environ)
+		forwardedEnv, err := ForwardedEnv(execCtx.Cfg.ForwardEnv)
+		if err != nil {
+			return nil, err
+		}
+
+		// Forwarded values are literal; only TTP-authored values expand variables.
 		envAsList := append(FetchEnv(execCtx.GlobalEnv), FetchEnv(e.Environment)...)
 		expandedEnvAsList, err := execCtx.ExpandVariables(envAsList)
 		if err != nil {
 			return nil, err
 		}
+		expandedEnvAsList = append(forwardedEnv, expandedEnvAsList...)
 
 		var name string
 		var args []string
