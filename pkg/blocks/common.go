@@ -25,6 +25,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -165,4 +166,48 @@ func FetchEnv(environ map[string]string) []string {
 	}
 
 	return envSlice
+}
+
+// ForwardEnvVar is the environment variable used to request additional
+// comma-separated variable names for remote forwarding.
+const ForwardEnvVar = "TTPFORGE_FORWARD_ENV"
+
+var forwardEnvNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// ForwardedEnv returns set variables requested by names and ForwardEnvVar as
+// NAME=VALUE entries. It trims and deduplicates names, keeping names first.
+// Unset variables are skipped; variables set to an empty string are retained.
+// Invalid names return an error before any entries can reach a remote shell.
+// Callers append TTP-level and step-level entries to preserve their precedence.
+func ForwardedEnv(names []string) ([]string, error) {
+	var envSlice []string
+	seen := make(map[string]bool, len(names))
+
+	appendIfSet := func(name string) error {
+		name = strings.TrimSpace(name)
+		if name == "" || seen[name] {
+			return nil
+		}
+		if !forwardEnvNamePattern.MatchString(name) {
+			return fmt.Errorf("invalid forwarded environment variable name %q: expected [A-Za-z_][A-Za-z0-9_]*", name)
+		}
+		seen[name] = true
+		if value, ok := os.LookupEnv(name); ok {
+			envSlice = append(envSlice, fmt.Sprintf("%s=%s", name, value))
+		}
+		return nil
+	}
+
+	for _, name := range names {
+		if err := appendIfSet(name); err != nil {
+			return nil, err
+		}
+	}
+	for name := range strings.SplitSeq(os.Getenv(ForwardEnvVar), ",") {
+		if err := appendIfSet(name); err != nil {
+			return nil, err
+		}
+	}
+
+	return envSlice, nil
 }

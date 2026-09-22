@@ -45,6 +45,7 @@ type TTPExecutionConfig struct {
 	NoChecks            bool
 	NoProxy             bool
 	CleanupDelaySeconds uint
+	ForwardEnv          []string
 	Repo                repos.Repo
 	Stdout              io.Writer
 	Stderr              io.Writer
