@@ -239,6 +239,74 @@ The following action types support remote execution:
 Output from remote `inline:` and `file:` steps is streamed line-by-line in
 real time, matching the behavior of local execution.
 
+## Environment Variables
+
+Remote `inline:` and `file:` steps receive TTP-level and step-level `env`
+values, but do not inherit the runner's full environment. To forward selected
+variables from TTPForge's process environment, use `--forward-env`:
+
+```bash
+ttpforge run my-ttp.yaml --forward-env EXAMPLE_RUN_ID --forward-env EXAMPLE_TRACE_ID
+```
+
+The flag is repeatable. Names are trimmed and deduplicated in the order given.
+Unset variables are skipped; variables set to an empty string are
+forwarded. Values use the existing remote command environment handling and do
+not require SSH `AcceptEnv` configuration.
+
+Callers must use a TTPForge version that supports this flag. Older versions reject
+the unsupported flag before executing the TTP, making missing support explicit.
+
+After trimming, forwarded names must match `[A-Za-z_][A-Za-z0-9_]*`. An invalid
+forwarded name fails the remote step before running its command, even if the
+variable is unset. TTP-level and step-level `env` names must also match this
+pattern on every SSH shell backend.
+
+Forwarded values are passed literally, including any `$forge.` references.
+TTP-level and step-level `env` values still expand those references.
+
+For connections configured with `shell: cmd`, environment assignments are quoted
+so operators such as `&`, `|`, `<`, and `>` remain literal and trailing spaces are
+preserved. cmd.exe cannot safely represent every value: empty values, double
+quotes, `%`, `!`, and ASCII control characters are rejected before opening a
+remote command session. This validation also applies to TTP-level and step-level
+`env`. Errors identify the variable without including its value. Use a POSIX or
+PowerShell connection for quotes or expansion characters. Empty values require
+a shell that preserves them, such as POSIX.
+
+When the same name appears at multiple levels, later values override earlier
+ones:
+
+1. Forwarded variables from the runner.
+2. TTP-level `env`.
+3. Step-level `env`.
+
+For example, run this TTP with
+`EXAMPLE_RUN_ID=runner ttpforge run my-ttp.yaml --forward-env EXAMPLE_RUN_ID`:
+
+```yaml
+api_version: "2.0"
+name: remote-env-precedence
+env:
+  EXAMPLE_RUN_ID: ttp
+steps:
+  - name: connect-target
+    connect:
+      host: target.example.com
+      auth: agent
+      connection_name: target
+  - name: ttp-value
+    remote: target
+    inline: printf '%s\n' "$EXAMPLE_RUN_ID"
+  - name: step-value
+    remote: target
+    env:
+      EXAMPLE_RUN_ID: step
+    inline: printf '%s\n' "$EXAMPLE_RUN_ID"
+```
+
+The first remote command prints `ttp`; the second prints `step`.
+
 ## How Remote Actions Work
 
 Remote actions use one of two mechanisms:

@@ -28,6 +28,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/facebookincubator/ttpforge/pkg/backends"
 	"github.com/facebookincubator/ttpforge/pkg/logging"
 )
 
@@ -114,7 +115,6 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 		}
 		logging.L().Debugw("File found using provided fs.StatFS", "path", path)
 		return fsPath, nil
-
 	}
 
 	// Handle home directory representation in Windows.
@@ -159,10 +159,39 @@ func FindFilePath(path string, workdir string, system fs.StatFS) (string, error)
 // and their values.
 func FetchEnv(environ map[string]string) []string {
 	var envSlice []string
+	if len(environ) > 0 {
+		envSlice = make([]string, 0, len(environ))
+	}
 
 	for k, v := range environ {
 		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	return envSlice
+}
+
+// ForwardedEnv returns set variables requested by names as NAME=VALUE entries.
+// It trims and deduplicates names, preserving their order.
+// Unset variables are skipped; variables set to an empty string are retained.
+// Invalid names return an error before any entries can reach a remote shell.
+// Callers append TTP-level and step-level entries to preserve their precedence.
+func ForwardedEnv(names []string) ([]string, error) {
+	var envSlice []string
+	seen := make(map[string]bool, len(names))
+
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" || seen[name] {
+			continue
+		}
+		if err := backends.ValidateEnvName(name); err != nil {
+			return nil, fmt.Errorf("cannot forward environment variable: %w", err)
+		}
+		seen[name] = true
+		if value, ok := os.LookupEnv(name); ok {
+			envSlice = append(envSlice, fmt.Sprintf("%s=%s", name, value))
+		}
+	}
+
+	return envSlice, nil
 }

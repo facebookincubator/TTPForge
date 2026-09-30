@@ -26,6 +26,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,17 +42,30 @@ import (
 // remoteShell abstracts shell-specific command building for different
 // remote operating systems.
 type remoteShell interface {
-	setEnv(key, value string) string
+	setEnv(key, value string) (string, error)
 	changeDir(path string) string
 	quoteArg(arg string) string
 	chainCommands(parts []string) string
 }
 
+var envNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// ValidateEnvName checks that key is a portable environment variable name.
+func ValidateEnvName(key string) error {
+	if !envNamePattern.MatchString(key) {
+		return fmt.Errorf("invalid environment variable name %q: expected [A-Za-z_][A-Za-z0-9_]*", key)
+	}
+	return nil
+}
+
 // posixShell builds commands for POSIX-compatible shells (bash, sh, zsh).
 type posixShell struct{}
 
-func (s *posixShell) setEnv(key, value string) string {
-	return fmt.Sprintf("export %s='%s'", key, strings.ReplaceAll(value, "'", "'\\''"))
+func (s *posixShell) setEnv(key, value string) (string, error) {
+	if err := ValidateEnvName(key); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("export %s='%s'", key, strings.ReplaceAll(value, "'", "'\\''")), nil
 }
 
 func (s *posixShell) changeDir(path string) string {
@@ -69,11 +83,14 @@ func (s *posixShell) chainCommands(parts []string) string {
 // powershellShell builds commands for PowerShell on remote Windows hosts.
 type powershellShell struct{}
 
-func (s *powershellShell) setEnv(key, value string) string {
+func (s *powershellShell) setEnv(key, value string) (string, error) {
+	if err := ValidateEnvName(key); err != nil {
+		return "", err
+	}
 	escaped := strings.ReplaceAll(value, "`", "``")
 	escaped = strings.ReplaceAll(escaped, "\"", "`\"")
 	escaped = strings.ReplaceAll(escaped, "$", "`$")
-	return fmt.Sprintf("$env:%s = \"%s\"", key, escaped)
+	return fmt.Sprintf("$env:%s = \"%s\"", key, escaped), nil
 }
 
 func (s *powershellShell) changeDir(path string) string {
@@ -96,8 +113,21 @@ func (s *powershellShell) chainCommands(parts []string) string {
 // cmdShell builds commands for cmd.exe on remote Windows hosts.
 type cmdShell struct{}
 
-func (s *cmdShell) setEnv(key, value string) string {
-	return fmt.Sprintf("set %s=%s", key, value)
+func (s *cmdShell) setEnv(key, value string) (string, error) {
+	if err := ValidateEnvName(key); err != nil {
+		return "", err
+	}
+	// cmd removes variables assigned an empty value. Quotes do not prevent
+	// percent expansion or delayed exclamation-mark expansion, and embedded
+	// quotes or control characters can break out of the assignment.
+	if value == "" || strings.ContainsAny(value, "\"%!") || strings.ContainsFunc(value, func(c rune) bool {
+		return c < ' ' || c == '\x7f'
+	}) {
+		return "", fmt.Errorf("cmd environment variable %q has a value that cannot be passed literally", key)
+	}
+	// Quoting protects operators and keeps the command separator's leading
+	// space out of the value while preserving the value's own trailing spaces.
+	return fmt.Sprintf("set \"%s=%s\"", key, value), nil
 }
 
 func (s *cmdShell) changeDir(path string) string {
@@ -209,19 +239,16 @@ func NewSSHBackend(cfg *RemoteConfig) (*SSHBackend, error) {
 // If stdoutW or stderrW are non-nil, output is tee'd to the writer and
 // a capture buffer simultaneously for real-time streaming.
 func (b *SSHBackend) RunCommand(ctx context.Context, name string, stdin string, args []string, env []string, workDir string, stdoutW io.Writer, stderrW io.Writer) (string, string, error) {
-	session, err := b.client.NewSession()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create SSH session: %w", err)
-	}
-	defer session.Close()
-
-	// Build shell-specific command parts using the configured shell builder.
+	// Validate and build all environment assignments before opening a session.
 	var cmdParts []string
 
 	for _, e := range env {
-		parts := strings.SplitN(e, "=", 2)
-		if len(parts) == 2 {
-			cmdParts = append(cmdParts, b.shell.setEnv(parts[0], parts[1]))
+		if key, value, ok := strings.Cut(e, "="); ok {
+			assignment, err := b.shell.setEnv(key, value)
+			if err != nil {
+				return "", "", err
+			}
+			cmdParts = append(cmdParts, assignment)
 		}
 	}
 
@@ -243,6 +270,12 @@ func (b *SSHBackend) RunCommand(ctx context.Context, name string, stdin string, 
 	cmdParts = append(cmdParts, command)
 
 	fullCmd := b.shell.chainCommands(cmdParts)
+
+	session, err := b.client.NewSession()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create SSH session: %w", err)
+	}
+	defer session.Close()
 
 	if stdin != "" {
 		session.Stdin = strings.NewReader(stdin)
@@ -295,7 +328,7 @@ func (b *SSHBackend) GetFs() (afero.Fs, error) {
 		b.sftpClient = sftpClient
 		b.fs = NewSFTPFs(sftpClient)
 	})
-	return b.fs, b.fsErr
+	return b.fs, b.fsErr //nolint:nilnil // sync.Once sets either the filesystem or its error.
 }
 
 // KillProcess kills a process on the remote host.
@@ -466,20 +499,20 @@ func buildAuthMethods(cfg *RemoteConfig) ([]ssh.AuthMethod, net.Conn, error) {
 					certSigner, err := ssh.NewCertSigner(cert, signer)
 					if err == nil {
 						logging.L().Infof("Using certificate auth with %s", certFile)
-						return []ssh.AuthMethod{ssh.PublicKeys(certSigner)}, nil, nil
+						return []ssh.AuthMethod{ssh.PublicKeys(certSigner)}, nil, nil //nolint:nilnil // No agent socket for key auth.
 					}
 				}
 			}
 			logging.L().Warnf("Found certificate file %s but could not parse it, falling back to key-only auth", certFile)
 		}
 
-		return []ssh.AuthMethod{ssh.PublicKeys(signer)}, nil, nil
+		return []ssh.AuthMethod{ssh.PublicKeys(signer)}, nil, nil //nolint:nilnil // No agent socket for key auth.
 
 	case "password":
 		if cfg.Password == "" {
 			return nil, nil, fmt.Errorf("password must be set when auth is 'password'")
 		}
-		return []ssh.AuthMethod{ssh.Password(cfg.Password)}, nil, nil
+		return []ssh.AuthMethod{ssh.Password(cfg.Password)}, nil, nil //nolint:nilnil // No agent socket for password auth.
 
 	case "password_env":
 		if cfg.PasswordEnv == "" {
@@ -489,7 +522,7 @@ func buildAuthMethods(cfg *RemoteConfig) ([]ssh.AuthMethod, net.Conn, error) {
 		if password == "" {
 			return nil, nil, fmt.Errorf("environment variable %s is empty", cfg.PasswordEnv)
 		}
-		return []ssh.AuthMethod{ssh.Password(password)}, nil, nil
+		return []ssh.AuthMethod{ssh.Password(password)}, nil, nil //nolint:nilnil // No agent socket for password auth.
 
 	default:
 		return nil, nil, fmt.Errorf("unsupported auth method: %s", auth)
