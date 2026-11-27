@@ -156,6 +156,29 @@ steps:
 # ...
 ```
 
+### Windows paths and backslashes
+
+Templates are expanded before the YAML is parsed, so a value such as
+`C:\Users\Public\test.txt` is pasted into the YAML text as-is. Inside a
+double-quoted field like `create_file: "{{ .Args.target_path }}"`, YAML reads
+`\U` as an escape sequence and fails with
+`did not find expected hexdecimal number`. Pass the value through the `quote`
+function instead, which escapes the backslashes and adds the quotes itself:
+
+```yaml
+args:
+  - name: target_path
+    default: 'C:\Users\Public\test.txt'
+steps:
+  - name: write_file
+    create_file: {{ .Args.target_path | quote }}
+    contents: |
+      hello
+```
+
+Literal blocks such as `inline: |` do not process escapes, so they are not
+affected. Forward slashes (`C:/Users/Public/test.txt`) also work.
+
 ## Sprig Functions
 
 Some useful functions that can be used to improve TTPs include:

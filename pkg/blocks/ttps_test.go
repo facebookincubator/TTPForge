@@ -420,3 +420,23 @@ mitre:
 		})
 	}
 }
+
+// TestRenderWindowsPathArgInStructuralField covers issue #622: a Windows path
+// argument expanded into a structural YAML field such as create_file.
+func TestRenderWindowsPathArgInStructuralField(t *testing.T) {
+	const winPath = `C:\Users\Public\test.txt`
+	template := func(field string) string {
+		return "name: windows_path\nsteps:\n  - name: write_file\n    create_file: " + field + "\n    contents: hello\n"
+	}
+
+	t.Run("quote pipeline keeps backslashes", func(t *testing.T) {
+		ttp, err := RenderTemplatedTTP(template(`{{ .Args.target_path | quote }}`), RenderParameters{
+			Args: map[string]any{"target_path": winPath},
+		})
+		require.NoError(t, err)
+		require.Len(t, ttp.Steps, 1)
+		step, ok := ttp.Steps[0].action.(*CreateFileStep)
+		require.True(t, ok)
+		assert.Equal(t, winPath, step.Path)
+	})
+}
